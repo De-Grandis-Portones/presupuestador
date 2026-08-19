@@ -1068,6 +1068,15 @@ export function appendPaymentMethodToNote(note, paymentMethod) {
   if (!pm) return note;
   return `${note}\nForma de pago: ${pm}`;
 }
+// La NP inicial (syncQuoteToOdoo/buildDistributorNote) ya incluye el Maps del cliente
+// final en su nota - pero las NV finales (syncDirectProductionFinalToOdoo,
+// syncFinalQuoteToOdoo en este archivo y en measurementFinalization.js) arman su nota
+// desde cero y no lo llevaban. Se centraliza acá para que las 3 lo agreguen igual.
+export function appendMapsUrlToNote(note, mapsUrl) {
+  const url = toText(mapsUrl);
+  if (!url) return note;
+  return `${note}\nMaps: ${url}`;
+}
 function getBudgetObservation(quote) {
   const payload = quote?.payload && typeof quote.payload === "object" ? quote.payload : {};
   return toText(quote?.budget_observation || payload?.budget_observation || payload?.presupuesto_observacion || payload?.quote_observation || "");
@@ -1623,6 +1632,7 @@ async function syncFinalQuoteToOdoo({ odoo, revisionQuote, originalQuote, approv
     + `\nImporte final a facturar: ${finalAmountToCharge}`
     + (sellerName ? `\nVendedor: ${sellerName}` : "");
   if (forcedNv) note += formatHardcodedOdooNote(forcedNv);
+  note = appendMapsUrlToNote(note, revisionQuote?.end_customer?.maps_url || originalQuote?.end_customer?.maps_url);
   note = appendBudgetObservationToNote(note, revisionQuote || originalQuote);
   note = appendPaymentMethodToNote(note, revisionQuote?.payload?.payment_method || originalQuote?.payload?.payment_method);
   note = appendSaleConditionToNote(note, revisionQuote?.payload?.condition_mode ? revisionQuote : originalQuote);
@@ -1779,6 +1789,7 @@ async function syncDirectProductionFinalToOdoo({ odoo, quote, approverUser }) {
     + `\nPortón sin medición: se envía el detalle completo sin instancia adicional de edición.`
     + (quote.note ? `\n${quote.note}` : "")
     + (sellerName ? `\nVendedor: ${sellerName}` : "");
+  note = appendMapsUrlToNote(note, quote?.end_customer?.maps_url);
   note = appendBudgetObservationToNote(note, quote);
   if (forcedDirectNv) note += formatHardcodedOdooNote(forcedDirectNv);
   note = appendPaymentMethodToNote(note, quote?.payload?.payment_method);
