@@ -1915,6 +1915,73 @@ async function syncLatestFinalCopyForApprovedAcopio({ originalQuote, approverUse
   }
 }
 
+// Extraído de POST / (abajo) para que la API de partner
+// (partner.routes.js, POST /api/partner/v1/quotes) pueda crear un presupuesto real por el
+// mismo camino que un vendedor/distribuidor logueado, sin duplicar el INSERT ni la lógica de
+// measurement flow / envio_odoo_price_snapshot en dos archivos (riesgo de que se
+// desincronicen). userOdooPartnerId es el fallback de bill_to_odoo_partner_id para un
+// distribuidor (mismo criterio que u.odoo_partner_id del JWT en la ruta interna).
+export async function createOriginalQuote({ odoo, body, userId, isDistribuidorUser, userOdooPartnerId }) {
+  const created_by_role = (body.created_by_role === "distribuidor" || body.created_by_role === "vendedor") ? body.created_by_role : (isDistribuidorUser ? "distribuidor" : "vendedor");
+  const catalog_kind = normCatalogKind(body.catalog_kind || "porton");
+  const fulfillment_mode = catalog_kind === "otros" ? "produccion" : String(body.fulfillment_mode || "acopio").trim();
+  if (!["produccion", "acopio"].includes(fulfillment_mode)) throw new Error("fulfillment_mode debe ser 'produccion' o 'acopio'");
+  const linkedPortonQuoteId = getLinkedPortonQuoteIdFromBody(body);
+  let linkedPortonQuote = null;
+  if (linkedPortonQuoteId) {
+    if (!isUuid(linkedPortonQuoteId)) throw new Error("linked_porton_quote_id invalido");
+    if (!["ipanel", "plegados", "otros", "puerta"].includes(catalog_kind)) throw new Error("Solo Ipanel, Plegados, Otros o Puerta pueden vincularse a un porton");
+    linkedPortonQuote = await getQuoteOwnedBySeller(linkedPortonQuoteId, userId);
+    if (!linkedPortonQuote) {
+      const err = new Error("Presupuesto de porton no encontrado o no sos dueno");
+      err.status = 404;
+      throw err;
+    }
+    if (String(linkedPortonQuote.catalog_kind || "porton").toLowerCase() !== "porton") throw new Error("El presupuesto vinculado debe ser de porton");
+  }
+  const end_customer = body.end_customer || linkedPortonQuote?.end_customer || {};
+  const custErr = validateEndCustomerDraft(end_customer);
+  if (custErr) throw new Error(custErr);
+  const lines = Array.isArray(body.lines) ? body.lines : [];
+  const payload = mergeLinkedPortonPayload(body.payload || {}, linkedPortonQuote);
+  const note = body.note || null;
+  const pricelist_id = resolveQuotePricelistId(created_by_role, body.pricelist_id, linkedPortonQuote?.pricelist_id);
+  let bill_to_odoo_partner_id = body.bill_to_odoo_partner_id ? Number(body.bill_to_odoo_partner_id) : (linkedPortonQuote?.bill_to_odoo_partner_id ? Number(linkedPortonQuote.bill_to_odoo_partner_id) : null);
+  if (created_by_role === "distribuidor" && !bill_to_odoo_partner_id) bill_to_odoo_partner_id = userOdooPartnerId ? Number(userOdooPartnerId) : null;
+
+  const measurementFlow = getMeasurementFlowForQuote({ catalog_kind, fulfillment_mode, lines });
+  const envioOdooPriceSnapshot = await computeEnvioOdooPriceSnapshot({ odoo, createdByRole: created_by_role, pricelistId: pricelist_id, lines });
+
+  const q = await dbQuery(
+    `insert into public.presupuestador_quotes (
+        quote_kind, parent_quote_id, created_by_user_id, created_by_role, fulfillment_mode, pricelist_id,
+        bill_to_odoo_partner_id, end_customer, lines, payload, note, catalog_kind, status,
+        commercial_decision, technical_decision, requires_measurement, measurement_mode, measurement_subtype,
+        envio_odoo_price_snapshot, production_set_at
+     )
+     values ('original', null, $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9, $10, 'draft', 'pending', 'pending', $11, $12, $13, $14,
+             case when $3::text = 'produccion' then now() else null end)
+     returning *`,
+    [
+      Number(userId),
+      created_by_role,
+      fulfillment_mode,
+      pricelist_id,
+      bill_to_odoo_partner_id,
+      JSON.stringify(end_customer),
+      JSON.stringify(lines),
+      JSON.stringify(payload),
+      note,
+      catalog_kind,
+      measurementFlow.requires_measurement,
+      measurementFlow.measurement_mode,
+      measurementFlow.measurement_subtype,
+      envioOdooPriceSnapshot,
+    ]
+  );
+  return q.rows[0];
+}
+
 export function buildQuotesRouter(odoo) {
   const router = express.Router();
 
@@ -2021,61 +2088,14 @@ export function buildQuotesRouter(odoo) {
   router.post("/", requireSellerOrDistributor, async (req, res, next) => {
     try {
       const u = req.user;
-      const body = req.body || {};
-      const created_by_role = (body.created_by_role === "distribuidor" || body.created_by_role === "vendedor") ? body.created_by_role : (u.is_distribuidor ? "distribuidor" : "vendedor");
-      const catalog_kind = normCatalogKind(body.catalog_kind || "porton");
-      const fulfillment_mode = catalog_kind === "otros" ? "produccion" : String(body.fulfillment_mode || "acopio").trim();
-      if (!["produccion", "acopio"].includes(fulfillment_mode)) throw new Error("fulfillment_mode debe ser 'produccion' o 'acopio'");
-      const linkedPortonQuoteId = getLinkedPortonQuoteIdFromBody(body);
-      let linkedPortonQuote = null;
-      if (linkedPortonQuoteId) {
-        if (!isUuid(linkedPortonQuoteId)) return res.status(400).json({ ok: false, error: "linked_porton_quote_id invalido" });
-        if (!["ipanel", "plegados", "otros", "puerta"].includes(catalog_kind)) return res.status(400).json({ ok: false, error: "Solo Ipanel, Plegados, Otros o Puerta pueden vincularse a un porton" });
-        linkedPortonQuote = await getQuoteOwnedBySeller(linkedPortonQuoteId, u.user_id);
-        if (!linkedPortonQuote) return res.status(404).json({ ok: false, error: "Presupuesto de porton no encontrado o no sos dueno" });
-        if (String(linkedPortonQuote.catalog_kind || "porton").toLowerCase() !== "porton") return res.status(400).json({ ok: false, error: "El presupuesto vinculado debe ser de porton" });
-      }
-      const end_customer = body.end_customer || linkedPortonQuote?.end_customer || {};
-      const custErr = validateEndCustomerDraft(end_customer);
-      if (custErr) return res.status(400).json({ ok: false, error: custErr });
-      const lines = Array.isArray(body.lines) ? body.lines : [];
-      const payload = mergeLinkedPortonPayload(body.payload || {}, linkedPortonQuote);
-      const note = body.note || null;
-      const pricelist_id = resolveQuotePricelistId(created_by_role, body.pricelist_id, linkedPortonQuote?.pricelist_id);
-      let bill_to_odoo_partner_id = body.bill_to_odoo_partner_id ? Number(body.bill_to_odoo_partner_id) : (linkedPortonQuote?.bill_to_odoo_partner_id ? Number(linkedPortonQuote.bill_to_odoo_partner_id) : null);
-      if (created_by_role === "distribuidor" && !bill_to_odoo_partner_id) bill_to_odoo_partner_id = u.odoo_partner_id ? Number(u.odoo_partner_id) : null;
-
-      const measurementFlow = getMeasurementFlowForQuote({ catalog_kind, fulfillment_mode, lines });
-      const envioOdooPriceSnapshot = await computeEnvioOdooPriceSnapshot({ odoo, createdByRole: created_by_role, pricelistId: pricelist_id, lines });
-
-      const q = await dbQuery(
-        `insert into public.presupuestador_quotes (
-            quote_kind, parent_quote_id, created_by_user_id, created_by_role, fulfillment_mode, pricelist_id,
-            bill_to_odoo_partner_id, end_customer, lines, payload, note, catalog_kind, status,
-            commercial_decision, technical_decision, requires_measurement, measurement_mode, measurement_subtype,
-            envio_odoo_price_snapshot, production_set_at
-         )
-         values ('original', null, $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9, $10, 'draft', 'pending', 'pending', $11, $12, $13, $14,
-                 case when $3::text = 'produccion' then now() else null end)
-         returning *`,
-        [
-          Number(u.user_id),
-          created_by_role,
-          fulfillment_mode,
-          pricelist_id,
-          bill_to_odoo_partner_id,
-          JSON.stringify(end_customer),
-          JSON.stringify(lines),
-          JSON.stringify(payload),
-          note,
-          catalog_kind,
-          measurementFlow.requires_measurement,
-          measurementFlow.measurement_mode,
-          measurementFlow.measurement_subtype,
-          envioOdooPriceSnapshot,
-        ]
-      );
-      res.json({ ok: true, quote: q.rows[0] });
+      const quote = await createOriginalQuote({
+        odoo,
+        body: req.body || {},
+        userId: u.user_id,
+        isDistribuidorUser: !!u.is_distribuidor,
+        userOdooPartnerId: u.odoo_partner_id,
+      });
+      res.json({ ok: true, quote });
     } catch (e) { next(e); }
   });
 

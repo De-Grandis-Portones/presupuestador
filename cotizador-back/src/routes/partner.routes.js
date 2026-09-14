@@ -13,7 +13,8 @@ import { partnerRateLimit, requirePartnerApiKey } from "../partnerAuth.js";
 import { loadCatalogBootstrap } from "../catalogBootstrap.js";
 import { normKind } from "../catalogDb.js";
 import { getPriceFromPricelist, resolveProductInfoForPricing } from "./odoo.routes.js";
-import { IVA_RATE, round2 } from "./quotes.routes.js";
+import { IVA_RATE, round2, createOriginalQuote } from "./quotes.routes.js";
+import { getTechnicalMeasurementRules } from "../settingsDb.js";
 import { dbQuery } from "../db.js";
 
 const MAX_ITEMS_PER_REQUEST = 50;
@@ -102,6 +103,52 @@ async function fetchOrderDates(nv) {
   return { fecha_llegada_instalacion, fecha_medicion };
 }
 
+function parsePartnerItems(items) {
+  const parsedItems = (Array.isArray(items) ? items : []).map((item) => ({
+    productId: Number(item?.product_id || 0),
+    qty: Number(item?.qty || 1) || 0,
+    raw: item,
+  }));
+  const invalid = parsedItems.find((it) => !it.productId || it.qty <= 0);
+  if (invalid) {
+    const err = new Error(`item inválido (falta product_id o qty): ${JSON.stringify(invalid.raw)}`);
+    err.status = 400;
+    throw err;
+  }
+  return parsedItems;
+}
+
+// Usado tanto por POST /price (cotizar) como por POST /quotes (cotizar + guardar): mismo
+// camino de precio que el cotizador interno (getPriceFromPricelist por product.pricelist.item
+// de Odoo), todos los items en paralelo. Devuelve además name/code/odoo_template_id de cada
+// producto para que /quotes pueda armar la línea del presupuesto sin volver a pedirle a Odoo.
+async function resolvePartnerLines({ odoo, distributor, items, marginPercent, adjustmentPercent }) {
+  const parsedItems = parsePartnerItems(items);
+  return Promise.all(parsedItems.map(async ({ productId, qty }) => {
+    const productInfo = await resolveProductInfoForPricing(odoo, { product_id: productId });
+    const price = await getPriceFromPricelist({
+      odoo,
+      pricelistId: distributor.odoo_pricelist_id,
+      productId,
+      qty,
+      partnerId: distributor.odoo_partner_id || false,
+      templateId: productInfo.odoo_template_id || null,
+    });
+    const basePrice = price > 0 ? price : productInfo.list_price;
+    const unitPrice = calcPartnerUnitPrice(basePrice, marginPercent, adjustmentPercent);
+    return {
+      product_id: productId,
+      qty,
+      base_price: round2(basePrice),
+      unit_price: unitPrice,
+      line_total: round2(unitPrice * qty),
+      name: productInfo.name || null,
+      code: productInfo.code || null,
+      odoo_template_id: productInfo.odoo_template_id || null,
+    };
+  }));
+}
+
 export function buildPartnerRouter(odoo) {
   const router = express.Router();
   router.use(partnerRateLimit, requirePartnerApiKey);
@@ -136,44 +183,16 @@ export function buildPartnerRouter(odoo) {
       const adjustmentPercent = Number(body.adjustment_percent || 0) || 0;
       const conditionMode = String(body.condition_mode || "cond1").trim().toLowerCase() === "cond2" ? "cond2" : "cond1";
 
-      // Se valida todo antes de pedir ningun precio: un item invalido no debe dejar
-      // a mitad de camino llamadas a Odoo ya disparadas para los items anteriores.
-      const parsedItems = items.map((item) => ({
-        productId: Number(item?.product_id || 0),
-        qty: Number(item?.qty || 1) || 0,
-        raw: item,
-      }));
-      const invalid = parsedItems.find((it) => !it.productId || it.qty <= 0);
-      if (invalid) {
-        return res.status(400).json({ ok: false, error: `item inválido (falta product_id o qty): ${JSON.stringify(invalid.raw)}` });
-      }
-
       // Mismo camino que /api/odoo/prices (cotizador interno): resuelve por las
       // reglas de product.pricelist.item de Odoo, y todos los items en paralelo -
       // antes esto pedia el precio uno por uno, en serie, con hasta 8 intentos de
       // metodos de Odoo por producto (el motivo real de la demora reportada antes
       // con este mismo patron en el cotizador interno, ver getPrices en
       // odoo.routes.js).
-      const lines = await Promise.all(parsedItems.map(async ({ productId, qty }) => {
-        const productInfo = await resolveProductInfoForPricing(odoo, { product_id: productId });
-        const price = await getPriceFromPricelist({
-          odoo,
-          pricelistId: distributor.odoo_pricelist_id,
-          productId,
-          qty,
-          partnerId: distributor.odoo_partner_id || false,
-          templateId: productInfo.odoo_template_id || null,
-        });
-        const basePrice = price > 0 ? price : productInfo.list_price;
-        const unitPrice = calcPartnerUnitPrice(basePrice, marginPercent, adjustmentPercent);
-        return {
-          product_id: productId,
-          qty,
-          base_price: round2(basePrice),
-          unit_price: unitPrice,
-          line_total: round2(unitPrice * qty),
-        };
-      }));
+      const resolvedLines = await resolvePartnerLines({ odoo, distributor, items, marginPercent, adjustmentPercent });
+      // El shape público de /price no incluye name/code/odoo_template_id (esos solo los
+      // necesita /quotes para armar la línea del presupuesto) - no romper el contrato externo.
+      const lines = resolvedLines.map(({ product_id, qty, base_price, unit_price, line_total }) => ({ product_id, qty, base_price, unit_price, line_total }));
 
       const subtotal = round2(lines.reduce((acc, l) => acc + l.line_total, 0));
       const ivaRate = conditionMode === "cond2" ? CONDITION_2_IVA_RATE : IVA_RATE;
@@ -200,6 +219,109 @@ export function buildPartnerRouter(odoo) {
         nv: nv > 0 ? nv : null,
         fecha_llegada_instalacion: orderDates.fecha_llegada_instalacion,
         fecha_medicion: orderDates.fecha_medicion,
+      });
+    } catch (e) { next(e); }
+  });
+
+  // "Dependencias" del catálogo: qué sección se habilita según lo que ya se eligió en otra
+  // (section_dependency_rules) y qué porton_type corresponde a una combinación de productos
+  // (system_derivation_rules) - mismas reglas que arma el dashboard admin
+  // (SuperuserMeasurementRulesPage) y consume nuestro propio cotizador
+  // (SectionCatalog.jsx vía GET /api/admin/technical-measurement-rules). Son puramente
+  // estructurales (no dependen de margen/IVA/forma de pago), así que se exponen tal cual.
+  // A propósito NO se manda surface_calc_params/parantes_config/rules de medición técnica:
+  // eso sigue siendo interno (ver partnerAuth.js y la decisión original de esta API).
+  router.get("/rules", async (req, res, next) => {
+    try {
+      const kind = normKind(req.query.kind || "porton");
+      const rules = await getTechnicalMeasurementRules(kind);
+      res.json({
+        ok: true,
+        kind,
+        initial_section_id: rules?.initial_section_id ?? null,
+        section_dependency_rules: rules?.section_dependency_rules || [],
+        system_derivation_rules: rules?.system_derivation_rules || [],
+      });
+    } catch (e) { next(e); }
+  });
+
+  // Guarda el presupuesto que el distribuidor ya armó en su propia app (cliente + items
+  // elegidos) como un presupuesto real, del lado de De Grandis, para que el equipo lo
+  // gestione desde acá (revisión técnica/comercial, medición, link de confirmación al
+  // cliente) igual que cualquier presupuesto que un distribuidor carga a mano en el
+  // cotizador. Reusa createOriginalQuote (quotes.routes.js) para no duplicar el INSERT ni la
+  // lógica de measurement flow / envio_odoo_price_snapshot.
+  router.post("/quotes", async (req, res, next) => {
+    try {
+      const distributor = req.partnerDistributor;
+      const body = req.body || {};
+      const items = Array.isArray(body.items) ? body.items : [];
+      if (!items.length) return res.status(400).json({ ok: false, error: "items vacío" });
+      if (items.length > MAX_ITEMS_PER_REQUEST) {
+        return res.status(400).json({ ok: false, error: `No se pueden cotizar más de ${MAX_ITEMS_PER_REQUEST} ítems por request` });
+      }
+
+      const marginPercent = Number(body.margin_percent || 0) || 0;
+      const adjustmentPercent = Number(body.adjustment_percent || 0) || 0;
+      const conditionMode = String(body.condition_mode || "cond1").trim().toLowerCase() === "cond2" ? "cond2" : "cond1";
+
+      const pricedLines = await resolvePartnerLines({ odoo, distributor, items, marginPercent, adjustmentPercent });
+      const subtotal = round2(pricedLines.reduce((acc, l) => acc + l.line_total, 0));
+      const ivaRate = conditionMode === "cond2" ? CONDITION_2_IVA_RATE : IVA_RATE;
+      const iva = round2(subtotal * ivaRate);
+      const total = round2(subtotal + iva);
+
+      // Mismo shape que arma buildPayloadForBack() en el frontend (store.js) para una línea
+      // ya cotizada: basePrice resuelto, price_resolved:true/price_pending:false para que no
+      // quede bloqueada como "precio pendiente" en el dashboard interno.
+      const lines = pricedLines.map((l) => ({
+        product_id: l.product_id,
+        qty: l.qty,
+        basePrice: l.unit_price,
+        name: l.name || null,
+        raw_name: l.name || null,
+        code: l.code || null,
+        odoo_template_id: l.odoo_template_id || null,
+        price_resolved: true,
+        price_pending: false,
+        price_pricelist_id: distributor.odoo_pricelist_id,
+      }));
+
+      const note = ["Creado vía API partner", distributor.full_name, body.note ? String(body.note).trim() : null]
+        .filter(Boolean)
+        .join(" - ");
+
+      const quote = await createOriginalQuote({
+        odoo,
+        body: {
+          created_by_role: "distribuidor",
+          catalog_kind: body.catalog_kind,
+          fulfillment_mode: body.fulfillment_mode,
+          pricelist_id: distributor.odoo_pricelist_id,
+          bill_to_odoo_partner_id: distributor.odoo_partner_id,
+          end_customer: body.end_customer || {},
+          lines,
+          note,
+          payload: {
+            margin_percent_ui: marginPercent,
+            condition_mode: conditionMode,
+            porton_type: body.porton_type || "",
+            dimensions: body.dimensions || {},
+          },
+        },
+        userId: distributor.id,
+        isDistribuidorUser: true,
+        userOdooPartnerId: distributor.odoo_partner_id,
+      });
+
+      res.json({
+        ok: true,
+        quote_id: quote.id,
+        status: quote.status,
+        subtotal,
+        iva_rate: ivaRate,
+        iva,
+        total,
       });
     } catch (e) { next(e); }
   });
