@@ -22,10 +22,8 @@ desde su propia aplicación.
 ## Base URL
 
 ```
-https://TU-DOMINIO/api/partner/v1
+https://presupuestador-kdbl.onrender.com/api/partner/v1
 ```
-
-*(De Grandis te va a confirmar la URL real de producción.)*
 
 ## Autenticación
 
