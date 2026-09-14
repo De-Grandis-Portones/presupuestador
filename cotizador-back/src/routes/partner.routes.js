@@ -25,6 +25,11 @@ function publicCatalogProduct(p) {
     id: Number(p.id),
     name: p.display_name || p.original_name || null,
     sections: Array.isArray(p.sections) ? p.sections : [],
+    // IDs numéricos de sección (coinciden con sections[].id de esta misma respuesta y con
+    // parent_section_id/child_section_ids de GET /rules) - sin esto, un consumidor externo
+    // solo tiene el NOMBRE de sección por producto y no puede cruzarlo de forma confiable
+    // contra las reglas de dependencia, que son por id.
+    section_ids: Array.isArray(p.section_ids) ? p.section_ids.map(Number) : [],
   };
 }
 
