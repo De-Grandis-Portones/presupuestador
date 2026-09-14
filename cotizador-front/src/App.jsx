@@ -34,6 +34,7 @@ import ClientAcceptancePage from "./pages/ClientAcceptancePage/index.jsx";
 import PuertaChecklistPage from "./pages/PuertaChecklistPage/index.jsx";
 import PuertaWorkflowPage from "./pages/PuertaWorkflowPage/index.jsx";
 import PuertaPanelPage from "./pages/PuertaPanelPage/index.jsx";
+import TicketsPage from "./pages/TicketsPage/index.jsx";
 import TechnicalConsultsPage from "./pages/TechnicalConsultsPage/index.jsx";
 import CommercialConsultsPage from "./pages/CommercialConsultsPage/index.jsx";
 import QuoteHistoryViewerPage from "./pages/QuoteHistoryViewerPage/index.jsx";
@@ -116,6 +117,7 @@ export default function App() {
           <Route path="aprobacion/tecnica/menu" element={<ApprovalSectionMenuPage mode="tecnica" />} />
           <Route path="aprobacion/tecnica/portones-estado" element={<PortonesEstadoPage />} />
           <Route path="aprobacion/tecnica" element={<AprobacionTecnicaPage />} />
+          <Route path="tickets" element={<TicketsPage />} />
           <Route path="consultas-tecnicas" element={<TechnicalConsultsPage />} />
           <Route path="consultas-comerciales" element={<CommercialConsultsPage />} />
           <Route path="usuarios" element={<UsersAdminPage />} />
