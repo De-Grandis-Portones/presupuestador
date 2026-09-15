@@ -188,8 +188,22 @@ function normalizeSellerDimensionMm(value) {
   if (!Number.isFinite(n) || n <= 0) return 0;
   return Math.round(n > 100 ? n : n * 1000);
 }
+// payload.final_calculated_dimensions normalmente esta vacio: la medicion es solo tomar la
+// medida del vano para que la vendedora la aplique al presupuesto (pedido explicito
+// 2026-08-19), nada se calcula/persiste solo. Este campo solo tiene datos si un superusuario
+// corrio el resync manual puntual (resyncPortonMeasurements en measurementFinalization.js) -
+// ahi si conviene mostrarlo en vez del presupuesto. Merge para no perder campos que ese resync
+// no toca (parantes, colocacion, etc.).
+function resolveProductionDimensions(quote) {
+  const base = quote?.payload?.dimensions || {};
+  const final = quote?.payload?.final_calculated_dimensions;
+  if (final && typeof final === "object" && Object.keys(final).length) {
+    return { ...base, ...final };
+  }
+  return base;
+}
 function buildSellerDimensionsLine(quote) {
-  const dims = quote?.payload?.dimensions || {};
+  const dims = resolveProductionDimensions(quote);
   const widthMm = normalizeSellerDimensionMm(dims?.width);
   const heightMm = normalizeSellerDimensionMm(dims?.height);
   if (!widthMm && !heightMm) return "";
@@ -251,7 +265,7 @@ export async function buildBudgetVanoTechnicalLines(payload) {
   const technicalSettings = await getTechnicalMeasurementRules();
   const surfaceParameters = technicalSettings?.surface_parameters || {};
   const calculated = computeSurfaceAutomaticContext({ quote, form: quote?.measurement_form || {}, surfaceParameters });
-  const dims = quote?.payload?.dimensions || {};
+  const dims = resolveProductionDimensions(quote);
 
   const left = [];
   const portonTypeLabel = getPortonTypeLabelFromQuote(quote);

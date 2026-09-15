@@ -22,6 +22,7 @@ import {
   appendPaymentMethodToNote,
   appendBudgetObservationToNote,
   appendCommercialCommentToNote,
+  appendMapsUrlToNote,
 } from "./routes/quotes.routes.js";
 
 const PLACEHOLDER_PRODUCT_ID = Number(
@@ -350,7 +351,7 @@ async function buildPreproduccionPayload({ originalQuote, sourceQuote, revisionQ
     revisionQuote?.payload && typeof revisionQuote.payload === "object"
       ? revisionQuote.payload
       : {};
-  const dimensions =
+  const budgetDimensions =
     revisionPayload?.dimensions && typeof revisionPayload.dimensions === "object"
       ? revisionPayload.dimensions
       : sourcePayload?.dimensions && typeof sourcePayload.dimensions === "object"
@@ -358,6 +359,20 @@ async function buildPreproduccionPayload({ originalQuote, sourceQuote, revisionQ
         : originalPayload?.dimensions && typeof originalPayload.dimensions === "object"
           ? originalPayload.dimensions
           : {};
+  const finalCalculatedDimensions =
+    revisionPayload?.final_calculated_dimensions && typeof revisionPayload.final_calculated_dimensions === "object" && Object.keys(revisionPayload.final_calculated_dimensions).length
+      ? revisionPayload.final_calculated_dimensions
+      : sourcePayload?.final_calculated_dimensions && typeof sourcePayload.final_calculated_dimensions === "object" && Object.keys(sourcePayload.final_calculated_dimensions).length
+        ? sourcePayload.final_calculated_dimensions
+        : originalPayload?.final_calculated_dimensions && typeof originalPayload.final_calculated_dimensions === "object" && Object.keys(originalPayload.final_calculated_dimensions).length
+          ? originalPayload.final_calculated_dimensions
+          : {};
+  // final_calculated_dimensions normalmente esta vacio: la medicion es solo tomar la medida del
+  // vano para que la vendedora la aplique al presupuesto (pedido explicito 2026-08-19) - nada
+  // se calcula ni persiste automatico. Solo existe si un superusuario corrio el resync manual
+  // puntual (resyncPortonMeasurements, "tengo una queja de este porton"); ahi si pisa
+  // ancho/alto/paso/hoja/peso sobre el presupuesto para ese registro de produccion en particular.
+  const dimensions = { ...budgetDimensions, ...finalCalculatedDimensions };
   const measurementForm =
     originalQuote?.measurement_form && typeof originalQuote.measurement_form === "object"
       ? originalQuote.measurement_form
@@ -676,6 +691,11 @@ function getOdooConditionLabel(payload) {
 }
 function calcDetailedUnitWithIva(line, payload, quote = null) {
   // Nombre legacy: este precio unitario es el que se envía a Odoo.
+  // "Facturado previamente" es un dato duro (el neto ya facturado en la NP/NV anterior,
+  // ver buildPreviouslyBilledLine) - no se le aplica coeficiente/margen, ajuste por forma
+  // de pago ni factor de condición. Mismo criterio que calcOdooUnitPrice en
+  // quotes.routes.js (usado por la NP inicial y por Acopio->Producción); acá faltaba.
+  if (line?.previously_billed_line === true) return round2(Number(line.basePrice ?? line.base_price ?? 0));
   if (shouldZeroShippingForOdoo(quote, line)) return 0;
   // Envío: usa el precio de Odoo ya congelado (no el que cargó el distribuidor
   // para su propio presupuesto, que puede estar editado/marcado con margen).
@@ -1360,6 +1380,7 @@ async function syncFinalQuoteToOdoo({ odoo, revisionQuote, originalQuote, source
     ? revisionQuote.payload
     : (sourceQuote?.payload?.condition_mode ? sourceQuote.payload : (originalQuote?.payload || {}));
   let note = `Condición vendida: ${getOdooConditionLabel(conditionPayload)}`;
+  note = appendMapsUrlToNote(note, revisionQuote?.end_customer?.maps_url || sourceQuote?.end_customer?.maps_url || originalQuote?.end_customer?.maps_url);
   note = appendBudgetObservationToNote(note, revisionQuote || sourceQuote || originalQuote);
   note = appendPaymentMethodToNote(note, conditionPayload?.payment_method);
   note = appendCommercialCommentToNote(note, originalQuote?.measurement_commercial_review_notes);
@@ -1881,10 +1902,19 @@ async function saveTokenAndNotify(odoo, originalQuote) {
   }
 }
 
+// "Las medidas" (payload.dimensions: ancho/alto/vano que carga la vendedora) son un dato
+// duro - la medicion NUNCA las pisa, ni siquiera cuando Tecnica da la aprobacion final (pedido
+// explicito 2026-08-19: "la medicion es SOLO tomar las medidas del vano, para que la vendedora
+// despues la aplique, nada mas"). El flujo normal de medicion (finalizeMeasurementToRevisionQuote,
+// mas abajo) YA NO llama a mergeDimensionsPatch/persistDimensionsPatch: la medida medida queda
+// solo en measurement_form (persistente, historial, lo que la vendedora consulta para aplicarla
+// ella misma) y no se calcula/escribe nada mas en ningun lado. Las dos funciones de aca abajo
+// sobreviven unicamente para resyncPortonMeasurements, el resync MANUAL de superusuario (accion
+// explicita de una persona para un porton puntual, no algo que corre solo).
 function mergeDimensionsPatch(payload, dimensionsPatch) {
   if (!dimensionsPatch || typeof dimensionsPatch !== "object" || !Object.keys(dimensionsPatch).length) return payload;
   const base = payload && typeof payload === "object" ? payload : {};
-  return { ...base, dimensions: { ...(base.dimensions || {}), ...dimensionsPatch } };
+  return { ...base, final_calculated_dimensions: { ...(base.final_calculated_dimensions || {}), ...dimensionsPatch } };
 }
 // Una vez que el cliente acepto el link, los datos que ve (medidas incluidas) quedan congelados
 // para siempre - no se vuelven a tocar aunque la finalizacion se re-dispare (retry, resync, un
@@ -1892,17 +1922,17 @@ function mergeDimensionsPatch(payload, dimensionsPatch) {
 function isClientAlreadyAccepted(quote) {
   return !!(quote?.measurement_client_accepted_at || quote?.payload?.measurement_client_acceptance?.accepted_at);
 }
-// Actualiza payload.dimensions de la quote dada (original o copia) con las medidas de paso/hoja
-// recalculadas, para que el link de aceptacion del cliente (que lee del original) y cualquier
-// consulta tecnica vean la medida final, no la del presupuesto. jsonb merge para no pisar el resto.
+// Actualiza payload.final_calculated_dimensions (solo desde resyncPortonMeasurements, ver
+// arriba) sin tocar payload.dimensions (el presupuesto de la vendedora, dato duro). jsonb
+// merge para no pisar el resto de payload.
 async function persistDimensionsPatch(quoteId, dimensionsPatch) {
   if (!quoteId || !dimensionsPatch || typeof dimensionsPatch !== "object" || !Object.keys(dimensionsPatch).length) return;
   await dbQuery(
     `update public.presupuestador_quotes
         set payload = jsonb_set(
           coalesce(payload, '{}'::jsonb),
-          '{dimensions}',
-          coalesce(payload->'dimensions', '{}'::jsonb) || $2::jsonb,
+          '{final_calculated_dimensions}',
+          coalesce(payload->'final_calculated_dimensions', '{}'::jsonb) || $2::jsonb,
           true
         )
       where id=$1`,
@@ -1919,9 +1949,6 @@ export async function finalizeMeasurementToRevisionQuote({ odoo, originalQuote, 
   // Porton a produccion sin medicion: la NV ya fue creada al aprobar Comercial+Tecnica.
   // La aprobacion final del circuito tecnico solo debe disparar WhatsApp y no crear otra NV.
   if (isDirectNvAlreadyCreated(originalQuote)) {
-    if (!isClientAlreadyAccepted(originalQuote)) {
-      await persistDimensionsPatch(originalQuote?.id, base.dimensions_patch);
-    }
     const existingOrder = {
       id: Number(originalQuote?.final_sale_order_id || originalQuote?.odoo_sale_order_id || 0) || null,
       name: toText(originalQuote?.final_sale_order_name || originalQuote?.odoo_sale_order_name),
@@ -1955,17 +1982,13 @@ export async function finalizeMeasurementToRevisionQuote({ odoo, originalQuote, 
     };
   }
 
-  const clientAlreadyAccepted = isClientAlreadyAccepted(originalQuote);
-  if (!clientAlreadyAccepted) {
-    await persistDimensionsPatch(originalQuote?.id, base.dimensions_patch);
-  }
-  const patchedSourceQuote = base.dimensions_patch && !clientAlreadyAccepted
-    ? { ...base.source_quote, payload: mergeDimensionsPatch(base.source_quote?.payload, base.dimensions_patch) }
-    : base.source_quote;
-
+  // La medición es solo tomar las medidas del vano para que la vendedora las aplique (pedido
+  // explícito 2026-08-19) - acá no se calcula ni se persiste nada automático a partir de la
+  // medición. payload.dimensions del presupuesto (source_quote) es lo único que se usa, tal
+  // cual haya quedado despues de que la vendedora lo revisó y editó.
   const revisionQuote = await getOrCreateRevisionQuote({
     originalQuote,
-    sourceQuote: patchedSourceQuote,
+    sourceQuote: base.source_quote,
     finalLines,
   });
 
@@ -2150,7 +2173,7 @@ export async function resyncPortonMeasurements({ odoo, originalQuoteId, force = 
     return { ok: false, error: "No se pudieron recalcular las medidas (revisar tipo de portón/líneas del presupuesto)" };
   }
 
-  const beforeDims = originalQuote.payload?.dimensions || {};
+  const beforeDims = originalQuote.payload?.final_calculated_dimensions || {};
   await persistDimensionsPatch(originalQuote.id, dimensionsPatch);
   if (clientAccepted && force) {
     // Unico camino permitido para tocar datos post-aceptacion: queda registrado quien y cuando.
