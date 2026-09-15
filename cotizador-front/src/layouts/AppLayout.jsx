@@ -7,6 +7,7 @@ import { getTechnicalConsultUnreadSummary } from "../api/technicalConsults.js";
 import { getCommercialConsultUnreadSummary } from "../api/commercialConsults.js";
 import AptoKgProductSectionFilterPatch from "../components/AptoKgProductSectionFilterPatch.jsx";
 import PendingClientAcceptanceModal from "../components/PendingClientAcceptanceModal.jsx";
+import TicketWidget from "../components/TicketWidget.jsx";
 
 const DROPDOWN_ITEM_STYLE = {
   display: "block",
@@ -230,20 +231,6 @@ function TechnicalConsultHeaderButton() {
   );
 }
 
-function TicketHeaderButton() {
-  const navigate = useNavigate();
-  return (
-    <Button variant="ghost" onClick={() => navigate("/tickets")} title="Tickets">
-      <img
-        src="/ticket-logo.png"
-        alt=""
-        style={{ width: 14, height: 14, objectFit: "contain", verticalAlign: "middle", marginRight: 6 }}
-      />
-      Tickets
-    </Button>
-  );
-}
-
 function CommercialConsultHeaderButton() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
@@ -386,7 +373,7 @@ export default function AppLayout() {
           ) : null}
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <TicketHeaderButton />
+            <TicketWidget />
             <TechnicalConsultHeaderButton />
             <CommercialConsultHeaderButton />
             <OdooStatusBadge />
