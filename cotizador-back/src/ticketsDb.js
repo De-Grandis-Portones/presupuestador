@@ -30,6 +30,7 @@ export async function ensureTicketsSchema() {
     CREATE INDEX IF NOT EXISTS idx_tickets_estado ON public.tickets(estado);
     CREATE INDEX IF NOT EXISTS idx_tickets_creado_por ON public.tickets(creado_por_id);
     CREATE INDEX IF NOT EXISTS idx_tickets_app_origen ON public.tickets(app_origen);
+    CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON public.tickets(created_at DESC);
 
     CREATE TABLE IF NOT EXISTS public.ticket_mensajes (
       id SERIAL PRIMARY KEY,
@@ -67,10 +68,19 @@ export async function createTicket({ categoria, mensaje, rutaOrigen, creadoPorId
   return rows[0];
 }
 
+// Sin `adjuntos`: esa columna puede pesar varios MB por fila (adjuntos en
+// base64) y esta consulta es para pintar la lista de "Mis tickets" (solo
+// categoría/estado/fecha) - se recorta a propósito. El detalle sí trae todo
+// vía `select *` en getTicketForOwner.
+const TICKET_LIST_COLUMNS = `
+  id, categoria, mensaje, estado, creado_por_id, creado_por_username,
+  ruta_origen, app_origen, created_at, updated_at
+`;
+
 export async function listMyTickets(userId) {
   await ensureTicketsSchema();
   const { rows } = await dbQuery(
-    `select * from public.tickets where creado_por_id = $1 order by created_at desc;`,
+    `select ${TICKET_LIST_COLUMNS} from public.tickets where creado_por_id = $1 order by created_at desc;`,
     [userId]
   );
   return rows;
@@ -103,4 +113,19 @@ export async function addOwnMessage(ticketId, { autorId, autorUsername, mensaje 
   );
   await dbQuery(`update public.tickets set updated_at = now() where id = $1;`, [ticketId]);
   return rows[0];
+}
+
+// Anular el propio ticket: BORRA la fila (a pedido explícito del usuario -
+// "de qué sirve tenerlo" - no es un soft-delete/estado). Solo quien lo creó,
+// y solo si no está "closed" (ya resuelto por soporte, eso queda como
+// historial). No hace falta que intervenga soporte, es autoservicio.
+// `ticket_mensajes` tiene ON DELETE CASCADE, así que las respuestas del
+// ticket se borran solas con esto.
+export async function deleteOwnTicket(id, userId) {
+  await ensureTicketsSchema();
+  const { rows } = await dbQuery(
+    `delete from public.tickets where id = $1 and creado_por_id = $2 and estado != 'closed' returning id;`,
+    [id, userId]
+  );
+  return rows[0] || null;
 }

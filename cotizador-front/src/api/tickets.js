@@ -23,3 +23,8 @@ export async function addMyTicketMessage(id, payload = {}) {
   if (!data?.ok) throw new Error(data?.error || "No se pudo enviar el mensaje");
   return data.mensaje;
 }
+
+export async function cancelMyTicket(id) {
+  const { data } = await http.delete(`/api/tickets/mine/${encodeURIComponent(String(id))}`);
+  if (!data?.ok) throw new Error(data?.error || "No se pudo anular el ticket");
+}
