@@ -29,6 +29,7 @@ import {
 } from "../productionPropertyAssignments.js";
 import { calcOdooUnitPrice, calcQuoteSubtotal, round2, IVA_RATE, getPayloadConditionMode } from "./quotes.routes.js";
 import { generatePartnerApiKey } from "../partnerAuth.js";
+import { buildDistributorsWorkbook } from "../distributorsExport.js";
 
 function requireEncComercial(req, res, next) { if (!req.user?.is_enc_comercial) return res.status(403).json({ ok: false, error: "No autorizado" }); next(); }
 function requireSuperuser(req, res, next) { if (!req.user?.is_superuser) return res.status(403).json({ ok: false, error: "No autorizado" }); next(); }
@@ -590,6 +591,100 @@ export function buildAdminRouter(odoo) {
   });
   router.put("/users/:id", requireAuth, requireEncComercialOrSuperuser, async (req, res, next) => {
     try { res.json({ ok: true, user: await updateUser(req.params.id, req.body || {}) }); } catch (e) { next(e); }
+  });
+
+  // Excel de distribuidores para Gestor de usuarios: nombre, usuario, lista de
+  // precio, teléfono, estado (sin presupuestar hace 2+ meses = inactivo),
+  // dirección/localidad/provincia (del partner de Odoo vinculado) y vendedor
+  // asignado. Se arma al vuelo en cada descarga, no es un snapshot guardado.
+  router.get("/distributors/export", requireAuth, requireEncComercialOrSuperuser, async (req, res, next) => {
+    try {
+      await ensureUsersAdminColumns();
+
+      const usersR = await dbQuery(`
+        select d.id, d.username, d.full_name, d.phone, d.is_active,
+               d.odoo_partner_id, d.odoo_pricelist_id,
+               s.username as seller_username, s.full_name as seller_full_name
+          from public.presupuestador_users d
+          left join public.presupuestador_users s on s.id = d.assigned_seller_user_id
+         where coalesce(d.is_distribuidor, false) = true
+         order by coalesce(nullif(d.full_name,''), d.username) asc
+      `);
+      const distributors = usersR.rows || [];
+
+      const ids = distributors.map((d) => d.id);
+      const lastQuoteByUser = new Map();
+      if (ids.length) {
+        const q = await dbQuery(
+          `select created_by_user_id, max(created_at) as last_quote_at, count(*) as total_quotes
+             from public.presupuestador_quotes
+            where created_by_user_id = any($1::int[])
+            group by created_by_user_id`,
+          [ids]
+        );
+        for (const row of q.rows || []) {
+          lastQuoteByUser.set(Number(row.created_by_user_id), {
+            lastQuoteAt: row.last_quote_at,
+            total: Number(row.total_quotes),
+          });
+        }
+      }
+
+      const pricelistIds = [...new Set(distributors.map((d) => d.odoo_pricelist_id).filter(Boolean))];
+      const pricelistNameById = new Map();
+      if (pricelistIds.length) {
+        try {
+          const rows = await odoo.executeKw("product.pricelist", "read", [pricelistIds], { fields: ["id", "name"] });
+          for (const r of rows || []) pricelistNameById.set(r.id, r.name);
+        } catch {
+          // sin nombre si Odoo no responde; el id ya sirve como referencia
+        }
+      }
+
+      const partnerIds = [...new Set(distributors.map((d) => d.odoo_partner_id).filter(Boolean))];
+      const partnerById = new Map();
+      if (partnerIds.length) {
+        try {
+          const rows = await odoo.executeKw("res.partner", "read", [partnerIds], { fields: ["id", "street", "street2", "city", "state_id"] });
+          for (const r of rows || []) partnerById.set(r.id, r);
+        } catch {
+          // sin dirección si Odoo no responde
+        }
+      }
+
+      const twoMonthsAgo = new Date();
+      twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+      const reportRows = distributors.map((d) => {
+        const quoteInfo = lastQuoteByUser.get(Number(d.id));
+        const lastQuoteAt = quoteInfo?.lastQuoteAt || null;
+        const stale = !lastQuoteAt || new Date(lastQuoteAt) < twoMonthsAgo;
+        const partner = d.odoo_partner_id ? partnerById.get(d.odoo_partner_id) : null;
+        const direccion = partner ? [partner.street, partner.street2].filter(Boolean).join(" ").trim() : "";
+        const provincia = Array.isArray(partner?.state_id) ? partner.state_id[1] : "";
+
+        return {
+          nombre: d.full_name || "",
+          usuario: d.username || "",
+          lista_precio: d.odoo_pricelist_id ? (pricelistNameById.get(d.odoo_pricelist_id) || `#${d.odoo_pricelist_id}`) : "",
+          telefono: d.phone || "",
+          estado: stale ? "Inactivo" : "Activo",
+          ultimo_presupuesto: lastQuoteAt ? new Date(lastQuoteAt).toISOString().slice(0, 10) : "",
+          total_presupuestos: quoteInfo?.total || 0,
+          direccion,
+          localidad: partner?.city || "",
+          provincia: provincia || "",
+          vendedor: d.seller_full_name || d.seller_username || "",
+          cuenta: d.is_active ? "Habilitada" : "Deshabilitada",
+        };
+      });
+
+      const buffer = await buildDistributorsWorkbook(reportRows);
+      const fecha = new Date().toISOString().slice(0, 10);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="Distribuidores ${fecha}.xlsx"`);
+      res.send(buffer);
+    } catch (e) { next(e); }
   });
 
   // ---- API key de partner (ver src/partnerAuth.js y routes/partner.routes.js) ----
