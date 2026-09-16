@@ -1474,6 +1474,63 @@ async function syncFinalQuoteToOdoo({ odoo, revisionQuote, originalQuote, source
     },
   };
 }
+
+// Fix puntual (2026-09): INP4245 (Ipanel, cliente real Exin SRL) nunca generó su
+// NV real - cayó en el bug ya documentado en quotesSchema.js de un UPDATE
+// masivo que marcaba Ipanels como synced_odoo sin llamar nunca a Odoo (mismo
+// patrón que las 4 víctimas ya conocidas INP4433/4434/4435/4444; esta es una 5ª
+// no detectada hasta ahora). Además de la NV faltante, el cliente pidió que el
+// monto de esta NV puntual se fuerce a un total acordado con el cliente (incluye
+// otros servicios fuera del presupuestador) en vez de usar el cálculo automático
+// de líneas — mismo mecanismo/producto placeholder que usa
+// set-proforma-adjustment en admin.routes.js para casos así.
+// Reusa syncFinalQuoteToOdoo (mismo camino que cualquier otra NV real: numeración,
+// anti-duplicados por "origin", vendedor, financiación) armando a mano una única
+// línea de ajuste en vez de las líneas calculadas automáticamente.
+export async function forceCreateIpanelAdjustmentNv({ odoo, quoteId, partnerId, netoAmount, lineLabel }) {
+  const r = await dbQuery(`select * from public.presupuestador_quotes where id=$1`, [quoteId]);
+  const originalQuote = r.rows?.[0];
+  if (!originalQuote) throw new Error(`Quote ${quoteId} no encontrado`);
+  if (String(originalQuote.catalog_kind || "").toLowerCase().trim() !== "ipanel") {
+    throw new Error(`Quote ${quoteId} no es catalog_kind=ipanel (es "${originalQuote.catalog_kind}")`);
+  }
+
+  const revisionQuote = {
+    id: originalQuote.id,
+    catalog_kind: "ipanel",
+    bill_to_odoo_partner_id: partnerId,
+    lines: [{
+      product_id: PLACEHOLDER_PRODUCT_ID,
+      qty: 1,
+      price_unit: round2(netoAmount),
+      name: lineLabel,
+      raw_name: lineLabel,
+    }],
+  };
+
+  const { order, metrics } = await syncFinalQuoteToOdoo({
+    odoo,
+    revisionQuote,
+    originalQuote,
+    sourceQuote: originalQuote,
+    precomputedMetrics: {},
+  });
+
+  const upd = await dbQuery(
+    `update public.presupuestador_quotes
+        set bill_to_odoo_partner_id=$2,
+            final_sale_order_id=$3,
+            final_sale_order_name=$4,
+            final_status='synced_odoo',
+            final_synced_at=now()
+      where id=$1
+      returning id, final_sale_order_id, final_sale_order_name, bill_to_odoo_partner_id`,
+    [originalQuote.id, partnerId, order.id, order.name],
+  );
+
+  return { order, metrics, dbRow: upd.rows?.[0] };
+}
+
 function normalizeUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
 }
