@@ -195,7 +195,8 @@ tantas veces como haga falta.
 - `condition_mode` (opcional, default `"cond1"`): `"cond1"` (IVA 21%) o
   `"cond2"` (IVA 10.5%).
 - `nv` (opcional): si ya tenés el número de NV de un presupuesto anterior
-  (ver más abajo), te devuelve también sus fechas de medición/instalación.
+  (ver más abajo), te devuelve también si lo encontramos, su estado de
+  medición y sus fechas de medición/instalación.
 
 **Respuesta:**
 ```json
@@ -214,10 +215,22 @@ tantas veces como haga falta.
   "iva": 36498,
   "total": 210298,
   "nv": null,
+  "nv_encontrado": null,
   "fecha_llegada_instalacion": null,
-  "fecha_medicion": null
+  "fecha_medicion": null,
+  "estado_medicion": null
 }
 ```
+
+Si mandaste `nv`, revisá **`nv_encontrado`** antes que las fechas:
+- `nv_encontrado: false` → ese NV no existe en nuestro sistema.
+- `nv_encontrado: true` → existe. `estado_medicion` te dice en qué está
+  (`"pendiente"`, `"programada"` o `"realizada"`), y `fecha_medicion` viene
+  `null` mientras esté `"pendiente"` — **eso no significa que no exista**,
+  solo que todavía no se le asignó fecha. `estado_medicion` viene `null` si
+  ese producto no requiere medición (no aplica).
+- Si no mandaste `nv` (o mandaste `0`/vacío), todos estos campos vienen
+  `null` porque no se buscó nada.
 
 ## 4. `POST /quotes` — crear el presupuesto (esto SÍ queda guardado)
 

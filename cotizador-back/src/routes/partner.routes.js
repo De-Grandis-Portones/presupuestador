@@ -70,7 +70,7 @@ async function fetchInstallationDate(nv) {
     [nv]
   );
   const row = r.rows?.[0];
-  return row?.fecha_despacho || row?.fecha_plan_entrega || null;
+  return { found: !!row, fecha: row?.fecha_despacho || row?.fecha_plan_entrega || null };
 }
 
 // Fecha de medición: NO viene de Planta (portones.fecha_med) - probado contra
@@ -82,9 +82,16 @@ async function fetchInstallationDate(nv) {
 // campos viven en la fila 'original' del quote, no en la 'copy' que lleva el
 // NV final, así que se matchea por el número de NV/NP contra cualquiera de
 // los dos nombres de esa fila original.
+//
+// estado_medicion se arma a partir de las fechas/requires_measurement, no de
+// measurement_status: ese campo tiene muchos más estados internos (submitted,
+// needs_fix, returned_to_seller...) pensados para el flujo interno de
+// aprobación, no para "todavía no tiene fecha" vs "no aplica" que es lo único
+// que le importa a un consumidor externo.
 async function fetchMeasurementDate(nv) {
   const r = await dbQuery(
-    `select to_char(measurement_at, 'YYYY-MM-DD') as fecha_realizada,
+    `select requires_measurement,
+            to_char(measurement_at, 'YYYY-MM-DD') as fecha_realizada,
             to_char(measurement_scheduled_for, 'YYYY-MM-DD') as fecha_programada
        from public.presupuestador_quotes
       where quote_kind = 'original'
@@ -97,15 +104,33 @@ async function fetchMeasurementDate(nv) {
     [String(nv)]
   );
   const row = r.rows?.[0];
-  return row?.fecha_realizada || row?.fecha_programada || null;
+  if (!row) return { found: false, fecha: null, estado: null };
+
+  const fecha = row.fecha_realizada || row.fecha_programada || null;
+  const estado = !row.requires_measurement
+    ? null
+    : row.fecha_realizada ? "realizada" : row.fecha_programada ? "programada" : "pendiente";
+  return { found: true, fecha, estado };
 }
 
+// nv_encontrado antes devolvía siempre fechas en null tanto si el NV no existe
+// como si existe pero todavía no tiene fecha de medición/instalación - un
+// consumidor externo (caso real: integración de Fidelity) no tiene forma de
+// distinguir "no existe" de "existe, todavía pendiente" y termina mostrando
+// "no existe" cuando en realidad solo falta la fecha. Se agrega nv_encontrado
+// (encontrado en cualquiera de las dos fuentes) y estado_medicion para que
+// puedan mostrar el estado real sin necesitar una fecha puesta.
 async function fetchOrderDates(nv) {
-  const [fecha_llegada_instalacion, fecha_medicion] = await Promise.all([
+  const [installation, measurement] = await Promise.all([
     fetchInstallationDate(nv),
     fetchMeasurementDate(nv),
   ]);
-  return { fecha_llegada_instalacion, fecha_medicion };
+  return {
+    nv_encontrado: installation.found || measurement.found,
+    fecha_llegada_instalacion: installation.fecha,
+    fecha_medicion: measurement.fecha,
+    estado_medicion: measurement.estado,
+  };
 }
 
 function parsePartnerItems(items) {
@@ -208,7 +233,9 @@ export function buildPartnerRouter(odoo) {
       // producción), se informan sus fechas junto con el precio en la misma
       // respuesta - ver fetchOrderDates.
       const nv = Number(body.nv || 0);
-      const orderDates = nv > 0 ? await fetchOrderDates(nv) : { fecha_llegada_instalacion: null, fecha_medicion: null };
+      const orderDates = nv > 0
+        ? await fetchOrderDates(nv)
+        : { nv_encontrado: null, fecha_llegada_instalacion: null, fecha_medicion: null, estado_medicion: null };
 
       res.json({
         ok: true,
@@ -222,8 +249,10 @@ export function buildPartnerRouter(odoo) {
         iva,
         total,
         nv: nv > 0 ? nv : null,
+        nv_encontrado: orderDates.nv_encontrado,
         fecha_llegada_instalacion: orderDates.fecha_llegada_instalacion,
         fecha_medicion: orderDates.fecha_medicion,
+        estado_medicion: orderDates.estado_medicion,
       });
     } catch (e) { next(e); }
   });
