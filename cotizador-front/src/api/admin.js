@@ -234,6 +234,23 @@ export async function adminGetHistoryDetail(id) {
   return data.quote;
 }
 
+function triggerBlobDownload(blob, filename) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function adminExportDistributors() {
+  const { data } = await http.get(`/api/admin/distributors/export`, { responseType: "blob" });
+  const fecha = new Date().toISOString().slice(0, 10);
+  triggerBlobDownload(data, `Distribuidores ${fecha}.xlsx`);
+}
+
 export async function adminListUsers({ role = "all", q = "", active = "all" } = {}) {
   const qs = new URLSearchParams();
   if (role) qs.set("role", role);
