@@ -736,13 +736,21 @@ export default function ClientAcceptancePage() {
   // Medidas del porton CALCULADO (vano + ajuste "detras del vano" si corresponde), distinto
   // del vano en si (dato duro medido). Mismo criterio que storedMedidasPasoText: preferir lo
   // que ya calculo el backend con la formula oficial antes que la aproximacion local.
+  // Prioriza measurement_form.ancho_final_mm/alto_final_mm (misma fuente que "Ancho/Alto de
+  // Vano" mas abajo): payload.dimensions es la medida ORIGINAL del presupuesto y puede quedar
+  // vieja si despues se edito la medida final (ej. al pasar de Acopio a Producción) sin volver
+  // a sincronizar el payload - caso real: INP4417/Grivel, medida pasó de 0.65x1.83 a 0.65x1.91
+  // en measurement_form pero payload.dimensions se quedó con la vieja.
   const storedMedidasPortonMm = useMemo(() => {
+    const formAnchoMm = toNumberLike(form?.ancho_final_mm);
+    const formAltoMm = toNumberLike(form?.alto_final_mm);
+    if (formAnchoMm > 0 && formAltoMm > 0) return { anchoMm: Math.round(formAnchoMm), altoMm: Math.round(formAltoMm) };
     const dims = quote?.payload?.dimensions || {};
     const anchoM = toNumberLike(dims?.width);
     const altoM = toNumberLike(dims?.height);
     if (anchoM > 0 && altoM > 0) return { anchoMm: Math.round(anchoM * 1000), altoMm: Math.round(altoM * 1000) };
     return null;
-  }, [quote]);
+  }, [quote, form]);
   const storedMedidasHojaText = useMemo(() => {
     const dims = quote?.payload?.dimensions || {};
     if (dims?.medidas_hoja_text) return String(dims.medidas_hoja_text).trim();
@@ -884,7 +892,7 @@ export default function ClientAcceptancePage() {
             <Row>
               <StaticField label="Nombre completo" value={accepted?.full_name} />
               <StaticField label="DNI" value={accepted?.dni} />
-              <StaticField label="Fecha de aceptación" value={accepted?.accepted_at ? new Date(accepted.accepted_at).toLocaleString("es-AR") : ""} />
+              <StaticField label="Fecha de aceptación" value={accepted?.accepted_at ? new Date(accepted.accepted_at).toLocaleString("es-AR", { hour12: false }) : ""} />
             </Row>
           </>
         ) : (
