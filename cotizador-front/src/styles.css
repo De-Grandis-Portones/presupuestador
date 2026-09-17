@@ -72,6 +72,17 @@ body {
 
 .spacer { height: 12px; }
 
+@keyframes dg-modal-backdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dg-modal-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.dg-modal-backdrop { animation: dg-modal-backdrop 140ms ease-out; }
+.dg-modal-pop { animation: dg-modal-pop 160ms cubic-bezier(0.2, 0.7, 0.3, 1); }
+
 .dg-h3 {
   margin-top: 0;
   margin-bottom: 0;
