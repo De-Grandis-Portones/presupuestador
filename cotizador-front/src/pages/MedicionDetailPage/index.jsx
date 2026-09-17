@@ -1231,7 +1231,18 @@ export default function MedicionDetailPage() {
           const pos = await getCurrentPositionAsync();
           const lat = pos?.coords?.latitude;
           const lng = pos?.coords?.longitude;
-          if (Number.isFinite(lat) && Number.isFinite(lng)) nextEndCustomer.maps_url = buildMapsUrl(lat, lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            const hasExistingMapsUrl = !!text(nextEndCustomer.maps_url);
+            // Si ya hay un link de Maps cargado, se pregunta antes de reemplazarlo por la
+            // ubicación actual del medidor (puede no coincidir, ej. si carga la medición
+            // más tarde desde otro lugar). Si no había nada cargado, se completa directo.
+            const shouldSetLocation =
+              !hasExistingMapsUrl ||
+              window.confirm(
+                "Ya hay una ubicación de Google Maps cargada para este cliente. ¿Querés reemplazarla por tu ubicación actual?",
+              );
+            if (shouldSetLocation) nextEndCustomer.maps_url = buildMapsUrl(lat, lng);
+          }
         } catch {
           // sin ubicación, no bloquea el guardado
         }
@@ -1426,7 +1437,6 @@ export default function MedicionDetailPage() {
             ) : null}
           </div>
         </div>
-
 
         <Section title="Datos del cliente">
           <Row>
