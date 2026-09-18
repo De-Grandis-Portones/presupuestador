@@ -189,7 +189,7 @@ function MediaThumb({ attachment, onClick }) {
         padding: 0,
         borderRadius: 10,
         border: "1px solid var(--dg-border)",
-        background: "#f1f2f3",
+        background: "var(--dg-bg)",
         overflow: "hidden",
         cursor: "pointer",
         flexShrink: 0,
@@ -524,7 +524,7 @@ function MedicionMediaModal({ quoteId, quoteLabel, onClose, onSaved }) {
                           width: 22,
                           height: 22,
                           borderRadius: "50%",
-                          border: "2px solid #fff",
+                          border: "2px solid var(--dg-card)",
                           background: "#d93025",
                           color: "#fff",
                           fontSize: 13,
@@ -581,9 +581,9 @@ function MeasurementCard({ row, onOpen, onOpenMedia }) {
   return (
     <div
       style={{
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--dg-border)",
         borderRadius: 14,
-        background: "#fff",
+        background: "var(--dg-card)",
         padding: 12,
         boxShadow: "0 1px 2px rgba(15,23,42,0.06)",
       }}
