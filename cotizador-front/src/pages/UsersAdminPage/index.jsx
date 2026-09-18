@@ -6,7 +6,7 @@ import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
 import PaginationControls from "../../ui/PaginationControls.jsx";
 import { useAuthStore } from "../../domain/auth/store.js";
-import { adminCreateUser, adminListUsers, adminUpdateUser } from "../../api/admin.js";
+import { adminCreateUser, adminExportDistributors, adminListUsers, adminUpdateUser } from "../../api/admin.js";
 import { getPricelists } from "../../api/odoo.js";
 
 const PAGE_SIZE = 50;
@@ -59,6 +59,20 @@ export default function UsersAdminPage() {
   const [fIsActive, setFIsActive] = useState(true);
   const [fSeeAllDistributors, setFSeeAllDistributors] = useState(false);
   const [fUnlimitedDimensions, setFUnlimitedDimensions] = useState(false);
+  const [isExportingDistributors, setIsExportingDistributors] = useState(false);
+
+  const canExportDistributors = !!(user?.is_superuser || user?.is_enc_comercial);
+
+  async function handleExportDistributors() {
+    setIsExportingDistributors(true);
+    try {
+      await adminExportDistributors();
+    } catch (e) {
+      toast.error(e?.message || "No se pudo descargar el Excel de distribuidores");
+    } finally {
+      setIsExportingDistributors(false);
+    }
+  }
 
   const usersQ = useQuery({
     queryKey: ["adminUsers", roleTab, q, activeFilter],
@@ -439,7 +453,14 @@ export default function UsersAdminPage() {
           <Button variant={roleTab === "superuser" ? "primary" : "ghost"} onClick={() => { setRoleTab("superuser"); resetCreate(); }}>Superusuarios</Button>
           <Button variant={roleTab === "administracion" ? "primary" : "ghost"} onClick={() => { setRoleTab("administracion"); resetCreate(); }}>Administración</Button>
         </div>
-        <Button variant="ghost" onClick={() => usersQ.refetch()} disabled={usersQ.isFetching}>↻ Actualizar</Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {canExportDistributors ? (
+            <Button variant="ghost" onClick={handleExportDistributors} disabled={isExportingDistributors}>
+              {isExportingDistributors ? "Generando…" : "⬇ Descargar distribuidores (Excel)"}
+            </Button>
+          ) : null}
+          <Button variant="ghost" onClick={() => usersQ.refetch()} disabled={usersQ.isFetching}>↻ Actualizar</Button>
+        </div>
       </div>
 
       <div className="spacer" />
