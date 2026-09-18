@@ -23,6 +23,11 @@ const CATALOG_PRICING_VERSION = 3;
 // "Revestimiento especial x m2": al elegirlo pide los kg/m2 al vendedor y ese valor
 // reemplaza el peso calculado del porton (y por lo tanto el tipo de piernas).
 const REVESTIMIENTO_ESPECIAL_PRODUCT_ID = 4176;
+// "Refuerzo de sistema por sobrepeso de la hoja" (id Odoo template 3901 / variante 4372,
+// mismo producto). Se agrega solo en portones aptos para revestir cuyo peso estimado supera
+// el limite de piernas Especiales (legs_superanchas_max_kg, 350 kg por defecto).
+const REFUERZO_SOBREPESO_PRODUCT_ID = 4372;
+const DEFAULT_LEGS_SUPERANCHAS_MAX_KG = 350;
 
 function dflexCatalogDebugEnabled() {
   try {
@@ -1070,6 +1075,37 @@ export default function SectionCatalog({ kind = "porton", onDownloadPresupuesto 
       }
     }
   }, [catalogKind, products, autoBudgetProductRules, selectedProductIdsForAutomationKey, selectedProductIdsForAutomation, selectedProductIdsGlobalKey, selectedProductIdsGlobal, isAptoParaRevestir, addLine, forceRemoveLine]);
+
+  const requiresRefuerzoSobrepeso = useMemo(() => {
+    if (catalogKind !== "porton" || !isAptoParaRevestir) return false;
+    const weightKg = Number(dimensions?.porton_estimated_weight_kg || 0);
+    const maxKg = Number(surfaceParameters?.legs_superanchas_max_kg) || DEFAULT_LEGS_SUPERANCHAS_MAX_KG;
+    return weightKg > maxKg;
+  }, [catalogKind, isAptoParaRevestir, dimensions?.porton_estimated_weight_kg, surfaceParameters?.legs_superanchas_max_kg]);
+
+  useEffect(() => {
+    if (catalogKind !== "porton" || !products.length) return;
+
+    const refuerzoProduct = findProductByAnyId(products, REFUERZO_SOBREPESO_PRODUCT_ID);
+    if (!refuerzoProduct) return;
+
+    const refuerzoProductId = Number(refuerzoProduct.id || 0);
+    if (!refuerzoProductId) return;
+
+    const isAlreadySelected = selectedProductIdsGlobal.has(refuerzoProductId);
+
+    if (requiresRefuerzoSobrepeso) {
+      if (!isAlreadySelected) {
+        addLine({
+          ...refuerzoProduct,
+          name: getProductLabel(refuerzoProduct) || `Producto ${refuerzoProductId}`,
+          raw_name: getClientFacingProductName(refuerzoProduct) || getProductLabel(refuerzoProduct) || `Producto ${refuerzoProductId}`,
+        });
+      }
+    } else if (isAlreadySelected) {
+      forceRemoveLine(refuerzoProductId);
+    }
+  }, [catalogKind, products, requiresRefuerzoSobrepeso, selectedProductIdsGlobalKey, selectedProductIdsGlobal, addLine, forceRemoveLine]);
 
   useEffect(() => {
     if (!shouldHideIpanelPlegado4036) return;
