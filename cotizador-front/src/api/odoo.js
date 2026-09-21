@@ -327,42 +327,54 @@ export async function getPrices({ pricelist_id, partner_id = null, lines, force 
     return { ok: true, pricelist_id: requestedPricelistId || null, partner_id: partner_id ?? null, prices: [] };
   }
 
+  // Antes, si UNA sola linea no estaba en la cache (ej. Instalacion, en
+  // NEVER_CACHE_PRODUCT_IDS, o cualquier producto nuevo que la cache masiva todavia no
+  // conoce), se descartaba la cache de TODO el presupuesto y las 15-20 lineas pasaban
+  // por el endpoint en vivo - que para un producto genuinamente a $0 (marco/bastidor de
+  // color, tipo de colocacion, etc) agota decenas de metodos de pricelist en Odoo antes
+  // de resignarse a devolver 0, ninguno de los cuales puede "encontrar" un precio mayor
+  // a 0 porque no lo hay. Resultado: ~30s cada vez que se abre un presupuesto. Ahora se
+  // sirven de la cache las lineas que sí están, y solo se pide en vivo lo que falta
+  // (normalmente una sola línea: Instalación).
+  const resultsByIndex = new Array(requestedLines.length).fill(null);
+  const uncachedIndices = [];
+
   if (requestedPricelistId) {
     try {
       const cache = await fetchPriceCacheForPricelist(requestedPricelistId, { force });
       if (cache?.index) {
-        const prices = [];
-        let missing = false;
-
-        for (const line of requestedLines) {
+        requestedLines.forEach((line, idx) => {
           const cached = findCachedPriceForLine(line, cache);
-          if (!cached) {
-            missing = true;
-            break;
-          }
-          prices.push(mapCachedLinePrice(line, cached));
-        }
-
-        if (!missing) {
-          return {
-            ok: true,
-            from_cache: true,
-            source: "price-lists-products",
-            pricelist_id: requestedPricelistId,
-            partner_id: partner_id ?? null,
-            prices,
-          };
-        }
+          if (cached) resultsByIndex[idx] = mapCachedLinePrice(line, cached);
+          else uncachedIndices.push(idx);
+        });
+      } else {
+        uncachedIndices.push(...requestedLines.map((_, idx) => idx));
       }
     } catch {
-      // Si la precarga falla, caemos al endpoint puntual anterior para no romper la cotizacion.
+      // Si la precarga falla, caen todas las lineas al endpoint en vivo de siempre.
+      uncachedIndices.length = 0;
+      uncachedIndices.push(...requestedLines.map((_, idx) => idx));
     }
+  } else {
+    uncachedIndices.push(...requestedLines.map((_, idx) => idx));
+  }
+
+  if (!uncachedIndices.length) {
+    return {
+      ok: true,
+      from_cache: true,
+      source: "price-lists-products",
+      pricelist_id: requestedPricelistId,
+      partner_id: partner_id ?? null,
+      prices: resultsByIndex,
+    };
   }
 
   const payload = {
     pricelist_id: pricelist_id ?? null,
     partner_id: partner_id ?? null,
-    lines: requestedLines,
+    lines: uncachedIndices.map((idx) => requestedLines[idx]),
   };
 
   let lastError = null;
@@ -370,7 +382,16 @@ export async function getPrices({ pricelist_id, partner_id = null, lines, force 
     try {
       const { data } = await http.post("/api/odoo/prices", payload);
       if (!data?.ok) throw new Error(data?.error || "No se pudieron calcular los precios");
-      return data;
+      const livePrices = Array.isArray(data.prices) ? data.prices : [];
+      uncachedIndices.forEach((idx, i) => { resultsByIndex[idx] = livePrices[i] || null; });
+      return {
+        ok: true,
+        from_cache: uncachedIndices.length < requestedLines.length,
+        source: "price-lists-products+live",
+        pricelist_id: data.pricelist_id || requestedPricelistId,
+        partner_id: data.partner_id ?? (partner_id ?? null),
+        prices: resultsByIndex.filter(Boolean),
+      };
     } catch (e) {
       lastError = e;
       if (attempt < PRICE_FETCH_RETRIES) await sleep(PRICE_FETCH_RETRY_DELAY_MS * attempt);
