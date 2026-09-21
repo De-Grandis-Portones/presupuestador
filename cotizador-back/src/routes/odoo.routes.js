@@ -915,13 +915,13 @@ async function searchPricelistItems(odoo, domain, fields) {
 
 async function getPriceFromPricelistItems({ odoo, pricelistId, productId, templateId, qty }) {
   const fieldsMeta = await getPricelistItemFields(odoo);
-  if (!fieldsMeta) return 0;
+  if (!fieldsMeta) return { found: false, price: 0 };
 
   const plId = toPositiveInt(pricelistId);
   const pId = toPositiveInt(productId);
   const tId = toPositiveInt(templateId) || pId;
   const quantity = Number(qty || 1) || 1;
-  if (!plId || !pId) return 0;
+  if (!plId || !pId) return { found: false, price: 0 };
 
   const fields = [
     "id",
@@ -971,12 +971,14 @@ async function getPriceFromPricelistItems({ odoo, pricelistId, productId, templa
     .filter((item) => pricelistItemIsActiveForDate(item))
     .sort((a, b) => pricelistItemSpecificity(b, pId, tId) - pricelistItemSpecificity(a, pId, tId));
 
-  for (const item of candidates) {
-    const price = await computePricelistItemPrice({ odoo, item, productId: pId, templateId: tId });
-    if (price > 0) return price;
-  }
+  if (!candidates.length) return { found: false, price: 0 };
 
-  return 0;
+  // La regla mas especifica (la primera tras el sort) es la que Odoo aplicaria - si su
+  // precio calculado es $0, es una respuesta real y confirmada (ej. reglas generadas por
+  // dg_pricelist_sync_from_default para productos que a proposito valen $0), no "todavia
+  // no encontre nada". found:true le dice al llamador que no siga probando mas metodos.
+  const price = await computePricelistItemPrice({ odoo, item: candidates[0], productId: pId, templateId: tId });
+  return { found: true, price };
 }
 
 function normalizeOdooPriceValue(value, pricelistId, productId) {
@@ -1048,14 +1050,19 @@ export async function getPriceFromPricelist({ odoo, pricelistId, productId, qty,
   const explicitTemplateId = toPositiveInt(templateId);
   let variantTemplateId = null;
 
-  const itemPrice = await getPriceFromPricelistItems({
+  const itemResult = await getPriceFromPricelistItems({
     odoo,
     pricelistId,
     productId: requestedProductId,
     templateId: explicitTemplateId || requestedProductId,
     qty,
   });
-  if (itemPrice > 0) return itemPrice;
+  // Encontramos una regla real (product.pricelist.item) que matchea este producto y esta
+  // lista exacta: es la respuesta definitiva, aunque sea $0 (ver dg_pricelist_sync_from_default
+  // en Odoo, que genera reglas en $0 a proposito para productos que valen $0). No seguimos
+  // probando los metodos de respaldo de mas abajo, que son solo para cuando NO hay ninguna
+  // regla que matchee.
+  if (itemResult.found) return itemResult.price;
 
   const pricelistPrice = await getPriceFromOdooPricelist({ odoo, pricelistId, productId: requestedProductId, qty, partnerId });
   if (pricelistPrice > 0) return pricelistPrice;
