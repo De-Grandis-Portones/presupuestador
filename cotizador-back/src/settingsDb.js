@@ -2,6 +2,7 @@ import { dbQuery } from "./db.js";
 import { normalizeDoorQuoteFormula } from "./doorQuoteFormula.js";
 import { getPlanningYear, normalizePlanningWeeks, normalizeProductionPlanningSettings } from "./productionPlanningUtils.js";
 
+const GLOBAL_FORCE_LOGOUT_KEY = "global_force_logout_before_ms";
 const FINAL_QUOTE_SETTINGS_KEY = "commercial_final_quote";
 const MEASUREMENT_PRODUCT_MAPPINGS_KEY = "measurement_product_mappings";
 const DOOR_QUOTE_SETTINGS_KEY = "door_quote_settings";
@@ -403,6 +404,20 @@ async function setSetting(key, value) {
     [key, JSON.stringify(value)],
   );
   return value;
+}
+
+// Deslogueo global (pedido puntual de administracion): cualquier token JWT emitido antes
+// de este instante deja de ser valido, sin importar su expiracion normal de 7 dias -
+// requireAuth en auth.js lo chequea contra el "iat" del token. Se guarda en
+// presupuestador_settings en vez de rotar JWT_SECRET porque este backend corre en Render
+// con sus propias variables de entorno (el .env del repo es solo un espejo manual, no lo
+// lee el servidor real), asi que rotar el secreto ahi no tendria ningun efecto.
+export async function getGlobalForceLogoutBeforeMs() {
+  const raw = await getSetting(GLOBAL_FORCE_LOGOUT_KEY, 0);
+  return Number(raw) || 0;
+}
+export async function setGlobalForceLogoutBeforeMs(ms) {
+  return setSetting(GLOBAL_FORCE_LOGOUT_KEY, Number(ms) || 0);
 }
 
 export async function getCommercialFinalQuoteSettings() {
