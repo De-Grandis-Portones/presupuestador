@@ -826,8 +826,8 @@ export default function ClientAcceptancePage() {
         <MeasurementSchemeVisual form={form} />
         <div className="spacer" />
         <Row>
-          <StaticField label="Ancho de Vano" value={formatMm(form?.ancho_final_mm || technicalSummary.ancho_calculado_mm)} />
-          <StaticField label="Alto de Vano" value={formatMm(form?.alto_final_mm || technicalSummary.alto_calculado_mm)} />
+          <StaticField label="Ancho del Portón" value={formatMm(form?.ancho_final_mm || technicalSummary.ancho_calculado_mm)} />
+          <StaticField label="Alto del Portón" value={formatMm(form?.alto_final_mm || technicalSummary.alto_calculado_mm)} />
           <StaticField label="Cantidad de parantes" value={text(form?.cantidad_parantes)} />
         </Row>
       </Card>

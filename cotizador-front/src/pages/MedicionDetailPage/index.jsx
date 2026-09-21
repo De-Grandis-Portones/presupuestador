@@ -81,9 +81,9 @@ function minMm(values = []) {
     .filter((n) => Number.isFinite(n) && n > 0);
   return nums.length ? Math.min(...nums) : 0;
 }
-function minTripleFinalMm(values = [], fallback = "") {
+function minTripleFinalMm(values = [], fallback = "", marginMm = 0) {
   const min = minMm(values);
-  if (min > 0) return String(Math.round(min));
+  if (min > 0) return String(Math.max(0, Math.round(min) - marginMm));
   return text(fallback);
 }
 function quoteCatalogKind(quote) {
@@ -98,10 +98,19 @@ function isIpanelQuote(quote) {
 function measurementPointCount(quote) {
   return isDoorQuote(quote) ? 2 : 3;
 }
-function getFinalDimensionsFromScheme(form = {}, fallback = {}) {
+// Margen de fabricación del portón: la medida final que se sugiere para corregir el
+// presupuesto (y la que llega a preproducción) ya sale descontada respecto del mínimo
+// de las 3 mediciones tomadas en el vano, para dejar holgura de instalación.
+const PORTON_FINAL_ALTO_MARGIN_MM = 10;
+const PORTON_FINAL_ANCHO_MARGIN_MM = 20;
+function finalDimensionMarginMm(quote, axis) {
+  if (quoteCatalogKind(quote) !== "porton") return 0;
+  return axis === "alto" ? PORTON_FINAL_ALTO_MARGIN_MM : PORTON_FINAL_ANCHO_MARGIN_MM;
+}
+function getFinalDimensionsFromScheme(form = {}, fallback = {}, quote = null) {
   return {
-    alto_final_mm: minTripleFinalMm(form?.esquema?.alto || [], fallback?.alto_final_mm),
-    ancho_final_mm: minTripleFinalMm(form?.esquema?.ancho || [], fallback?.ancho_final_mm),
+    alto_final_mm: minTripleFinalMm(form?.esquema?.alto || [], fallback?.alto_final_mm, finalDimensionMarginMm(quote, "alto")),
+    ancho_final_mm: minTripleFinalMm(form?.esquema?.ancho || [], fallback?.ancho_final_mm, finalDimensionMarginMm(quote, "ancho")),
   };
 }
 function extractBudgetDimensionMm(quote, key) {
@@ -258,8 +267,8 @@ function buildInitialForm(quote, current = {}) {
       alto: esquemaAlto,
       ancho: esquemaAncho,
     },
-    alto_final_mm: text(current.alto_final_mm) || minTripleFinalMm(esquemaAlto, suggestedAlto),
-    ancho_final_mm: text(current.ancho_final_mm) || minTripleFinalMm(esquemaAncho, suggestedAncho),
+    alto_final_mm: text(current.alto_final_mm) || minTripleFinalMm(esquemaAlto, suggestedAlto, finalDimensionMarginMm(quote, "alto")),
+    ancho_final_mm: text(current.ancho_final_mm) || minTripleFinalMm(esquemaAncho, suggestedAncho, finalDimensionMarginMm(quote, "ancho")),
     observaciones_medicion: text(current.observaciones_medicion),
     cantidad_parantes: text(current.cantidad_parantes) || text(dims?.cantidad_parantes),
     orientacion_parantes: normalizeOrientation(current.orientacion_parantes || dims?.orientacion_parantes || "verticales"),
@@ -267,7 +276,7 @@ function buildInitialForm(quote, current = {}) {
     observaciones_parantes: text(current.observaciones_parantes) || text(dims?.observaciones_parantes),
   };
 }
-function updateSchemeValue(form, axis, index, value, count = 3) {
+function updateSchemeValue(form, axis, index, value, count = 3, quote = null) {
   const next = {
     ...(form.esquema || {}),
     alto: normalizeTriple(form.esquema?.alto || [], "", count),
@@ -275,7 +284,7 @@ function updateSchemeValue(form, axis, index, value, count = 3) {
   };
   next[axis][index] = value;
   const updated = { ...form, esquema: next };
-  const nextFinalValue = minTripleFinalMm(next[axis]);
+  const nextFinalValue = minTripleFinalMm(next[axis], "", finalDimensionMarginMm(quote, axis));
   if (nextFinalValue) updated[axis === "alto" ? "alto_final_mm" : "ancho_final_mm"] = nextFinalValue;
   return updated;
 }
@@ -1107,8 +1116,8 @@ export default function MedicionDetailPage() {
     return "";
   }, [quote]);
   const measuredFinalDimensions = useMemo(
-    () => getFinalDimensionsFromScheme(form),
-    [form?.esquema?.alto, form?.esquema?.ancho],
+    () => getFinalDimensionsFromScheme(form, {}, quote),
+    [form?.esquema?.alto, form?.esquema?.ancho, quote],
   );
   const technicalSummaryItems = useMemo(
     () => buildMeasurementTechnicalSummaryItems({ quote, form, technicalSummary, measuredFinalDimensions }),
@@ -1120,35 +1129,28 @@ export default function MedicionDetailPage() {
 
     setForm((prev) => {
       if (!prev) return prev;
-      const finalDimensions = getFinalDimensionsFromScheme(prev);
+      // Solo completa alto_final_mm/ancho_final_mm cuando todavía están vacíos (mediciones
+      // nuevas). Si ya tenían un valor cargado (una medición vieja, de antes de este margen
+      // de fabricación), no los pisa acá — el vivo-mientras-se-tipea ya lo cubre
+      // updateSchemeValue() en el onChange de cada input del esquema.
+      const finalDimensions = getFinalDimensionsFromScheme(prev, {}, quote);
       const nextHigh = finalDimensions.alto_final_mm;
       const nextWidth = finalDimensions.ancho_final_mm;
       if (!nextHigh && !nextWidth) return prev;
 
-      if (isTechnical) {
-        let changed = false;
-        const next = { ...prev };
-        if (!text(prev?.alto_final_mm) && nextHigh) {
-          next.alto_final_mm = nextHigh;
-          changed = true;
-        }
-        if (!text(prev?.ancho_final_mm) && nextWidth) {
-          next.ancho_final_mm = nextWidth;
-          changed = true;
-        }
-        return changed ? next : prev;
+      let changed = false;
+      const next = { ...prev };
+      if (!text(prev?.alto_final_mm) && nextHigh) {
+        next.alto_final_mm = nextHigh;
+        changed = true;
       }
-
-      if (text(prev?.alto_final_mm) === nextHigh && text(prev?.ancho_final_mm) === nextWidth) {
-        return prev;
+      if (!text(prev?.ancho_final_mm) && nextWidth) {
+        next.ancho_final_mm = nextWidth;
+        changed = true;
       }
-      return {
-        ...prev,
-        ...(nextHigh ? { alto_final_mm: nextHigh } : {}),
-        ...(nextWidth ? { ancho_final_mm: nextWidth } : {}),
-      };
+      return changed ? next : prev;
     });
-  }, [isTechnical, form?.esquema?.alto, form?.esquema?.ancho]);
+  }, [isTechnical, form?.esquema?.alto, form?.esquema?.ancho, quote]);
 
   function handleTechnicalFinalDimensionChange(key, value) {
     if (!isTechnical) return;
@@ -1218,12 +1220,15 @@ export default function MedicionDetailPage() {
   const saveMedicionM = useMutation({
     mutationFn: async ({ submit, returnToSeller: explicitReturn = false, returnReason: explicitReason = "" }) => {
       let nextEndCustomer = { ...(quote?.end_customer || {}) };
-      const finalDimensions = getFinalDimensionsFromScheme(form);
+      // Solo completa alto_final_mm/ancho_final_mm si todavía están vacíos (medición nueva).
+      // Si ya tenían un valor guardado de antes (medición vieja), se respeta tal cual al
+      // guardar — nunca se recalcula/pisa por el simple hecho de reenviar el formulario.
+      const finalDimensions = getFinalDimensionsFromScheme(form, {}, quote);
       const normalizedForm = !isTechnical
         ? {
             ...form,
-            ...(finalDimensions.alto_final_mm ? { alto_final_mm: finalDimensions.alto_final_mm } : {}),
-            ...(finalDimensions.ancho_final_mm ? { ancho_final_mm: finalDimensions.ancho_final_mm } : {}),
+            ...(!text(form?.alto_final_mm) && finalDimensions.alto_final_mm ? { alto_final_mm: finalDimensions.alto_final_mm } : {}),
+            ...(!text(form?.ancho_final_mm) && finalDimensions.ancho_final_mm ? { ancho_final_mm: finalDimensions.ancho_final_mm } : {}),
           }
         : form;
       if (submit && isMedidor) {
@@ -1525,7 +1530,7 @@ export default function MedicionDetailPage() {
         <Section title="Esquema de medidas">
           <MeasurementSchemeVisual form={form} pointCount={pointCount} />
           <Row>
-            <Field label="Ancho de Vano (mm)">
+            <Field label={`Ancho del ${kindLabel} (mm)`}>
               {isTechnical ? (
                 <Input
                   value={form.ancho_final_mm || ""}
@@ -1536,7 +1541,7 @@ export default function MedicionDetailPage() {
                 <StaticValue value={formatMm(form.ancho_final_mm || measuredFinalDimensions.ancho_final_mm || technicalSummary.ancho_calculado_mm)} />
               )}
             </Field>
-            <Field label="Alto de Vano (mm)">
+            <Field label={`Alto del ${kindLabel} (mm)`}>
               {isTechnical ? (
                 <Input
                   value={form.alto_final_mm || ""}
@@ -1557,7 +1562,7 @@ export default function MedicionDetailPage() {
                 ) : (
                   <Input
                     value={form.esquema?.ancho?.[idx] || ""}
-                    onChange={(v) => setForm((prev) => updateSchemeValue(prev, "ancho", idx, v, pointCount))}
+                    onChange={(v) => setForm((prev) => updateSchemeValue(prev, "ancho", idx, v, pointCount, quote))}
                     style={{ width: "100%" }}
                   />
                 )}
@@ -1573,7 +1578,7 @@ export default function MedicionDetailPage() {
                 ) : (
                   <Input
                     value={form.esquema?.alto?.[idx] || ""}
-                    onChange={(v) => setForm((prev) => updateSchemeValue(prev, "alto", idx, v, pointCount))}
+                    onChange={(v) => setForm((prev) => updateSchemeValue(prev, "alto", idx, v, pointCount, quote))}
                     style={{ width: "100%" }}
                   />
                 )}
