@@ -1096,8 +1096,12 @@ export default function SectionCatalog({ kind = "porton", onDownloadPresupuesto 
 
     if (requiresRefuerzoSobrepeso) {
       if (!isAlreadySelected) {
+        // Se cobra por metro cuadrado del portón (igual que el sistema/revestimiento), no
+        // por unidad - forzamos uses_surface_quantity acá porque el catálogo no lo tiene
+        // marcado como producto de superficie.
         addLine({
           ...refuerzoProduct,
+          uses_surface_quantity: true,
           name: getProductLabel(refuerzoProduct) || `Producto ${refuerzoProductId}`,
           raw_name: getClientFacingProductName(refuerzoProduct) || getProductLabel(refuerzoProduct) || `Producto ${refuerzoProductId}`,
         });
