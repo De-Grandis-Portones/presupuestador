@@ -302,9 +302,6 @@ function BudgetDetailSection({ budgetDetailLines, diffInfo }) {
   const anyHighlighted = !!diffInfo?.hasChanges && budgetDetailLines.some((line) => diffInfo.keys.has(lineDiffKeyForBudgetLine(line)));
   return (
     <Section title="Detalle del presupuesto">
-      <div className="caf-muted" style={{ marginBottom: 10 }}>
-        Detalle informativo sin montos, precios, forma de pago ni condiciones comerciales.
-      </div>
       {!groups.length ? (
         <div className="caf-muted">Sin productos informados.</div>
       ) : (
@@ -520,6 +517,7 @@ function CafStyle() {
       .caf-panel-label { font-weight: 800; fill: #0f172a; }
       .caf-scheme-caption { font-size: 11px; color: #6b7280; margin-top: 8px; text-align: center; }
       .caf-items { display: flex; flex-direction: column; gap: 16px; }
+      .caf-budget-group { border: 3px dotted #0f172a; border-radius: 12px; padding: 12px 14px; }
       .caf-budget-group-title { font-weight: 800; color: #14532d; font-size: 13px; margin-bottom: 6px; }
       .caf-item-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 8px 10px; border-bottom: 1px solid #eee; border-radius: 8px; }
       .caf-item-row:last-child { border-bottom: none; }
