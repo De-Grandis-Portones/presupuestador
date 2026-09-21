@@ -369,19 +369,17 @@ function pushTechnicalDetailEntry(rows, label, entry) {
   pushTechnicalDetailRow(rows, label, entry.value);
 }
 // Busca en las lineas del presupuesto un producto de automatizador (ej. "Automatizador
-// tipo torsion" / "Automátizado") y devuelve su nombre para mostrar. No hay una opcion
-// "manual"/"sin automatizador" en el catalogo de Clasico - cuando no se encuentra ninguna
-// linea, se omite la fila (mismo criterio que pushTechnicalDetailRow con valor vacio).
-function detectAutomatizadorLineName(quote) {
+// tipo torsion" / "Accionador automatico..."). Pedido explicito: la fila "Automatización"
+// muestra Si/No en vez del nombre del producto, siempre (nunca se omite la fila).
+function hasAutomatizadorLine(quote) {
   const lines = Array.isArray(quote?.lines) ? quote.lines : [];
-  for (const line of lines) {
+  return lines.some((line) => {
     const haystack = String(line?.raw_name || line?.name || "")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
-    if (haystack.includes("automat")) return text(line?.raw_name || line?.name || "");
-  }
-  return "";
+    return haystack.includes("automat");
+  });
 }
 function buildBudgetTechnicalDetailRows(quote, form, technicalSummary = {}, stored = {}) {
   const payload = quote?.payload && typeof quote.payload === "object" ? quote.payload : {};
@@ -419,7 +417,7 @@ function buildBudgetTechnicalDetailRows(quote, form, technicalSummary = {}, stor
   pushTechnicalDetailEntry(rows, "Tipo de revestimiento", firstTechnicalEntry(sources, ["tipo_revestimiento", "revestimiento", "revestimiento_tipo", "material_revestimiento", "cladding", "cladding_type", "apto_revestimiento", "apto_para_revestir"]));
   pushTechnicalDetailEntry(rows, "Terminación", firstTechnicalEntry(sources, ["terminacion", "terminación", "terminacion_porton", "terminación_portón", "acabado", "finish", "acabado_porton"]));
   pushTechnicalDetailEntry(rows, "Tipo de colocación", firstTechnicalEntry(sources, ["tipo_colocacion", "tipo_colocación", "colocacion", "colocación", "tipo_instalacion", "tipo_instalación", "installation_mode", "modo_instalacion", "modo_instalación"]));
-  pushTechnicalDetailRow(rows, "Automatización", detectAutomatizadorLineName(quote));
+  pushTechnicalDetailRow(rows, "Automatización", hasAutomatizadorLine(quote) ? "Sí" : "No");
   pushTechnicalDetailEntry(rows, "Lado del motor", firstTechnicalEntry(sources, ["lado_motor", "motor_lado", "lado_del_motor"]));
   pushTechnicalDetailEntry(rows, "Lado del soporte", firstTechnicalEntry(sources, ["lado_soporte", "soporte_lado", "lado_del_soporte"]));
   pushTechnicalDetailEntry(rows, "Kg/m² efectivo", firstTechnicalEntry(sources, ["kg_m2", "kg_m2_entry", "peso_m2", "custom_kg_m2"]));
