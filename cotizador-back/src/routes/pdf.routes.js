@@ -1237,7 +1237,7 @@ export function buildPdfRouter(odoo = null) {
       // Pedido puntual del distribuidor Fratello (presupuestador_users.id=217): en los
       // presupuestos que salen con su logo propio, no debe aparecer el pie de pagina "De
       // Grandis Portones". Solo este distribuidor - el resto sigue mostrandolo siempre.
-      if (req.user?.id === 217 && req.user?.is_distribuidor && req.user?.logo_data_url) {
+      if (Number(req.user?.id) === 217 && req.user?.is_distribuidor && req.user?.logo_data_url) {
         payload.__hide_degrandis_footer = true;
       }
       // Para distribuidores, el PDF de PRESUPUESTO siempre dice "A convenir" en forma
