@@ -1,5 +1,5 @@
 const MAX_MEDICION_ATTACHMENT_BYTES = 15 * 1024 * 1024;
-const MAX_MEDICION_VIDEO_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const MAX_MEDICION_VIDEO_ATTACHMENT_BYTES = 30 * 1024 * 1024;
 // Techo del archivo ORIGINAL de imagen antes de intentar comprimirlo (una foto de
 // celular sin editar rara vez pasa esto). Después de comprimir se vuelve a validar
 // contra MAX_MEDICION_ATTACHMENT_BYTES como siempre.
@@ -10,11 +10,13 @@ const COMPRESSIBLE_MEDICION_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "i
 // unos cientos de KB, dejando mucho más margen contra el tope combinado de arriba.
 const MEDICION_IMAGE_COMPRESSION_MAX_DIMENSION_PX = 1600;
 const MEDICION_IMAGE_COMPRESSION_QUALITY = 0.82;
-// Tope combinado de TODAS las fotos/videos de una misma medición. En base64 un
-// archivo pesa ~x1.34 su tamaño real, así que 15MB crudos ya son ~20MB de JSON —
-// el body-parser del backend acepta hasta 25MB en total (express.json en index.js).
-// Mismo criterio que ticketAttachment.js.
-export const MAX_MEDICION_ATTACHMENTS_TOTAL_BYTES = 15 * 1024 * 1024;
+// Tope combinado de TODAS las fotos/videos de una misma medición. Subido a 40MB para
+// dejar lugar a un video de hasta MAX_MEDICION_VIDEO_ATTACHMENT_BYTES (30MB) mas
+// algunas fotos comprimidas. En base64 un archivo pesa ~x1.34 su tamaño real, así que
+// 40MB crudos ya son ~54MB de JSON — el body-parser del backend acepta hasta 60MB en
+// total (express.json en index.js) y measurements.routes.js valida el mismo tope
+// combinado del lado del servidor (MAX_MEDICION_ADJUNTOS_DATA_URL_CHARS).
+export const MAX_MEDICION_ATTACHMENTS_TOTAL_BYTES = 40 * 1024 * 1024;
 const VIDEO_MEDICION_ATTACHMENT_TYPES = new Set(["video/mp4", "video/quicktime", "video/webm"]);
 const ALLOWED_MEDICION_ATTACHMENT_TYPES = new Set([
   "image/jpeg",

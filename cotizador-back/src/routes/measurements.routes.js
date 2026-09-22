@@ -483,9 +483,11 @@ function buildObservationReturnReason(form) {
 // ciegamente en eso - es la segunda línea de defensa server-side. Solo imagen/video
 // (sin PDF): esto es documentación del portón/vano, no un adjunto genérico.
 const MAX_MEDICION_ADJUNTOS = 12;
-// ~15MB crudos codificados en base64 (~x1.34) = ~21MB, dejando margen bajo el límite
-// de 25MB del body parser (express.json en index.js) para el resto del JSON del request.
-const MAX_MEDICION_ADJUNTOS_DATA_URL_CHARS = 21 * 1024 * 1024;
+// Mismo tope combinado que MAX_MEDICION_ATTACHMENTS_TOTAL_BYTES en
+// measurementAttachment.js (front): ~40MB crudos codificados en base64 (~x1.34) =
+// ~54MB, dejando margen bajo el límite de 60MB del body parser (express.json en
+// index.js) para el resto del JSON del request.
+const MAX_MEDICION_ADJUNTOS_DATA_URL_CHARS = 54 * 1024 * 1024;
 // Igual que ALLOWED_ADJUNTO_DATA_URL_RE en tickets.routes.js: se valida el mime REAL
 // embebido en el data: URI, no el campo `type` (que lo controla quien manda el request).
 const ALLOWED_MEDICION_ADJUNTO_DATA_URL_RE = /^data:(image\/(?:jpeg|png|webp|gif)|video\/(?:mp4|quicktime|webm));base64,/i;
