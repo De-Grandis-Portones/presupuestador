@@ -74,7 +74,7 @@ export default function PendingMeetingsCard() {
             <CalendarIcon size={18} />
           </div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 15, color: PETROL }}>Reuniones pendientes (Meet)</div>
+            <div style={{ fontWeight: 900, fontSize: 15, color: "var(--dg-petrol)" }}>Reuniones pendientes (Meet)</div>
             <div className="muted" style={{ fontSize: 12 }}>Próximas reuniones agendadas por clientes</div>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function PendingMeetingsCard() {
                 style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap",
                   border: "1px solid var(--dg-border)", borderLeft: `4px solid ${GOLD}`, borderRadius: 8, padding: "8px 12px",
-                  background: "#fff", cursor: "pointer", width: "100%", textAlign: "left", font: "inherit",
+                  background: "var(--dg-card)", cursor: "pointer", width: "100%", textAlign: "left", font: "inherit",
                 }}
                 title="Ver este día en el calendario"
               >

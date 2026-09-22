@@ -31,7 +31,7 @@ function ReminderToast({ toast, onDismiss, onGoTo }) {
     <div
       style={{
         width: 320,
-        background: "#fff",
+        background: "var(--dg-card)",
         border: `1px solid ${GOLD}`,
         borderLeft: `5px solid ${GOLD}`,
         borderRadius: 12,
@@ -43,7 +43,7 @@ function ReminderToast({ toast, onDismiss, onGoTo }) {
         <div style={{ width: 26, height: 26, borderRadius: 999, background: `${GOLD}22`, color: GOLD, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <BellIcon size={14} />
         </div>
-        <div style={{ fontWeight: 900, color: PETROL, fontSize: 14 }}>
+        <div style={{ fontWeight: 900, color: "var(--dg-petrol)", fontSize: 14 }}>
           En {toast.minutes} min: reunión de Meet
         </div>
       </div>

@@ -290,7 +290,7 @@ function updateSchemeValue(form, axis, index, value, count = 3, quote = null) {
 }
 function Section({ title, children }) {
   return (
-    <div className="card" style={{ background: "#fafafa", marginBottom: 12 }}>
+    <div className="card" style={{ background: "var(--dg-card)", marginBottom: 12 }}>
       <div style={{ fontWeight: 900, marginBottom: 8 }}>{title}</div>
       {children}
     </div>
@@ -314,8 +314,8 @@ function StaticValue({ value }) {
         minHeight: 42,
         padding: "10px 12px",
         borderRadius: 10,
-        border: "1px solid #e3e3e3",
-        background: "#fff",
+        border: "1px solid var(--dg-border)",
+        background: "var(--dg-card)",
         whiteSpace: "pre-wrap",
       }}
     >
@@ -786,9 +786,9 @@ function MeasurementSchemeVisual({ form, pointCount = 3 }) {
   return (
     <div
       style={{
-        border: "1px dashed #cbd5e1",
+        border: "1px dashed var(--dg-border)",
         borderRadius: 14,
-        background: "#ffffff",
+        background: "var(--dg-card)",
         padding: 16,
         marginBottom: 12,
       }}
@@ -860,14 +860,14 @@ function WhatsAppRecipientsModal({ recipients, message, onClose }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#fff", borderRadius: 14, boxShadow: "0 8px 40px rgba(0,0,0,0.2)",
+          background: "var(--dg-card)", borderRadius: 14, boxShadow: "0 8px 40px rgba(0,0,0,0.2)",
           padding: "28px 28px 20px", width: "100%", maxWidth: 420,
         }}
       >
         <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>
           Enviar por WhatsApp
         </div>
-        <div style={{ color: "#555", fontSize: 13, marginBottom: 20 }}>
+        <div style={{ color: "var(--dg-muted)", fontSize: 13, marginBottom: 20 }}>
           Hacé clic en cada destinatario para abrir WhatsApp Web. Mandá el mensaje y volvé aquí para el siguiente.
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -882,14 +882,14 @@ function WhatsAppRecipientsModal({ recipients, message, onClose }) {
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "12px 16px", borderRadius: 10,
-                  border: "1px solid #e0e0e0", background: url ? "#f0fdf4" : "#f9f9f9",
-                  textDecoration: "none", color: "#111",
+                  border: "1px solid var(--dg-border)", background: url ? "rgba(22, 163, 74, 0.12)" : "var(--dg-tint)",
+                  textDecoration: "none", color: "var(--dg-text)",
                   pointerEvents: url ? "auto" : "none", opacity: url ? 1 : 0.5,
                 }}
               >
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{r.label}</div>
-                  <div style={{ fontSize: 12, color: "#555" }}>{r.name}</div>
+                  <div style={{ fontSize: 12, color: "var(--dg-muted)" }}>{r.name}</div>
                 </div>
                 <div style={{ fontSize: 12, color: "#16a34a", fontWeight: 600 }}>
                   {url ? "Abrir →" : "Sin teléfono"}
@@ -902,8 +902,8 @@ function WhatsAppRecipientsModal({ recipients, message, onClose }) {
           onClick={onClose}
           style={{
             marginTop: 20, width: "100%", padding: "10px 0", borderRadius: 8,
-            border: "1px solid #e0e0e0", background: "#f5f5f5", cursor: "pointer",
-            fontSize: 14, fontWeight: 600, color: "#555",
+            border: "1px solid var(--dg-border)", background: "var(--dg-tint)", cursor: "pointer",
+            fontSize: 14, fontWeight: 600, color: "var(--dg-muted)",
           }}
         >
           Listo, cerrar
@@ -1236,7 +1236,18 @@ export default function MedicionDetailPage() {
           const pos = await getCurrentPositionAsync();
           const lat = pos?.coords?.latitude;
           const lng = pos?.coords?.longitude;
-          if (Number.isFinite(lat) && Number.isFinite(lng)) nextEndCustomer.maps_url = buildMapsUrl(lat, lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            const hasExistingMapsUrl = !!text(nextEndCustomer.maps_url);
+            // Si ya hay un link de Maps cargado, se pregunta antes de reemplazarlo por la
+            // ubicación actual del medidor (puede no coincidir, ej. si carga la medición
+            // más tarde desde otro lugar). Si no había nada cargado, se completa directo.
+            const shouldSetLocation =
+              !hasExistingMapsUrl ||
+              window.confirm(
+                "Ya hay una ubicación de Google Maps cargada para este cliente. ¿Querés reemplazarla por tu ubicación actual?",
+              );
+            if (shouldSetLocation) nextEndCustomer.maps_url = buildMapsUrl(lat, lng);
+          }
         } catch {
           // sin ubicación, no bloquea el guardado
         }
@@ -1432,7 +1443,6 @@ export default function MedicionDetailPage() {
           </div>
         </div>
 
-
         <Section title="Datos del cliente">
           <Row>
             <Field label="Cliente"><StaticValue value={quote?.end_customer?.name} /></Field>
@@ -1448,7 +1458,7 @@ export default function MedicionDetailPage() {
             </Field>
           </Row>
           <div className="spacer" />
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "#555" }}>Contacto adicional</div>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: "var(--dg-muted)" }}>Contacto adicional</div>
           <Row>
             <Field label="Nombre">
               {isMedidor && !isReadOnlyMeasurement ? (
@@ -1456,7 +1466,7 @@ export default function MedicionDetailPage() {
                   value={extraContact.name}
                   onChange={(e) => setExtraContact((p) => ({ ...p, name: e.target.value }))}
                   placeholder="Nombre del contacto"
-                  style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14 }}
+                  style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)", color: "var(--dg-text)", fontSize: 14 }}
                 />
               ) : (
                 <StaticValue value={extraContact.name || quote?.payload?.extra_contact?.name} />
@@ -1468,7 +1478,7 @@ export default function MedicionDetailPage() {
                   value={extraContact.role}
                   onChange={(e) => setExtraContact((p) => ({ ...p, role: e.target.value }))}
                   placeholder="Ej. jefe de obra"
-                  style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14 }}
+                  style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)", color: "var(--dg-text)", fontSize: 14 }}
                 />
               ) : (
                 <StaticValue value={extraContact.role || quote?.payload?.extra_contact?.role} />
@@ -1480,7 +1490,7 @@ export default function MedicionDetailPage() {
                   value={extraContact.phone}
                   onChange={(e) => setExtraContact((p) => ({ ...p, phone: e.target.value }))}
                   placeholder="Sin 0 y sin 15"
-                  style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14 }}
+                  style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)", color: "var(--dg-text)", fontSize: 14 }}
                 />
               ) : (
                 <StaticValue value={extraContact.phone || quote?.payload?.extra_contact?.phone} />
@@ -1495,7 +1505,7 @@ export default function MedicionDetailPage() {
               <div className="muted" style={{ marginBottom: 8 }}>Detalle técnico del presupuesto</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
                 {technicalBudgetDetailItems.map((item) => (
-                  <div key={item.key} style={{ border: "1px solid #e5e5e5", borderRadius: 10, padding: "8px 10px", background: "#fff" }}>
+                  <div key={item.key} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
                     <div className="muted" style={{ fontSize: 12 }}>{item.label}</div>
                     <div style={{ fontWeight: 800, marginTop: 4 }}>{item.value}</div>
                   </div>
@@ -1511,7 +1521,7 @@ export default function MedicionDetailPage() {
               <div className="muted" style={{ marginBottom: 8 }}>Cálculo técnico</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
                 {technicalSummaryItems.map((item) => (
-                  <div key={item.label} style={{ border: "1px solid #e5e5e5", borderRadius: 10, padding: "8px 10px", background: "#fff" }}>
+                  <div key={item.label} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
                     <div className="muted" style={{ fontSize: 12 }}>{item.label}</div>
                     <div style={{ fontWeight: 800, marginTop: 4 }}>{item.value}</div>
                   </div>
@@ -1692,7 +1702,7 @@ export default function MedicionDetailPage() {
                           return next;
                         });
                       }}
-                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", background: "var(--dg-card)", color: "var(--dg-text)" }}
                     >
                       <option value="">Seleccione producto…</option>
                       {sectionCatalogProducts.map((product) => (
@@ -1754,7 +1764,7 @@ export default function MedicionDetailPage() {
                           return next;
                         });
                       }}
-                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", background: "var(--dg-card)", color: "var(--dg-text)" }}
                     >
                       <option value="">Seleccione producto…</option>
                       {section.catalogProducts.map((product) => (
@@ -1782,7 +1792,9 @@ export default function MedicionDetailPage() {
               style={{
                 width: "100%",
                 borderRadius: 12,
-                border: "1px solid #d7d7d7",
+                border: "1px solid var(--dg-border)",
+                background: "var(--dg-card)",
+                color: "var(--dg-text)",
                 padding: 12,
                 resize: "vertical",
                 fontFamily: "inherit",

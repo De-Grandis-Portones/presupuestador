@@ -237,7 +237,7 @@ function WeekdayToggle({ selected, onToggle }) {
               padding: "9px 0",
               borderRadius: 999,
               border: active ? `1px solid ${TEAL}` : "1px solid var(--dg-border)",
-              background: active ? TEAL : "#fff",
+              background: active ? TEAL : "var(--dg-card)",
               color: active ? "#fff" : GRAY,
               cursor: "pointer",
               fontWeight: 700,
@@ -273,7 +273,7 @@ function SlotRow({ slot, nowMs, confirmDeleteSlotId, confirmCancelSlotId, setCon
         alignItems: "center",
         gap: 12,
         flexWrap: "wrap",
-        background: isOverdue ? "#fdecea" : "#fff",
+        background: isOverdue ? "#fdecea" : "var(--dg-card)",
       }}
     >
       <div>
@@ -394,7 +394,7 @@ function CalendarMonthGrid({ slots, selectedDay, onSelectDay, initialMonthKey })
         <button
           type="button"
           onClick={() => setMonthDate(new Date(year, month - 1, 1))}
-          style={{ border: "1px solid var(--dg-border)", background: "#fff", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}
+          style={{ border: "1px solid var(--dg-border)", background: "var(--dg-card)", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}
           aria-label="Mes anterior"
         >
           <ChevronLeftIcon size={16} color={PETROL} />
@@ -405,7 +405,7 @@ function CalendarMonthGrid({ slots, selectedDay, onSelectDay, initialMonthKey })
             <button
               type="button"
               onClick={() => setMonthDate(new Date(todayKey.split("-")[0], Number(todayKey.split("-")[1]) - 1, 1))}
-              style={{ border: `1px solid ${TEAL}`, color: TEAL, background: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
+              style={{ border: `1px solid ${TEAL}`, color: TEAL, background: "var(--dg-card)", borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
             >
               Hoy
             </button>
@@ -414,7 +414,7 @@ function CalendarMonthGrid({ slots, selectedDay, onSelectDay, initialMonthKey })
         <button
           type="button"
           onClick={() => setMonthDate(new Date(year, month + 1, 1))}
-          style={{ border: "1px solid var(--dg-border)", background: "#fff", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}
+          style={{ border: "1px solid var(--dg-border)", background: "var(--dg-card)", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}
           aria-label="Mes siguiente"
         >
           <ChevronRightIcon size={16} color={PETROL} />
@@ -443,7 +443,7 @@ function CalendarMonthGrid({ slots, selectedDay, onSelectDay, initialMonthKey })
                 aspectRatio: "1 / 1",
                 borderRadius: 10,
                 border: isSelected ? `2px solid ${TEAL}` : isToday ? `1.5px solid ${PETROL}` : "1px solid var(--dg-border)",
-                background: isSelected ? `${TEAL}1A` : "#fff",
+                background: isSelected ? `${TEAL}1A` : "var(--dg-card)",
                 cursor: "pointer",
                 display: "flex",
                 flexDirection: "column",
@@ -454,7 +454,7 @@ function CalendarMonthGrid({ slots, selectedDay, onSelectDay, initialMonthKey })
                 position: "relative",
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: isToday ? 900 : 600, color: isToday ? PETROL : "#333" }}>{dayNum}</span>
+              <span style={{ fontSize: 13, fontWeight: isToday ? 900 : 600, color: isToday ? PETROL : "var(--dg-text)" }}>{dayNum}</span>
               {count ? (
                 <span
                   style={{
@@ -585,7 +585,7 @@ function RecurringRulesCard() {
               gap: 12,
               flexWrap: "wrap",
               opacity: rule.active ? 1 : 0.6,
-              background: "#fff",
+              background: "var(--dg-card)",
             }}
           >
             <div>

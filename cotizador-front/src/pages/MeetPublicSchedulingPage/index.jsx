@@ -199,7 +199,7 @@ export default function MeetPublicSchedulingPage() {
                       padding: "10px 16px",
                       borderRadius: 999,
                       border: `1.5px solid ${TEAL}`,
-                      background: "#fff",
+                      background: "var(--dg-card)",
                       color: PETROL,
                       cursor: "pointer",
                       fontWeight: 700,
