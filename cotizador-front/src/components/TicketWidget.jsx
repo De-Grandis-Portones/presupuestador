@@ -284,29 +284,37 @@ export default function TicketWidget() {
   }
 
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
+    // Antes era un botón mas del header ("Tickets"), junto a Consulta técnica/comercial -
+    // se confundía con esos (que son tickets de USUARIOS hacia comercial/técnica, no hacia
+    // sistemas). Ahora es un botón flotante abajo a la derecha, separado del resto de la
+    // navegación, para que quede claro que es "reportar un problema del sistema en sí".
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000 }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        title="Tickets"
+        title="Reportar error del sistema"
         style={{
           position: "relative",
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "8px 12px", borderRadius: 10,
-          border: `1px solid ${T.border}`, background: T.surface, color: T.ink,
-          cursor: "pointer", fontWeight: 700, fontSize: 14,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          width: 56, height: 56, borderRadius: "50%",
+          border: "none", background: T.brand, color: "#fff",
+          cursor: "pointer", boxShadow: "0 6px 16px rgba(0,0,0,.25)",
         }}
       >
-        <img src="/ticket-logo.png" alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />
-        Tickets
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+          <rect x="2" y="14" width="6" height="7" rx="2" />
+          <rect x="16" y="14" width="6" height="7" rx="2" />
+        </svg>
         {unreadCount > 0 && (
           <span
             title={`${unreadCount} ticket${unreadCount === 1 ? "" : "s"} con novedades`}
             style={{
-              position: "absolute", top: -6, right: -6,
-              minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999,
-              background: "#dc2626", color: "#fff", fontSize: 10, fontWeight: 700,
+              position: "absolute", top: -4, right: -4,
+              minWidth: 18, height: 18, padding: "0 4px", borderRadius: 999,
+              background: "#dc2626", color: "#fff", fontSize: 11, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+              border: "2px solid #fff",
             }}
           >
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -318,7 +326,7 @@ export default function TicketWidget() {
         <div
           ref={panelRef}
           style={{
-            position: "absolute", top: "calc(100% + 8px)", right: 0,
+            position: "absolute", bottom: "calc(100% + 8px)", right: 0,
             width: 360, maxWidth: "90vw",
             background: T.surface, color: T.ink,
             border: `1px solid ${T.border}`, borderRadius: 12,
