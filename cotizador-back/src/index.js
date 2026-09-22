@@ -48,10 +48,12 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(cors({ origin: true }));
-// 25mb: deja lugar a un adjunto de ticket de hasta 15MB en base64 (~20MB
-// codificado) mas el resto del payload. Ver src/utils/ticketAttachment.js
-// en el front para el limite/validacion del lado del cliente.
-app.use(express.json({ limit: "25mb" }));
+// 60mb: deja lugar al tope combinado de adjuntos de una medicion (video de hasta
+// 30MB + fotos, ~40MB crudos = ~54MB en base64) mas el resto del payload. Ver
+// src/utils/measurementAttachment.js en el front (y MAX_MEDICION_ADJUNTOS_DATA_URL_CHARS
+// en measurements.routes.js) para el limite/validacion combinado. Tambien cubre con
+// margen el adjunto de ticket de hasta 15MB (ver src/utils/ticketAttachment.js).
+app.use(express.json({ limit: "60mb" }));
 app.use(morgan("dev"));
 
 console.log("[ODOO ENV]", {
