@@ -649,10 +649,15 @@ export default function PortonesEstadoPage() {
                 const acceptance = r.measurement_client_acceptance;
                 const showLinkPopup = linkPopupId === r.id;
                 const hasNv = !!(r.final_copy_sale_order_name || r.final_sale_order_name || r.odoo_sale_order_name);
+                const isCancelled = !!r.cancelled_at;
                 return (
                   <tr
                     key={r.id}
-                    style={{ borderBottom: "1px solid #f0f0f0", transition: "background 0.15s" }}
+                    style={{
+                      borderBottom: "1px solid #f0f0f0",
+                      transition: "background 0.15s",
+                      ...(isCancelled ? { color: "#b71c1c", textDecoration: "line-through" } : null),
+                    }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = "#fafafa"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = ""; }}
                   >
@@ -727,7 +732,7 @@ export default function PortonesEstadoPage() {
                       {r.fulfillment_mode === "produccion" ? formatDate(r.production_set_at) : <span style={{ color: "var(--dg-muted)" }}>—</span>}
                     </td>
                     <td style={{ ...tdStyle, position: "relative" }}>
-                      {acceptanceUrl && (
+                      {acceptanceUrl && !isCancelled && (
                         <div style={{ marginBottom: acceptance ? 8 : 0 }}>
                           <button
                             onClick={() => setLinkPopupId(showLinkPopup ? null : r.id)}
@@ -761,7 +766,9 @@ export default function PortonesEstadoPage() {
                       )}
                     </td>
                     <td style={{ ...tdStyle, textAlign: "center" }}>
-                      {acceptanceUrl ? (
+                      {isCancelled ? (
+                        <span style={{ color: "#ccc" }}>—</span>
+                      ) : acceptanceUrl ? (
                         r.measurement_link_sent_confirmed_at ? (
                           <span
                             title={`Confirmado ${formatDateTime(r.measurement_link_sent_confirmed_at)}`}

@@ -139,6 +139,7 @@ function getLogoDrawOptions(payload = null) {
   return { width: 180, height: 48, fit: [180, 48] };
 }
 function getPdfFooterLeft(payload = null, fallback = "De Grandis Portones") {
+  if (payload?.__hide_degrandis_footer) return "";
   const catalogKind = getCatalogKindFromPayload(payload);
   if (catalogKind === "ipanel") return "Ipanel";
   return fallback;
@@ -1232,6 +1233,12 @@ export function buildPdfRouter(odoo = null) {
       // solo en el PDF de PRESUPUESTO, nunca en la proforma (esa ruta no setea esto).
       if (req.user?.is_distribuidor && req.user?.logo_data_url) {
         payload.__custom_logo_data_url = req.user.logo_data_url;
+      }
+      // Pedido puntual del distribuidor Fratello (presupuestador_users.id=217): en los
+      // presupuestos que salen con su logo propio, no debe aparecer el pie de pagina "De
+      // Grandis Portones". Solo este distribuidor - el resto sigue mostrandolo siempre.
+      if (req.user?.id === 217 && req.user?.is_distribuidor && req.user?.logo_data_url) {
+        payload.__hide_degrandis_footer = true;
       }
       // Para distribuidores, el PDF de PRESUPUESTO siempre dice "A convenir" en forma
       // de pago sin importar la elegida - solo cambia este texto, no toca el calculo

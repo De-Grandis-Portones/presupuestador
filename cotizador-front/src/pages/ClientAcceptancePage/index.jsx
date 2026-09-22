@@ -8,11 +8,12 @@ import {
 import { getCatalogBootstrap } from "../../api/catalog.js";
 import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
+import { NewFormatAcceptance } from "./NewFormat.jsx";
 
-function text(v) {
+export function text(v) {
   return String(v ?? "").trim();
 }
-function toNumberLike(value) {
+export function toNumberLike(value) {
   const n = Number(String(value ?? "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
 }
@@ -142,6 +143,22 @@ function quoteUsesNewTechnicalFormula(quote) {
   const createdMs = new Date(quote?.created_at || 0).getTime();
   return Number.isFinite(createdMs) && createdMs >= NEW_TECHNICAL_FORMULA_CUTOFF_MS;
 }
+// Corte (pedido explicito): el link de aceptacion del cliente usa el formato nuevo (NV
+// destacada, esquema de medicion visual, items agrupados por seccion con resaltado de
+// cambios, etc, uno por catalog_kind: porton/ipanel/puerta) solo para links generados a
+// partir de este cambio - lo ya generado/enviado a un cliente (aunque todavia no haya
+// firmado, o lo vuelva a abrir despues) sigue mostrando exactamente el formato de siempre.
+// measurement_share_token/measurement_share_enabled_at se graban una unica vez (coalesce)
+// en measurementFinalization.js/measurements.routes.js en el momento en que el link se
+// habilita - es exactamente "cuando se genero el link" (mismo campo/patron que ya usa
+// shouldShowProductionPlanningOnLink en clientAcceptance.routes.js para otro corte).
+const NEW_ACCEPTANCE_FORMAT_CUTOFF_MS = Date.parse("2026-09-21T15:51:07.000Z");
+const NEW_ACCEPTANCE_FORMAT_CATALOG_KINDS = new Set(["porton", "ipanel", "puerta"]);
+function quoteUsesNewAcceptanceFormat(quote, catalogKind) {
+  if (!NEW_ACCEPTANCE_FORMAT_CATALOG_KINDS.has(catalogKind)) return false;
+  const enabledAtMs = quote?.measurement_share_enabled_at ? Date.parse(quote.measurement_share_enabled_at) : NaN;
+  return Number.isFinite(enabledAtMs) && enabledAtMs >= NEW_ACCEPTANCE_FORMAT_CUTOFF_MS;
+}
 // El calculo local de mas abajo usa una formula obsoleta (descuenta el ancho de pierna x2
 // en vez del descuento oficial por tipo de pierna) y puede no coincidir con lo que el
 // backend ya recalculo con la medicion final (portonVanoMeasurements.js). Para los
@@ -235,7 +252,7 @@ function computeAutomaticSummary({ quote, form, surfaceParameters = {} }) {
     ancho_pierna_mm: legWidthMm,
   };
 }
-function formatMm(value) {
+export function formatMm(value) {
   const n = Number(value || 0);
   return Number.isFinite(n) && n > 0 ? `${Math.round(n)} mm` : "";
 }
@@ -352,19 +369,17 @@ function pushTechnicalDetailEntry(rows, label, entry) {
   pushTechnicalDetailRow(rows, label, entry.value);
 }
 // Busca en las lineas del presupuesto un producto de automatizador (ej. "Automatizador
-// tipo torsion" / "Automátizado") y devuelve su nombre para mostrar. No hay una opcion
-// "manual"/"sin automatizador" en el catalogo de Clasico - cuando no se encuentra ninguna
-// linea, se omite la fila (mismo criterio que pushTechnicalDetailRow con valor vacio).
-function detectAutomatizadorLineName(quote) {
+// tipo torsion" / "Accionador automatico..."). Pedido explicito: la fila "Automatización"
+// muestra Si/No en vez del nombre del producto, siempre (nunca se omite la fila).
+function hasAutomatizadorLine(quote) {
   const lines = Array.isArray(quote?.lines) ? quote.lines : [];
-  for (const line of lines) {
+  return lines.some((line) => {
     const haystack = String(line?.raw_name || line?.name || "")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
-    if (haystack.includes("automat")) return text(line?.raw_name || line?.name || "");
-  }
-  return "";
+    return haystack.includes("automat");
+  });
 }
 function buildBudgetTechnicalDetailRows(quote, form, technicalSummary = {}, stored = {}) {
   const payload = quote?.payload && typeof quote.payload === "object" ? quote.payload : {};
@@ -402,7 +417,7 @@ function buildBudgetTechnicalDetailRows(quote, form, technicalSummary = {}, stor
   pushTechnicalDetailEntry(rows, "Tipo de revestimiento", firstTechnicalEntry(sources, ["tipo_revestimiento", "revestimiento", "revestimiento_tipo", "material_revestimiento", "cladding", "cladding_type", "apto_revestimiento", "apto_para_revestir"]));
   pushTechnicalDetailEntry(rows, "Terminación", firstTechnicalEntry(sources, ["terminacion", "terminación", "terminacion_porton", "terminación_portón", "acabado", "finish", "acabado_porton"]));
   pushTechnicalDetailEntry(rows, "Tipo de colocación", firstTechnicalEntry(sources, ["tipo_colocacion", "tipo_colocación", "colocacion", "colocación", "tipo_instalacion", "tipo_instalación", "installation_mode", "modo_instalacion", "modo_instalación"]));
-  pushTechnicalDetailRow(rows, "Automatización", detectAutomatizadorLineName(quote));
+  pushTechnicalDetailRow(rows, "Automatización", hasAutomatizadorLine(quote) ? "Sí" : "No");
   pushTechnicalDetailEntry(rows, "Lado del motor", firstTechnicalEntry(sources, ["lado_motor", "motor_lado", "lado_del_motor"]));
   pushTechnicalDetailEntry(rows, "Lado del soporte", firstTechnicalEntry(sources, ["lado_soporte", "soporte_lado", "lado_del_soporte"]));
   pushTechnicalDetailEntry(rows, "Kg/m² efectivo", firstTechnicalEntry(sources, ["kg_m2", "kg_m2_entry", "peso_m2", "custom_kg_m2"]));
@@ -528,6 +543,7 @@ function buildBudgetDetailLines(lines = [], catalog = {}) {
       name,
       qty,
       code,
+      productId: Number(line?.product_id || 0) || 0,
     });
   }
   return Array.from(grouped.values()).sort((a, b) => {
@@ -536,7 +552,7 @@ function buildBudgetDetailLines(lines = [], catalog = {}) {
     return String(a.name || "").localeCompare(String(b.name || ""), "es");
   });
 }
-function MeasurementSchemeVisual({ form }) {
+export function MeasurementSchemeVisual({ form }) {
   const altos = normalizeTriple(form?.esquema?.alto || []);
   const anchos = normalizeTriple(form?.esquema?.ancho || []);
   return (
@@ -589,7 +605,7 @@ const TERMINOS = [
   },
 ];
 
-function TermsModal({ onClose, onAccept }) {
+export function TermsModal({ onClose, onAccept }) {
   const isAcceptMode = typeof onAccept === "function";
   const [accepted, setAccepted] = useState(false);
 
@@ -799,6 +815,30 @@ export default function ClientAcceptancePage() {
   const canAccept = !accepted?.accepted_at;
   const submitError = acceptM.error?.message || "";
 
+  if (quoteUsesNewAcceptanceFormat(quote, catalogKind)) {
+    return (
+      <NewFormatAcceptance
+        quote={quote}
+        form={form}
+        catalogKind={catalogKind}
+        budgetTechnicalRows={budgetTechnicalRows}
+        budgetDetailLines={budgetDetailLines}
+        accepted={accepted}
+        productionPlanning={productionPlanning}
+        step={step}
+        setStep={setStep}
+        fullName={fullName}
+        setFullName={setFullName}
+        dni={dni}
+        setDni={setDni}
+        showTerms={showTerms}
+        setShowTerms={setShowTerms}
+        acceptM={acceptM}
+        submitError={submitError}
+      />
+    );
+  }
+
   return (
     <div className="container" style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 12px" }}>
       <Card>
@@ -826,8 +866,8 @@ export default function ClientAcceptancePage() {
         <MeasurementSchemeVisual form={form} />
         <div className="spacer" />
         <Row>
-          <StaticField label="Ancho de Vano" value={formatMm(form?.ancho_final_mm || technicalSummary.ancho_calculado_mm)} />
-          <StaticField label="Alto de Vano" value={formatMm(form?.alto_final_mm || technicalSummary.alto_calculado_mm)} />
+          <StaticField label="Ancho del Portón" value={formatMm(form?.ancho_final_mm || technicalSummary.ancho_calculado_mm)} />
+          <StaticField label="Alto del Portón" value={formatMm(form?.alto_final_mm || technicalSummary.alto_calculado_mm)} />
           <StaticField label="Cantidad de parantes" value={text(form?.cantidad_parantes)} />
         </Row>
       </Card>

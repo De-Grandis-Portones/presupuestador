@@ -1,6 +1,20 @@
 import jwt from "jsonwebtoken";
 import { dbQuery } from "./db.js";
 import { ensureUsersAdminColumns } from "./usersDb.js";
+import { getGlobalForceLogoutBeforeMs } from "./settingsDb.js";
+
+// Cache en memoria del umbral de deslogueo global (ver setGlobalForceLogoutBeforeMs): se
+// consulta en cada request autenticado, asi que se refresca cada 30s en vez de leerlo de
+// la base en cada llamada.
+let forceLogoutCache = { value: 0, fetchedAt: 0 };
+const FORCE_LOGOUT_CACHE_MS = 30_000;
+async function getForceLogoutBeforeMsCached() {
+  const now = Date.now();
+  if (now - forceLogoutCache.fetchedAt < FORCE_LOGOUT_CACHE_MS) return forceLogoutCache.value;
+  const value = await getGlobalForceLogoutBeforeMs().catch(() => forceLogoutCache.value);
+  forceLogoutCache = { value, fetchedAt: now };
+  return value;
+}
 
 function withEffectiveRoles(user) {
   const isSuperuser = !!user?.is_superuser;
@@ -70,6 +84,11 @@ export async function requireAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(m[1], process.env.JWT_SECRET);
+
+    const forceLogoutBeforeMs = await getForceLogoutBeforeMsCached();
+    if (forceLogoutBeforeMs && Number(decoded.iat || 0) * 1000 < forceLogoutBeforeMs) {
+      return res.status(401).json({ ok: false, error: "Tu sesión expiró, iniciá sesión nuevamente." });
+    }
 
     try {
       await ensureUsersAdminColumns();

@@ -10,8 +10,9 @@ const DOOR_LAMAS_EXTERIOR_PRODUCT_IDS = new Set([4108, 3637]);
 // compatibilidad con presupuestos ya guardados con ese producto). 4227/3756 = su
 // reemplazo, mismo nombre "Panel en Lamas 22mm".
 const DOOR_LAMAS_INTERIOR_PRODUCT_IDS = new Set([4061, 3590, 4227, 3756]);
+export { DOOR_LAMAS_EXTERIOR_PRODUCT_IDS, DOOR_LAMAS_INTERIOR_PRODUCT_IDS };
 
-const DOOR_PANEL_CONFIGS = {
+export const DOOR_PANEL_CONFIGS = {
   exterior: {
     key: "exterior",
     title: "Panel Exterior",
@@ -194,7 +195,7 @@ function disabledComputedInputStyle() {
     fontWeight: 800,
   };
 }
-function lineMatchesProductIds(line = {}, idSet) {
+export function lineMatchesProductIds(line = {}, idSet) {
   const candidates = [
     line?.product_id,
     line?.id,
@@ -209,7 +210,7 @@ function lineMatchesProductIds(line = {}, idSet) {
 function panelField(config, name) {
   return `${config.prefix}_${name}`;
 }
-function getPanelState(dimensions = {}, config) {
+export function getPanelState(dimensions = {}, config) {
   const orientation = normalizePanelOrientation(
     dimensions?.[panelField(config, "orientacion")] ??
     dimensions?.[panelField(config, "orientation")] ??
@@ -492,10 +493,10 @@ function PanelLamasSetupModal({
   );
 }
 
-function PanelSketchModal({
-  open,
-  onClose,
-  title,
+// Cuerpo puro del esquema (sin chrome de modal: sin backdrop, sin título, sin botón
+// "Cerrar") para poder incrustarlo directo en una tarjeta (ej. link de aceptación del
+// cliente), ademas de seguir usandose dentro de PanelSketchModal mas abajo.
+export function PanelSketch({
   orientation = "horizontal",
   widthMm = 0,
   heightMm = 0,
@@ -503,7 +504,6 @@ function PanelSketchModal({
   sectionSizes = [],
   dividersIncludedInSectionSizes = false,
 }) {
-  if (!open) return null;
   const normalizedOrientation = normalizePanelOrientation(orientation);
   const isVertical = normalizedOrientation === "vertical";
   const safeSectionSizes = Array.isArray(sectionSizes) ? sectionSizes : [];
@@ -544,18 +544,9 @@ function PanelSketchModal({
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "var(--dg-card)", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>Esquema del {title}</div>
-            <div className="muted" style={{ marginTop: 4 }}>Orientación de lamas {isVertical ? "vertical" : "horizontal"} · {count || 0} secciones · línea entre secciones {formatMm(dividerMm)}</div>
-          </div>
-          <button type="button" onClick={onClose} style={{ border: "1px solid #ddd", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
-        </div>
         <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 420px) minmax(240px, 1fr)", gap: 18, alignItems: "start" }}>
           <div style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#f8fafc" }}>
-            <svg width="100%" viewBox={`-80 -50 ${panelWidthPx + (isVertical ? 160 : 290)} ${panelHeightPx + (isVertical ? 200 : 170)}`} role="img" aria-label={`Esquema del ${title} con divisiones`}>
+            <svg width="100%" viewBox={`-80 -50 ${panelWidthPx + (isVertical ? 160 : 290)} ${panelHeightPx + (isVertical ? 200 : 170)}`} role="img" aria-label="Esquema del panel con divisiones">
               <rect x={panelX} y={panelY} width={panelWidthPx} height={panelHeightPx} rx="14" fill="#ffffff" stroke="#0f172a" strokeWidth="2.2" />
               {bands.map((band) => {
                 const startPx = (axisDimensionMm > 0 ? band.startMm / axisDimensionMm : 0) * mainAxisPx;
@@ -622,6 +613,41 @@ function PanelSketchModal({
             <ComputedCard label="Distribución" value={dividersIncludedInSectionSizes ? "Clásica" : "Repartida / manual"} />
           </div>
         </div>
+  );
+}
+
+function PanelSketchModal({
+  open,
+  onClose,
+  title,
+  orientation = "horizontal",
+  widthMm = 0,
+  heightMm = 0,
+  dividerMm = DOOR_LAMAS_DIVIDER_LINE_MM,
+  sectionSizes = [],
+  dividersIncludedInSectionSizes = false,
+}) {
+  if (!open) return null;
+  const isVertical = normalizePanelOrientation(orientation) === "vertical";
+  const count = Array.isArray(sectionSizes) ? sectionSizes.length : 0;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "#fff", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>Esquema del {title}</div>
+            <div className="muted" style={{ marginTop: 4 }}>Orientación de lamas {isVertical ? "vertical" : "horizontal"} · {count || 0} secciones · línea entre secciones {formatMm(dividerMm)}</div>
+          </div>
+          <button type="button" onClick={onClose} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
+        </div>
+        <PanelSketch
+          orientation={orientation}
+          widthMm={widthMm}
+          heightMm={heightMm}
+          dividerMm={dividerMm}
+          sectionSizes={sectionSizes}
+          dividersIncludedInSectionSizes={dividersIncludedInSectionSizes}
+        />
       </div>
     </div>
   );

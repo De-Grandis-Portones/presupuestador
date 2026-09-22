@@ -519,8 +519,9 @@ export default function PresupuestosPage() {
                   const isMeasurementApproved = String(r?.measurement_status || "").toLowerCase() === "approved";
                   const isTechnicalOnly = String(r?.measurement_subtype || "").toLowerCase() === "sin_medicion" || String(r?.measurement_mode || "").toLowerCase() === "tecnica_only";
                   const measurementLabel = isTechnicalOnly ? "Ver detalle técnico" : "Ver medición";
+                  const isCancelled = !!r.cancelled_at;
                   return (
-                    <tr key={r.id}>
+                    <tr key={r.id} style={isCancelled ? { color: "#b71c1c", textDecoration: "line-through" } : undefined}>
                       <td>
                         {r.quote_number
                           ? <span style={{ fontWeight: 800, color: "#374151", fontSize: 13 }}>#{r.quote_number}</span>
@@ -536,7 +537,7 @@ export default function PresupuestosPage() {
                       </td>
                       <td>{item.locality}</td>
                       <td>
-                        {getRejectionInfoFromQuote(r) ? (
+                        {!isCancelled && getRejectionInfoFromQuote(r) ? (
                           <RejectedStatusButton
                             label={item.statusLabel}
                             onClick={() => setRejectionModal(getRejectionInfoFromQuote(r))}
@@ -548,6 +549,7 @@ export default function PresupuestosPage() {
                       {filter === "mediciones" ? <td>{item.measurementDate}</td> : null}
                       {filter === "mediciones" ? <td>{item.measurementStatus}</td> : null}
                       {showAcceptanceColumn ? (() => {
+                        if (isCancelled) return <td style={{ minWidth: 160 }} />;
                         const token = r.measurement_share_token;
                         const acceptanceUrl = token ? buildClientAcceptanceUrl(token) : null;
                         const acceptance = r.payload?.measurement_client_acceptance;
@@ -578,22 +580,30 @@ export default function PresupuestosPage() {
                         );
                       })() : null}
                       <td className="right" style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-                        <Button variant="ghost" disabled={downloadingPdfKey === originalPdfKey} onClick={() => handleDownloadQuotePdf(r.id)}>Ver original</Button>
-                        {canDownloadQuoteProforma ? <Button variant="ghost" disabled={downloadingPdfKey === originalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.id)}>Proforma</Button> : null}
-                        {hasFinal ? <Button variant="ghost" disabled={downloadingPdfKey === finalPdfKey} onClick={() => handleDownloadQuotePdf(r.final_copy_id)}>Ver final</Button> : null}
-                        {canDownloadQuoteProforma && hasFinal ? <Button variant="ghost" disabled={downloadingPdfKey === finalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.final_copy_id)}>Proforma final</Button> : null}
-                        {hasMeasurementDetail ? (() => { const canViewMeasurement = isMeasurementApproved || isReturnedFromMeasurement(r); return <Button variant="ghost" disabled={!canViewMeasurement} title={canViewMeasurement ? "" : "Disponible cuando Técnica apruebe la medición / detalle técnico"} onClick={() => { if (!canViewMeasurement) return; navigate(`/mediciones/${r.id}`, isReturnedFromMeasurement(r) && !isMeasurementApproved ? { state: { readOnlyMeasurement: true } } : undefined); }}>{measurementLabel}</Button>; })() : null}
-                        {effectiveQuoteKind(r) === "plegados" ? <Button variant="ghost" onClick={() => setPlegadoModal(r)}>Plano / comentarios</Button> : null}
-                        {r.status === "draft" ? <Button onClick={() => navigate(quoteEditorPath(r))}>Editar</Button> : null}
-                        {canAddDoor ? <Button variant="ghost" onClick={() => navigate(`/puertas/nuevo/${r.id}`)}>Agregar puerta</Button> : null}
-                        {hasFinal && finalDraft ? (
-                          r.requires_measurement && !isReturnedFromMeasurement(r) ? (
-                            <Button variant="ghost" disabled title="Ya se confirmó y se envió; está esperando la aprobación de Comercial y/o Técnica antes de generarse la venta final.">Esperando aprobaciones finales</Button>
-                          ) : (
-                            <Button onClick={() => navigate(quoteEditorPath({ ...r, id: r.final_copy_id }))}>{r.requires_measurement ? "Edición postmedición" : "Edición acopio"}</Button>
-                          )
-                        ) : null}
-                        {filter === "acopio" ? <Button disabled={moveM.isPending || !canRequestProduction} title={canRequestProduction ? "Solicitar paso a Producción" : "Solo disponible cuando el presupuesto original ya fue aprobado y enviado a Odoo"} onClick={() => moveM.mutate(r.id)}>{r.acopio_to_produccion_status === "pending" ? "Solicitud en revisión" : "Solicitar paso a Producción"}</Button> : null}
+                        {isCancelled ? (
+                          <span style={{ color: "#b71c1c", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+                            Cancelado{r.cancellation_reason ? ` — ${r.cancellation_reason}` : ""}
+                          </span>
+                        ) : (
+                          <>
+                            <Button variant="ghost" disabled={downloadingPdfKey === originalPdfKey} onClick={() => handleDownloadQuotePdf(r.id)}>Ver original</Button>
+                            {canDownloadQuoteProforma ? <Button variant="ghost" disabled={downloadingPdfKey === originalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.id)}>Proforma</Button> : null}
+                            {hasFinal ? <Button variant="ghost" disabled={downloadingPdfKey === finalPdfKey} onClick={() => handleDownloadQuotePdf(r.final_copy_id)}>Ver final</Button> : null}
+                            {canDownloadQuoteProforma && hasFinal ? <Button variant="ghost" disabled={downloadingPdfKey === finalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.final_copy_id)}>Proforma final</Button> : null}
+                            {hasMeasurementDetail ? (() => { const canViewMeasurement = isMeasurementApproved || isReturnedFromMeasurement(r); return <Button variant="ghost" disabled={!canViewMeasurement} title={canViewMeasurement ? "" : "Disponible cuando Técnica apruebe la medición / detalle técnico"} onClick={() => { if (!canViewMeasurement) return; navigate(`/mediciones/${r.id}`, isReturnedFromMeasurement(r) && !isMeasurementApproved ? { state: { readOnlyMeasurement: true } } : undefined); }}>{measurementLabel}</Button>; })() : null}
+                            {effectiveQuoteKind(r) === "plegados" ? <Button variant="ghost" onClick={() => setPlegadoModal(r)}>Plano / comentarios</Button> : null}
+                            {r.status === "draft" ? <Button onClick={() => navigate(quoteEditorPath(r))}>Editar</Button> : null}
+                            {canAddDoor ? <Button variant="ghost" onClick={() => navigate(`/puertas/nuevo/${r.id}`)}>Agregar puerta</Button> : null}
+                            {hasFinal && finalDraft ? (
+                              r.requires_measurement && !isReturnedFromMeasurement(r) ? (
+                                <Button variant="ghost" disabled title="Ya se confirmó y se envió; está esperando la aprobación de Comercial y/o Técnica antes de generarse la venta final.">Esperando aprobaciones finales</Button>
+                              ) : (
+                                <Button onClick={() => navigate(quoteEditorPath({ ...r, id: r.final_copy_id }))}>{r.requires_measurement ? "Edición postmedición" : "Edición acopio"}</Button>
+                              )
+                            ) : null}
+                            {filter === "acopio" ? <Button disabled={moveM.isPending || !canRequestProduction} title={canRequestProduction ? "Solicitar paso a Producción" : "Solo disponible cuando el presupuesto original ya fue aprobado y enviado a Odoo"} onClick={() => moveM.mutate(r.id)}>{r.acopio_to_produccion_status === "pending" ? "Solicitud en revisión" : "Solicitar paso a Producción"}</Button> : null}
+                          </>
+                        )}
                       </td>
                     </tr>
                   );

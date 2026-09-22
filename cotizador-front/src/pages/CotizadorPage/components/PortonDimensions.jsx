@@ -17,10 +17,10 @@ const IPANEL_HEIGHT_MAX_M = 2.45;
 // los dos lados quede por debajo de este valor; el otro lado puede tomar la medida
 // que se necesite.
 const IPANEL_EXTENDED_MAX_M = 4;
-const IPANEL_LAMAS_22_PRODUCT_IDS = new Set([4061, 3590]);
-const IPANEL_DIVIDER_LINE_MM = 10;
+export const IPANEL_LAMAS_22_PRODUCT_IDS = new Set([4061, 3590]);
+export const IPANEL_DIVIDER_LINE_MM = 10;
 const PARANTES_SPECIAL_PRODUCT_ID = 3006;
-const APTOS_PARA_REVESTIR_TYPE = "para_revestir_con_al_pvc_otros";
+export const APTOS_PARA_REVESTIR_TYPE = "para_revestir_con_al_pvc_otros";
 const DEFAULT_PARANTES_TUBE_DISCOUNT_MM = 40;
 const DOOR_FIXED_PARANTE_DISTANCE_MM = 825;
 const VANO_BEHIND_PRODUCT_ID = 3022;
@@ -1174,9 +1174,10 @@ export function ParantesSketchModal({ open, onClose, ...diagramProps }) {
   );
 }
 
-function IpanelDivisionsSketchModal({
-  open,
-  onClose,
+// Cuerpo puro del esquema (sin chrome de modal: sin backdrop, sin título, sin botón
+// "Cerrar") para poder incrustarlo directo en una tarjeta (ej. link de aceptación del
+// cliente), ademas de seguir usandose dentro de IpanelDivisionsSketchModal mas abajo.
+export function IpanelDivisionsSketch({
   orientation = "horizontal",
   widthMm = 0,
   heightMm = 0,
@@ -1184,7 +1185,6 @@ function IpanelDivisionsSketchModal({
   sectionSizes = [],
   dividersIncludedInSectionSizes = false,
 }) {
-  if (!open) return null;
   const normalizedOrientation = normalizeIpanelLamasOrientation(orientation);
   const isVertical = normalizedOrientation === "vertical";
   const safeSectionSizes = Array.isArray(sectionSizes) ? sectionSizes : [];
@@ -1226,17 +1226,6 @@ function IpanelDivisionsSketchModal({
     }
   }
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "#fff", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>Esquema del Ipanel</div>
-            <div className="muted" style={{ marginTop: 4 }}>
-              Orientación de lamas {isVertical ? "vertical" : "horizontal"} · {count || 0} secciones · línea entre secciones {formatMm(dividerMm)}
-            </div>
-          </div>
-          <button type="button" onClick={onClose} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
-        </div>
         <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 420px) minmax(240px, 1fr)", gap: 18, alignItems: "start" }}>
           <div style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#f8fafc" }}>
             <svg width="100%" viewBox={`-80 -50 ${panelWidthPx + (isVertical ? 160 : 290)} ${panelHeightPx + (isVertical ? 200 : 170)}`} role="img" aria-label="Esquema del Ipanel con divisiones">
@@ -1353,6 +1342,42 @@ function IpanelDivisionsSketchModal({
             </div>
           </div>
         </div>
+  );
+}
+
+function IpanelDivisionsSketchModal({
+  open,
+  onClose,
+  orientation = "horizontal",
+  widthMm = 0,
+  heightMm = 0,
+  dividerMm = IPANEL_DIVIDER_LINE_MM,
+  sectionSizes = [],
+  dividersIncludedInSectionSizes = false,
+}) {
+  if (!open) return null;
+  const isVertical = normalizeIpanelLamasOrientation(orientation) === "vertical";
+  const count = Array.isArray(sectionSizes) ? sectionSizes.length : 0;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "#fff", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>Esquema del Ipanel</div>
+            <div className="muted" style={{ marginTop: 4 }}>
+              Orientación de lamas {isVertical ? "vertical" : "horizontal"} · {count || 0} secciones · línea entre secciones {formatMm(dividerMm)}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
+        </div>
+        <IpanelDivisionsSketch
+          orientation={orientation}
+          widthMm={widthMm}
+          heightMm={heightMm}
+          dividerMm={dividerMm}
+          sectionSizes={sectionSizes}
+          dividersIncludedInSectionSizes={dividersIncludedInSectionSizes}
+        />
       </div>
     </div>
   );
