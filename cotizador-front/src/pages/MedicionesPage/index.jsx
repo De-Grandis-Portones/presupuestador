@@ -64,6 +64,7 @@ function NvPill({ value }) {
       style={{
         display: "inline-flex",
         fontWeight: 900,
+        color: "#0f5132",
         background: "#e7f7ed",
         border: "1px solid #bfe6c8",
         borderRadius: 999,

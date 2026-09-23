@@ -25,10 +25,11 @@ function quoteEditorPath(quote) {
   return `/cotizador/${quote.id}`;
 }
 
-function pillStyle(bg, border) {
+function pillStyle(bg, border, color) {
   return {
     padding: "2px 8px",
     borderRadius: 999,
+    color,
     background: bg,
     border: `1px solid ${border}`,
     fontSize: 12,
@@ -1338,11 +1339,11 @@ export default function QuoteDetailPage() {
               <span>· Número: <b>{displayQuoteNumber(quote, quoteId)}</b></span>
               <span>· Creado por: <b>{quote.created_by_role}</b></span>
               <span>· Destino: <b>{quote.fulfillment_mode === "acopio" ? "Acopio" : "Producción"}</b></span>
-              {!isRevision && quote.status === "synced_odoo" ? <span style={pillStyle("#e7f7ed", "#bfe6c8")}>En Odoo: {quote.odoo_sale_order_name || `SO#${quote.odoo_sale_order_id}`}</span> : null}
-              {isRevision && quote.final_sale_order_name ? <span style={pillStyle("#e7f7ed", "#bfe6c8")}>Odoo final: {quote.final_sale_order_name}</span> : null}
-              {isRevision && quote.final_absorbed_by_company ? <span style={pillStyle("#fff7e6", "#ffd9a8")}>Diferencia absorbida por empresa</span> : null}
-              {quote.status === "syncing_odoo" ? <span style={pillStyle("#fff7e6", "#ffd9a8")}>Sincronizando a Odoo…</span> : null}
-              {quote.status === "pending_approvals" && !isRevision ? <span style={pillStyle("#eef4ff", "#c7dafc")}>En aprobación</span> : null}
+              {!isRevision && quote.status === "synced_odoo" ? <span style={pillStyle("#e7f7ed", "#bfe6c8", "#0f5132")}>En Odoo: {quote.odoo_sale_order_name || `SO#${quote.odoo_sale_order_id}`}</span> : null}
+              {isRevision && quote.final_sale_order_name ? <span style={pillStyle("#e7f7ed", "#bfe6c8", "#0f5132")}>Odoo final: {quote.final_sale_order_name}</span> : null}
+              {isRevision && quote.final_absorbed_by_company ? <span style={pillStyle("#fff7e6", "#ffd9a8", "#92400e")}>Diferencia absorbida por empresa</span> : null}
+              {quote.status === "syncing_odoo" ? <span style={pillStyle("#fff7e6", "#ffd9a8", "#92400e")}>Sincronizando a Odoo…</span> : null}
+              {quote.status === "pending_approvals" && !isRevision ? <span style={pillStyle("#eef4ff", "#c7dafc", "#075985")}>En aprobación</span> : null}
             </div>
             {(user?.is_vendedor || user?.is_distribuidor || user?.is_enc_comercial || user?.is_rev_tecnica || user?.is_superuser) ? (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
