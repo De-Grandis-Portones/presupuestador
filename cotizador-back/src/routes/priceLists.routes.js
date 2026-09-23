@@ -1,4 +1,5 @@
 import express from "express";
+import { requireAuth } from "../auth.js";
 
 function toId(value) {
   const n = Number(value);
@@ -444,6 +445,22 @@ async function increasePricelistItems(odoo, itemIds, pct, companyId = null) {
 export function buildPriceListsRouter(odoo) {
   const router = express.Router();
 
+  // Ninguna ruta de este archivo tenía auth - cualquiera con la URL podía
+  // leer y, peor, reescribir precios reales de Odoo (ver /increase más abajo,
+  // que puede vaciar una lista entera con un solo request). El frontend ya
+  // manda el Bearer token en todos sus pedidos (src/api/http.js), así que
+  // esto no debería romper el uso actual desde la app.
+  router.use(requireAuth);
+
+  // Además de estar logueado, tocar precios en bulk queda reservado a
+  // administración (mismo criterio que admin.routes.js's requireAdministracion).
+  function requireAdministracion(req, res, next) {
+    if (!req.user?.is_administracion && !req.user?.is_superuser) {
+      return res.status(403).json({ ok: false, error: "No autorizado" });
+    }
+    return next();
+  }
+
   router.get("/companies", async (_req, res, next) => {
     try {
       let companies = [];
@@ -519,7 +536,7 @@ export function buildPriceListsRouter(odoo) {
     }
   });
 
-  router.patch("/items/:itemId", async (req, res, next) => {
+  router.patch("/items/:itemId", requireAdministracion, async (req, res, next) => {
     try {
       const ref = parseRef(req.params.itemId);
       const fixedPrice = Number(req.body?.fixed_price);
@@ -537,7 +554,7 @@ export function buildPriceListsRouter(odoo) {
     }
   });
 
-  router.post("/increase", async (req, res, next) => {
+  router.post("/increase", requireAdministracion, async (req, res, next) => {
     try {
       const pct = Number(req.body?.percent);
       if (!Number.isFinite(pct)) {
