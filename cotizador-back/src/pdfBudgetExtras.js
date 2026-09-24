@@ -19,6 +19,15 @@ const PORTON_TYPE_LABELS = {
   corredizo_simil_madera_doble: "Corredizo Simil Madera Doble",
   corredizo_simil_aluminio: "Corredizo Simil Aluminio",
 };
+// Pedido puntual: los portones Coplanar (Sistema id 3008) y los aptos para revestir
+// nunca deben quedar con piernas "Angostas" - mismo criterio que portonVanoMeasurements.js
+// (back) y PortonDimensions.jsx (front), para que el PDF no muestre un valor distinto al
+// que ya usa el presupuesto/la medición.
+const APTOS_PARA_REVESTIR_TYPE = "para_revestir_con_al_pvc_otros";
+const COPLANAR_SISTEMA_PRODUCT_ID = 3008;
+function isAptoParaRevestirType(quote) {
+  return normalizeFormulaText(quote?.payload?.porton_type || quote?.payload?.tipo_porton || "") === APTOS_PARA_REVESTIR_TYPE;
+}
 function getPortonTypeLabelFromQuote(quote) {
   const key = safeStr(quote?.payload?.porton_type || quote?.payload?.tipo_porton || "");
   return PORTON_TYPE_LABELS[key] || "";
@@ -130,8 +139,9 @@ function computeSurfaceAutomaticContext({ quote, form, surfaceParameters }) {
   const limitComunes = Number(surfaceParameters?.legs_comunes_max_kg || 175);
   const limitAnchas = Number(surfaceParameters?.legs_anchas_max_kg || 240);
   const limitSuperanchas = Number(surfaceParameters?.legs_superanchas_max_kg || 300);
+  const neverAngostas = isAptoParaRevestirType(quote) || getBudgetProductIdSet(quote).has(COPLANAR_SISTEMA_PRODUCT_ID);
 
-  let piernasTipo = "angostas";
+  let piernasTipo = neverAngostas ? "comunes" : "angostas";
   if (pesoEstimadoKg > limitSuperanchas) piernasTipo = "especiales";
   else if (pesoEstimadoKg > limitAnchas) piernasTipo = "superanchas";
   else if (pesoEstimadoKg > limitComunes) piernasTipo = "anchas";

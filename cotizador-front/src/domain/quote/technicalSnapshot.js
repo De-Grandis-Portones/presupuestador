@@ -265,8 +265,12 @@ function resolveSellerKgM2Entry(dimensions, params) {
   return 0;
 }
 
-function legsTypeForWeight(weightKg, isApto, params) {
-  const limitAngostas = getNumberParam(params, [isApto ? "no_cladding_angostas_max_kg" : "legs_angostas_max_kg", isApto ? "limit_angostas_apto_kg" : "limit_angostas_kg", "piernas_angostas_hasta_kg"], isApto ? 80 : 140);
+// Pedido puntual: los portones Coplanar (Sistema id 3008) y los aptos para revestir
+// nunca deben quedar con piernas "Angostas" - mismo criterio que portonVanoMeasurements.js
+// (back) y PortonDimensions.jsx (front editor).
+const COPLANAR_SISTEMA_PRODUCT_ID = 3008;
+function legsTypeForWeight(weightKg, isApto, params, neverAngostas = false) {
+  const limitAngostas = neverAngostas ? 0 : getNumberParam(params, [isApto ? "no_cladding_angostas_max_kg" : "legs_angostas_max_kg", isApto ? "limit_angostas_apto_kg" : "limit_angostas_kg", "piernas_angostas_hasta_kg"], isApto ? 80 : 140);
   const limitComunes = getNumberParam(params, ["legs_comunes_max_kg", "limit_comunes_kg", "piernas_comunes_hasta_kg"], 175);
   const limitAnchas = getNumberParam(params, ["legs_anchas_max_kg", "limit_anchas_kg", "piernas_anchas_hasta_kg"], 240);
   const limitSuper = getNumberParam(params, ["legs_superanchas_max_kg", "limit_superanchas_kg", "piernas_superanchas_hasta_kg"], 300);
@@ -329,6 +333,8 @@ function buildTechnicalSnapshot({ payload }) {
   const portonType = nestedPayload?.porton_type || nestedPayload?.tipo_porton || nestedPayload?.tipo_sistema || nestedPayload?.system_type || "";
   const areaM2 = widthM * heightM;
   const aptoParaRevestir = isAptoDerivedType(portonType) || detectNoCladdingByProducts(lines, params);
+  const isCoplanar = lines.some((l) => Number(l?.product_id) === COPLANAR_SISTEMA_PRODUCT_ID);
+  const neverAngostas = aptoParaRevestir || isCoplanar;
   const aptoKg = aptoParaRevestir ? resolveAptoKgM2ByProducts(lines, params) : 0;
   const sellerKgM2 = resolveSellerKgM2Entry(dimensions, params);
   const inferredKg = inferKgM2FromType(portonType);
@@ -341,7 +347,7 @@ function buildTechnicalSnapshot({ payload }) {
   const discountedWidthMm = Math.max(0, widthMm - weightWidthDiscountMm);
   const estimatedWeightKg = areaM2 > 0 && effectiveKgM2 > 0 ? round2((discountedHeightMm / 1000) * (discountedWidthMm / 1000) * effectiveKgM2) : 0;
 
-  const legsLabel = legsTypeForWeight(estimatedWeightKg, aptoParaRevestir, params);
+  const legsLabel = legsTypeForWeight(estimatedWeightKg, aptoParaRevestir, params, neverAngostas);
   const legsKey = mapLegsKeyForWidth(legsLabel);
   const pasoWidthDiscountMm = getPasoWidthDiscountByLegMm(legsKey, params);
   const anchoPasoMm = Math.max(0, widthMm - pasoWidthDiscountMm);
