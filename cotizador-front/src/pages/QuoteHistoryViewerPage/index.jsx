@@ -10,11 +10,12 @@ import { getQuoteHistory, searchQuoteHistory } from "../../api/quoteViewer.js";
 function text(value) {
   return String(value ?? "").trim();
 }
-function badgeStyle(bg, border) {
+function badgeStyle(bg, border, color) {
   return {
     display: "inline-block",
     padding: "4px 10px",
     borderRadius: 999,
+    color,
     background: bg,
     border: `1px solid ${border}`,
     fontSize: 12,
@@ -220,8 +221,8 @@ export default function QuoteHistoryViewerPage() {
             title="Estado y referencias"
             right={(
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <span style={badgeStyle("#eef4ff", "#c7dafc")}>Original: {text(history.original_quote?.status) || "—"}</span>
-                <span style={badgeStyle("#e7f7ed", "#bfe6c8")}>NV final: {text(history.final_copy?.final_sale_order_name || history.original_quote?.final_sale_order_name) || "—"}</span>
+                <span style={badgeStyle("#eef4ff", "#c7dafc", "#075985")}>Original: {text(history.original_quote?.status) || "—"}</span>
+                <span style={badgeStyle("#e7f7ed", "#bfe6c8", "#0f5132")}>NV final: {text(history.final_copy?.final_sale_order_name || history.original_quote?.final_sale_order_name) || "—"}</span>
               </div>
             )}
           >

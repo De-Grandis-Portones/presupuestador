@@ -291,7 +291,7 @@ function doorOdooReference(d) {
 function OdooReferenceCell({ value }) {
   const text = String(value || "").trim();
   if (!text) return <span className="muted">—</span>;
-  return <span style={{ fontWeight: 900, background: "#e7f7ed", border: "1px solid #bfe6c8", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
+  return <span style={{ fontWeight: 900, color: "#0f5132", background: "#e7f7ed", border: "1px solid #bfe6c8", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
 }
 function productionReference(row) {
   return quoteOdooReference(row);
