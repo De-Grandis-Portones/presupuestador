@@ -263,7 +263,9 @@ export default function MyDistributorsPage() {
     return map;
   }, [pricelistsQ.data]);
 
-  const distributors = q.data || [];
+  // Memoizado: con `q.data || []` suelto, mientras carga (o si falla) cada render crea un
+  // [] nuevo, el efecto de abajo vuelve a setear los borradores y entra en loop infinito.
+  const distributors = useMemo(() => q.data || [], [q.data]);
 
   useEffect(() => {
     const nextMaps = {};
