@@ -418,7 +418,10 @@ export async function listMeetSlotsForStaff(user, { includePast = false } = {}) 
   await ensureGeneratedSlotsFromRules();
 
   const whereClauses = ["s.status <> 'cancelled'"];
-  if (!includePast) whereClauses.push("s.start_at >= now() - interval '1 hour'");
+  // Una reunion deja de listarse apenas termina su intervalo (inicio + duracion elegida),
+  // no una hora fija despues de empezar - antes una de 30 min seguia apareciendo media
+  // hora despues de terminada, y una de mas de 60 min desaparecia en plena reunion.
+  if (!includePast) whereClauses.push("s.start_at + make_interval(mins => s.duration_minutes) > now()");
 
   const q = await dbQuery(
     `
