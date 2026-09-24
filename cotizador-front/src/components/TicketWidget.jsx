@@ -344,7 +344,7 @@ export default function TicketWidget() {
                 fontWeight: tab === "nueva" ? 700 : 400,
               }}
             >
-              Nuevo ticket
+              Reportar error
             </button>
             <button
               type="button"
@@ -356,7 +356,7 @@ export default function TicketWidget() {
                 fontWeight: tab === "mias" ? 700 : 400,
               }}
             >
-              Mis tickets
+              Mis consultas
             </button>
           </div>
 
