@@ -101,10 +101,17 @@ function measurementPointCount(quote) {
 // Margen de fabricación del portón: la medida final que se sugiere para corregir el
 // presupuesto (y la que llega a preproducción) ya sale descontada respecto del mínimo
 // de las 3 mediciones tomadas en el vano, para dejar holgura de instalación.
+// Solo aplica si el presupuesto tiene instalación de De Grandis Portones (bonificada o no).
 const PORTON_FINAL_ALTO_MARGIN_MM = 10;
 const PORTON_FINAL_ANCHO_MARGIN_MM = 20;
+const PORTON_OWN_INSTALLATION_PRODUCT_IDS = new Set([2865, 4208]);
+function quoteHasOwnInstallation(quote) {
+  const lines = Array.isArray(quote?.lines) ? quote.lines : [];
+  return lines.some((line) => PORTON_OWN_INSTALLATION_PRODUCT_IDS.has(Number(line?.product_id)));
+}
 function finalDimensionMarginMm(quote, axis) {
   if (quoteCatalogKind(quote) !== "porton") return 0;
+  if (!quoteHasOwnInstallation(quote)) return 0;
   return axis === "alto" ? PORTON_FINAL_ALTO_MARGIN_MM : PORTON_FINAL_ANCHO_MARGIN_MM;
 }
 function getFinalDimensionsFromScheme(form = {}, fallback = {}, quote = null) {
