@@ -199,7 +199,7 @@ export const TUTORIAL_SECTIONS = [
           { term: "Vendedor del distribuidor", text: "Solo para distribuidores: quién de tu empresa hizo la venta." },
           { term: "Forma de pago", text: "Obligatoria para confirmar. Cada forma puede tener un recargo o descuento que ya queda incluido en el precio final de cada ítem. **Tarjetas** pide elegir tarjeta y cuotas; **Pago Multiple** permite combinar formas con porcentajes que sumen 100%." },
           { term: "Condición", text: "**Condición 1** o **Condición 2**. La Condición 2 solo está disponible con **Efectivo** o **Cheques 30**." },
-          { term: "Coeficiente (%)", text: "Porcentaje que se suma a todos los precios (si es negativo, resta). En los distribuidores arranca en 20%: es tu margen. La **PDF proforma** muestra los precios sin coeficiente." },
+          { term: "Coeficiente (%)", text: "Porcentaje que se suma a todos los precios (si es negativo, resta). En los presupuestos nuevos de distribuidores (portón, Ipanel, Plegados y Otros) arranca en 20%: es tu margen. La **PDF proforma** muestra los precios sin coeficiente." },
         ],
       },
       {
@@ -244,7 +244,7 @@ export const TUTORIAL_SECTIONS = [
       {
         type: "list",
         items: [
-          "Con **nombre, apellido y teléfono** cargados, el presupuesto se guarda solo unos segundos después de cada cambio. Arriba vas a ver **Autoguardando...** y después **Autoguardado** con la hora.",
+          "Con **nombre, apellido y teléfono** cargados (y los precios ya cargados), el presupuesto se guarda solo unos segundos después de cada cambio. Arriba vas a ver **Autoguardando...** y después **Autoguardado** con la hora.",
           "Si falta alguno de esos datos, queda como **Borrador local** solo en tu navegador. Si cerrás y volvés, te avisa **Recuperé un borrador local sin guardar**.",
           "En la **Edición acopio**, la **Edición postmedición** y los ajustes **no hay guardado automático**: tocá **Guardar**.",
         ],
@@ -374,7 +374,7 @@ export const TUTORIAL_SECTIONS = [
       {
         type: "list",
         items: [
-          "Se genera cuando Técnica hace la aprobación final (con la NV ya creada). Se manda por WhatsApp al cliente, al distribuidor y al contacto adicional.",
+          "Se genera cuando Técnica hace la aprobación final (con la NV ya creada). En ese momento Técnica lo manda por WhatsApp al cliente, al distribuidor y al contacto adicional.",
           "Si hace falta reenviarlo: **Mis presupuestos** → filtro **En Producción** → columna **Aceptación del cliente** → **🔗 Ver link** → **Copiar link**, y mandalo vos.",
           "A las 9, 12 y 17 hs aparece el aviso **Clientes con firma pendiente**, con los que todavía no firmaron, cuántos días llevan y el botón **Copiar link**.",
         ],
@@ -503,7 +503,7 @@ export const TUTORIAL_SECTIONS = [
       },
       {
         type: "p",
-        text: "Los **Ipanels** y **Plegados** no pasan por medidor: en su pestaña, en **Detalles técnicos ... sin medición**, usá **Completar detalle técnico** y **Aprobar detalle**. Los pedidos de **Acopio → Producción** se aprueban con **OK** o **Rechazar**.",
+        text: "Los **Ipanels** y **Plegados** no pasan por medidor: en su pestaña, en **Detalles técnicos Ipanels sin medición** (o **Plegados**), usá **Completar detalle técnico** y **Aprobar detalle**. Los pedidos de **Acopio → Producción** se aprueban con **OK** o **Rechazar**.",
       },
     ],
     goTo: { path: "/aprobacion/tecnica/menu", label: "Ir a Aprobaciones Técnicas" },
@@ -532,7 +532,7 @@ export const TUTORIAL_SECTIONS = [
           "En **Esquema de medidas** cargá los anchos y altos medidos, en **milímetros** (en puertas, exactamente 2 anchos y 2 altos). El tamaño final se calcula solo.",
           "Si hace falta, cambiá productos en **Productos que puede cambiar el medidor** y anotá lo importante en **Observaciones del medidor**.",
           "**Guardar** guarda un borrador para seguir después.",
-          "Cuando terminaste, tocá **Enviar al vendedor**. Hacelo **desde la obra**: el navegador toma tu ubicación GPS para el link de Maps (aceptá el permiso). Si ya había una ubicación cargada, te pregunta si querés reemplazarla.",
+          "Cuando terminaste, tocá **Enviar al vendedor**. Hacelo **desde la obra**: el navegador toma tu ubicación GPS para el link de Maps (aceptá el permiso). Si ya había una ubicación cargada, te pregunta si querés reemplazarla: si no estás en la obra, respondé que no.",
         ],
       },
       {

@@ -128,6 +128,18 @@ export default function TutorialPage() {
     });
   }, [showAll, query, roleKeys]);
 
+  // RequireAuth solo mira el token: al entrar directo a /tutorial el usuario
+  // (y sus roles) llega un instante después. Sin esto se vería por un momento
+  // el tutorial "sin rol", con casi todas las secciones ocultas.
+  if (!user) {
+    return (
+      <div className="container">
+        <div className="spacer" />
+        <div className="card muted" style={{ fontSize: 14 }}>Cargando tutorial...</div>
+      </div>
+    );
+  }
+
   const hiddenByRole = TUTORIAL_SECTIONS.filter((s) => !sectionIsForUser(s, roleKeys)).length;
 
   function goToSection(id) {
