@@ -10,6 +10,7 @@ import { listDoors } from "../../api/doors.js";
 import { listQuotes, requestProductionFromAcopio } from "../../api/quotes.js";
 import { downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
+import { dateOnlyIso } from "../../utils/dateOnly.js";
 
 const PAGE_SIZE = 25;
 
@@ -372,7 +373,7 @@ export default function PresupuestosPage() {
       locality: localityLabelFromQuote(q),
       statusLabel: labelQuoteStatus(q),
       destinationLabel: q?.fulfillment_mode === "acopio" ? "Acopio" : "Producción",
-      measurementDate: fmtDate(q?.measurement_scheduled_for),
+      measurementDate: fmtDate(dateOnlyIso(q?.measurement_scheduled_for)),
       measurementStatus: labelMeasurementStatus(q),
       odooReference: quoteOdooReference(q),
     }));

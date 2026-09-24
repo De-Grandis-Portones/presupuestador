@@ -15,6 +15,7 @@ import {
   medicionAttachmentsTotalBytes,
   MAX_MEDICION_ATTACHMENTS_TOTAL_BYTES,
 } from "../../utils/measurementAttachment.js";
+import { parseDateOnly } from "../../utils/dateOnly.js";
 
 const MAX_MEDICION_ADJUNTOS_UI = 12;
 
@@ -602,7 +603,7 @@ function MeasurementCard({ row, onOpen, onOpenMedia }) {
       <div className="spacer" />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <MobileField label="NV"><NvPill value={nvLabel(row)} /></MobileField>
-        <MobileField label="Fecha visita" value={fmtDate(row?.measurement_scheduled_for)} />
+        <MobileField label="Fecha visita" value={fmtDate(parseDateOnly(row?.measurement_scheduled_for))} />
         <MobileField label="Alta" value={fmtDate(row?.created_at)} />
         <MobileField label="Archivos">
           <MediaButton count={row?.measurement_media_count} onClick={() => onOpenMedia(row)} />
@@ -657,8 +658,8 @@ export default function MedicionesPage() {
   const rows = useMemo(() => {
     const arr = (measQ.data || []).slice();
     arr.sort((a, b) => {
-      const ta = a?.measurement_scheduled_for ? new Date(`${a.measurement_scheduled_for}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
-      const tb = b?.measurement_scheduled_for ? new Date(`${b.measurement_scheduled_for}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
+      const ta = parseDateOnly(a?.measurement_scheduled_for)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const tb = parseDateOnly(b?.measurement_scheduled_for)?.getTime() ?? Number.MAX_SAFE_INTEGER;
       if (ta !== tb) return ta - tb;
       return (b?.created_at ? new Date(b.created_at).getTime() : 0) - (a?.created_at ? new Date(a.created_at).getTime() : 0);
     });
@@ -754,7 +755,7 @@ export default function MedicionesPage() {
                     {visibleRows.map((r) => (
                       <tr key={r.id}>
                         <td><NvPill value={nvLabel(r)} /></td>
-                        <td>{fmtDate(r.measurement_scheduled_for)}</td>
+                        <td>{fmtDate(parseDateOnly(r.measurement_scheduled_for))}</td>
                         <td>{fmtDate(r.created_at)}</td>
                         <td style={{ fontWeight: 800 }}>{r.end_customer?.name || "(sin nombre)"}</td>
                         <td>{localityLabel(r)}</td>
