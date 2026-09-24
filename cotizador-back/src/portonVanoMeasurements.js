@@ -144,8 +144,14 @@ function resolveDefaultKgM2FromType(portonType, params) {
   }
   return getNumberParam(params, ["classic_kg_m2", "kg_m2_clasico", "kg_m2_clasico_estandar"], 15);
 }
-function legsTypeForWeight(weightKg, isApto, params) {
-  const limitAngostas = getNumberParam(params, [isApto ? "no_cladding_angostas_max_kg" : "legs_angostas_max_kg", isApto ? "limit_angostas_apto_kg" : "limit_angostas_kg", "piernas_angostas_hasta_kg"], isApto ? 80 : 140);
+// Pedido puntual: los portones Coplanar (Sistema id 3008) y los aptos para revestir
+// nunca deben quedar con piernas "Angostas" - si el calculo por peso hubiera dado
+// Angostas, se usa "Comunes" (con sus propios parametros: descuento de paso, ancho de
+// vano, etc, no solo la etiqueta) en su lugar. Cambio de ahora en adelante, no toca
+// presupuestos ya calculados salvo que se vuelvan a recalcular.
+const COPLANAR_SISTEMA_PRODUCT_ID = 3008;
+function legsTypeForWeight(weightKg, isApto, params, neverAngostas = false) {
+  const limitAngostas = neverAngostas ? 0 : getNumberParam(params, [isApto ? "no_cladding_angostas_max_kg" : "legs_angostas_max_kg", isApto ? "limit_angostas_apto_kg" : "limit_angostas_kg", "piernas_angostas_hasta_kg"], isApto ? 80 : 140);
   const limitComunes = getNumberParam(params, ["legs_comunes_max_kg", "limit_comunes_kg", "piernas_comunes_hasta_kg"], 175);
   const limitAnchas = getNumberParam(params, ["legs_anchas_max_kg", "limit_anchas_kg", "piernas_anchas_hasta_kg"], 240);
   const limitSuper = getNumberParam(params, ["legs_superanchas_max_kg", "limit_superanchas_kg", "piernas_superanchas_hasta_kg"], 300);
@@ -279,6 +285,8 @@ function buildCalculatedPreview({ widthM, heightM, lines, params, portonType, di
   const heightMm = Math.round((Number(heightM || 0) || 0) * 1000);
   const areaM2 = (Number(widthM || 0) || 0) * (Number(heightM || 0) || 0);
   const aptoParaRevestir = isAptoDerivedType(portonType) || detectNoCladdingByProducts(lines, params);
+  const isCoplanar = getBudgetProductIdSetFromLines(lines).has(COPLANAR_SISTEMA_PRODUCT_ID);
+  const neverAngostas = aptoParaRevestir || isCoplanar;
   const aptoKg = aptoParaRevestir ? resolveAptoKgM2ByProducts(lines, params) : 0;
   const sellerKgM2 = resolveSellerKgM2Entry(dimensions, params);
   const inferredKg = inferKgM2FromType(portonType);
@@ -293,7 +301,7 @@ function buildCalculatedPreview({ widthM, heightM, lines, params, portonType, di
     : 0;
   // legsLabelOverride: permite que una "pierna" cargada a mano por tecnica (measurement_form.piernas)
   // reemplace el calculo automatico por peso, para que medidas de paso/hoja salgan con esa pierna.
-  const legsLabel = legsLabelOverride || legsTypeForWeight(estimatedWeightKg, aptoParaRevestir, params);
+  const legsLabel = legsLabelOverride || legsTypeForWeight(estimatedWeightKg, aptoParaRevestir, params, neverAngostas);
   const legsKey = mapLegsKeyForWidth(legsLabel);
   const pasoWidthDiscountMm = getPasoWidthDiscountByLegMm(legsKey, params);
   const anchoPasoMm = Math.max(0, widthMm - pasoWidthDiscountMm);
