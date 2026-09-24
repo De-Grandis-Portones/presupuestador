@@ -34,6 +34,14 @@ const PLACEHOLDER_PRODUCT_ID = Number(process.env.ODOO_PLACEHOLDER_PRODUCT_ID ||
 const IPANEL_ACOPIO_PRODUCT_ID = Number(process.env.ODOO_IPANEL_ACOPIO_PRODUCT_ID || 3607);
 const PLEGADOS_ACOPIO_PRODUCT_ID = Number(process.env.ODOO_PLEGADOS_ACOPIO_PRODUCT_ID || IPANEL_ACOPIO_PRODUCT_ID);
 const PUERTA_ACOPIO_PRODUCT_ID = Number(process.env.ODOO_PUERTA_ACOPIO_PRODUCT_ID || 3558);
+// Producto inicial de la NP de una puerta en acopio, segun el tipo de puerta elegido (el
+// producto "Tipo de puerta" de la sección correspondiente, ver PuertaDimensions.jsx en el
+// front) - antes siempre usaba PUERTA_ACOPIO_PRODUCT_ID (3558, "Bolsas de Residuo": un
+// placeholder generico que quedo mal elegido) sin importar el tipo. Pedido puntual.
+const PUERTA_TYPE_PRODUCT_TO_ODOO_TEMPLATE_ID = Object.freeze({
+  4014: 3543, // Puerta de sistema con bisagras
+  4013: 3542, // Puerta de sistema pivotante
+});
 const DEFAULT_PRICELIST_ID = Number(process.env.ODOO_DEFAULT_PRICELIST_ID || 1);
 export const IVA_RATE = 0.21;
 const TACA_TACA_PLAN_NAME = String(process.env.ODOO_TACA_TACA_PLAN_NAME || "Taca Taca").trim();
@@ -713,7 +721,14 @@ function getInitialOdooProductIdForQuote(quote) {
   const kind = String(quote?.catalog_kind || "porton").toLowerCase().trim();
   if (kind === "ipanel") return Number(IPANEL_ACOPIO_PRODUCT_ID);
   if (kind === "plegados") return Number(PLEGADOS_ACOPIO_PRODUCT_ID);
-  if (kind === "puerta") return Number(PUERTA_ACOPIO_PRODUCT_ID);
+  if (kind === "puerta") {
+    const lines = Array.isArray(quote?.lines) ? quote.lines : [];
+    for (const line of lines) {
+      const mapped = PUERTA_TYPE_PRODUCT_TO_ODOO_TEMPLATE_ID[Number(line?.product_id)];
+      if (mapped) return Number(mapped);
+    }
+    return Number(PUERTA_ACOPIO_PRODUCT_ID);
+  }
   if (kind !== "porton") return Number(PLACEHOLDER_PRODUCT_ID);
   const rawPortonType = quote?.payload?.porton_type ?? "";
   const normalizedPortonType = normalizePortonTypeKey(rawPortonType);
