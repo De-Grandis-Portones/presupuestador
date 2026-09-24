@@ -181,6 +181,12 @@ function dayKeyLocal(iso) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Fin del intervalo de la reunion (inicio + duracion elegida) - pasado este momento la
+// reunion se considera vencida y deja de mostrarse.
+function slotEndMs(slot) {
+  return new Date(slot.start_at).getTime() + Number(slot.duration_minutes || 0) * 60000;
+}
+
 function groupSlotsByDay(slots) {
   const groups = new Map();
   for (const slot of slots) {
@@ -704,10 +710,13 @@ export default function MeetSchedulingPage() {
     },
   });
 
-  const groupedSlots = useMemo(() => groupSlotsByDay(slotsQ.data || []), [slotsQ.data]);
+  // El backend ya no devuelve reuniones terminadas, pero entre un refetch y el siguiente
+  // se filtra tambien aca con nowMs para que una que acaba de terminar se saque sola.
+  const visibleSlots = useMemo(() => (slotsQ.data || []).filter((s) => slotEndMs(s) > nowMs), [slotsQ.data, nowMs]);
+  const groupedSlots = useMemo(() => groupSlotsByDay(visibleSlots), [visibleSlots]);
   const shareUrl = publicBookingUrl();
-  const bookedCount = (slotsQ.data || []).filter((s) => s.status === "booked").length;
-  const availableCount = (slotsQ.data || []).filter((s) => s.status === "available").length;
+  const bookedCount = visibleSlots.filter((s) => s.status === "booked").length;
+  const availableCount = visibleSlots.filter((s) => s.status === "available").length;
 
   useEffect(() => {
     if (!diaParam || viewMode !== "lista" || !groupedSlots.length) return;
@@ -720,8 +729,8 @@ export default function MeetSchedulingPage() {
 
   const selectedDaySlots = useMemo(() => {
     if (!selectedDay) return [];
-    return (slotsQ.data || []).filter((s) => dayKeyLocal(s.start_at) === selectedDay).sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
-  }, [slotsQ.data, selectedDay]);
+    return visibleSlots.filter((s) => dayKeyLocal(s.start_at) === selectedDay).sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
+  }, [visibleSlots, selectedDay]);
 
   return (
     <div className="container" style={{ maxWidth: 900, margin: "0 auto", padding: "24px 12px" }}>
@@ -929,7 +938,7 @@ export default function MeetSchedulingPage() {
         ) : (
           <>
             <CalendarMonthGrid
-              slots={slotsQ.data || []}
+              slots={visibleSlots}
               selectedDay={selectedDay}
               onSelectDay={(key) => {
                 setSelectedDay(key);

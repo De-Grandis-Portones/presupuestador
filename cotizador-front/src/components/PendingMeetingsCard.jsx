@@ -36,6 +36,11 @@ function dayKeyLocal(iso) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Mismo criterio de "vencida" que MeetSchedulingPage: inicio + duracion elegida.
+function slotEndMs(slot) {
+  return new Date(slot.start_at).getTime() + Number(slot.duration_minutes || 0) * 60000;
+}
+
 // Resumen compacto de reuniones de Meet ya agendadas, para que el tecnico las vea sin
 // salir de la pantalla de Consultas Tecnicas. El detalle completo (crear horarios,
 // cancelar, reglas recurrentes) sigue viviendo solo en /servicio-tecnico/calendario-meet -
@@ -44,7 +49,7 @@ export default function PendingMeetingsCard() {
   const navigate = useNavigate();
   // "now" se guarda en estado (no se llama Date.now() directo en el render/memo, que
   // rompe la regla de pureza de React) y se refresca cada 30s, junto con el refetch de
-  // slots, asi las reuniones que ya pasaron se sacan solas de la lista.
+  // slots, asi las reuniones cuyo intervalo ya termino se sacan solas de la lista.
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 30000);
@@ -61,7 +66,7 @@ export default function PendingMeetingsCard() {
   const upcomingMeetings = useMemo(() => {
     const slots = slotsQ.data || [];
     return slots
-      .filter((s) => s.status === "booked" && new Date(s.start_at).getTime() > nowMs)
+      .filter((s) => s.status === "booked" && slotEndMs(s) > nowMs)
       .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
       .slice(0, 5);
   }, [slotsQ.data, nowMs]);
