@@ -785,6 +785,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
     applyBasePrices,
     markLinesPriceError,
     loadFromQuote,
+    quoteLoadCount,
     reset,
     setMarginPercent,
     setEndCustomer,
@@ -1143,7 +1144,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
       if (failedIds.length) markLinesPriceError(failedIds);
       toast.error(`No se pudo obtener el precio de Odoo${failedIds.length > 1 ? ` para ${failedIds.length} productos` : ""}. Revisá tu conexión.`);
     });
-  }, [pricingContextReady, pricelistId, partnerId, linesKey, lines.length, applyBasePrices, markLinesPriceError, quoteQ.data?.id, quoteId, idParam]);
+  }, [pricingContextReady, pricelistId, partnerId, linesKey, lines.length, applyBasePrices, markLinesPriceError, quoteQ.data?.id, quoteId, idParam, quoteLoadCount]);
 
   function resolveCreatedByRole() {
     if (user?.is_superuser) return "vendedor";

@@ -262,6 +262,7 @@ export default function PresupuestadorPuertasPage() {
     marginPercent,
     reset,
     loadFromQuote,
+    quoteLoadCount,
     setEndCustomer,
     setPricelist,
     setPartnerId,
@@ -443,7 +444,7 @@ export default function PresupuestadorPuertasPage() {
       if (failedIds.length) markLinesPriceError(failedIds);
       toast.error(`No se pudo obtener el precio de Odoo${failedIds.length > 1 ? ` para ${failedIds.length} productos` : ""}. Revisá tu conexión.`);
     });
-  }, [pricingContextReady, pricelistId, partnerId, linesKey, lines.length, applyBasePrices, markLinesPriceError, quoteQ.data?.id, quoteId, idParam]);
+  }, [pricingContextReady, pricelistId, partnerId, linesKey, lines.length, applyBasePrices, markLinesPriceError, quoteQ.data?.id, quoteId, idParam, quoteLoadCount]);
 
   function applyPortonData(portonId) {
     const selected = portonQuotes.find((q) => String(q.id) === String(portonId));

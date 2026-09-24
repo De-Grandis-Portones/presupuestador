@@ -900,11 +900,11 @@ async function computePricelistItemPrice({ odoo, item, productId, templateId }) 
   return 0;
 }
 
-async function searchPricelistItems(odoo, domain, fields) {
+async function searchPricelistItems(odoo, domain, fields, limit = 80) {
   try {
     const rows = await odoo.executeKw("product.pricelist.item", "search_read", [domain], {
       fields,
-      limit: 80,
+      limit,
       order: "min_quantity desc, id desc",
     });
     return Array.isArray(rows) ? rows : [];
@@ -946,28 +946,26 @@ async function getPriceFromPricelistItems({ odoo, pricelistId, productId, templa
     baseDomain.push(["min_quantity", "<=", quantity]);
   }
 
-  const domains = [];
+  const matchers = [];
   if (hasPricelistItemField(fieldsMeta, "product_id")) {
-    domains.push([...baseDomain, ["product_id", "=", pId]]);
+    matchers.push(["product_id", "=", pId]);
   }
   if (hasPricelistItemField(fieldsMeta, "product_tmpl_id")) {
-    domains.push([...baseDomain, ["product_tmpl_id", "=", tId]]);
-    if (tId !== pId) domains.push([...baseDomain, ["product_tmpl_id", "=", pId]]);
+    matchers.push(["product_tmpl_id", "=", tId]);
+    if (tId !== pId) matchers.push(["product_tmpl_id", "=", pId]);
   }
   if (hasPricelistItemField(fieldsMeta, "applied_on")) {
-    domains.push([...baseDomain, ["applied_on", "=", "3_global"]]);
+    matchers.push(["applied_on", "=", "3_global"]);
   }
+  if (!matchers.length) return { found: false, price: 0 };
 
-  const byId = new Map();
-  for (const domain of domains) {
-    const rows = await searchPricelistItems(odoo, domain, fields);
-    for (const row of rows) {
-      const id = Number(row?.id || 0);
-      if (id) byId.set(id, row);
-    }
-  }
+  // Antes era un search_read por criterio, uno atras del otro (hasta 4 round-trips a Odoo
+  // por linea). Un solo pedido con los criterios en OR trae la misma union de reglas; el
+  // limite es el mismo de antes por criterio, sumado.
+  const domain = [...baseDomain, ...Array(matchers.length - 1).fill("|"), ...matchers];
+  const rows = await searchPricelistItems(odoo, domain, fields, 80 * matchers.length);
 
-  const candidates = [...byId.values()]
+  const candidates = rows
     .filter((item) => pricelistItemIsActiveForDate(item))
     .sort((a, b) => pricelistItemSpecificity(b, pId, tId) - pricelistItemSpecificity(a, pId, tId));
 
@@ -1011,11 +1009,28 @@ function normalizeOdooPriceValue(value, pricelistId, productId) {
   return 0;
 }
 
+// Odoo 17+/18 no expone ninguno de los metodos de getPriceFromOdooPricelist por RPC: los
+// "_..." son privados ("Private methods ... cannot be called remotely") y
+// get_product_price/price_get ya no existen. Cada intento fallido es un round-trip entero
+// a Odoo y se pagaban los 8, en serie, en cada linea sin regla de precio (medido contra
+// el Odoo real 2026-09-24: ~3s y 15 RPC por linea, 8 de ellas siempre con error). El metodo
+// que Odoo rechaza por eso no se vuelve a probar en este proceso; cualquier otro error
+// (timeout, red, permisos) no lo marca, asi que se sigue reintentando como antes.
+const unavailablePricelistMethods = new Set();
+
+function isPricelistMethodUnavailableError(err, method) {
+  const msg = String(err?.message || "");
+  if (!msg.includes(`product.pricelist.${method}'`)) return false;
+  return msg.includes("cannot be called remotely") || msg.includes("does not exist");
+}
+
 async function tryPricelistMethod(odoo, method, args, pricelistId, productId) {
+  if (unavailablePricelistMethods.has(method)) return 0;
   try {
     const result = await odoo.executeKw("product.pricelist", method, args);
     return normalizeOdooPriceValue(result, pricelistId, productId);
-  } catch {
+  } catch (err) {
+    if (isPricelistMethodUnavailableError(err, method)) unavailablePricelistMethods.add(method);
     return 0;
   }
 }

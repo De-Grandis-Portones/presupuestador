@@ -222,6 +222,12 @@ export const useQuoteStore = create((set, get) => ({
   distribuidorVendedorNombre: "",
   paranteQtyLocked: false,
   pricesAppliedAt: null,
+  // Sube en cada loadFromQuote. loadFromQuote vuelve a marcar price_pending las lineas en
+  // $0, pero si el presupuesto se recarga con los mismos productos (ej. despues de
+  // "Actualizar presupuesto", que refetchea el quote) el efecto de precios de
+  // CotizadorPage/PresupuestadorPuertasPage no se enteraba - linesKey no cambia - y esas
+  // lineas quedaban en "Cargando precio..." para siempre. El efecto depende de este numero.
+  quoteLoadCount: 0,
   dimensions: { width: "", height: "", kg_m2: "", vano_size_auto_calc: true },
   lines: [],
   // Registro de medición (solo lectura): nunca se edita desde acá, se muestra tal
@@ -352,6 +358,7 @@ export const useQuoteStore = create((set, get) => ({
       distribuidorVendedorNombre: String(payload?.distribuidor_vendedor_nombre || ""),
       paranteQtyLocked: !!payload?.parante_qty_locked,
       pricesAppliedAt: null,
+      quoteLoadCount: (get().quoteLoadCount || 0) + 1,
     });
   },
   setDimensions(patch) {
