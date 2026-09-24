@@ -11,6 +11,7 @@ import { listMeasurements, scheduleMeasurement } from "../../api/measurements.js
 import { useAuthStore } from "../../domain/auth/store.js";
 import { downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
+import { dateOnlyIso, parseDateOnly } from "../../utils/dateOnly.js";
 
 const PAGE_SIZE = 25;
 const TECHNICAL_TAB_LABELS = {
@@ -732,7 +733,7 @@ export default function AprobacionTecnicaPage() {
                   <thead><tr><th>Cliente</th><th>Tipo</th><th>Localidad</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th>{!hideScheduleColumns ? <th>Fecha visita</th> : null}{!hideScheduleColumns ? <th>Asignar fecha</th> : null}<th></th></tr></thead>
                   <tbody>
                     {visibleMeasurements.map((r) => {
-                      const dateValue = measurementDates[r.id] ?? r.measurement_scheduled_for ?? "";
+                      const dateValue = measurementDates[r.id] ?? dateOnlyIso(r.measurement_scheduled_for);
                       const isSinMedicion = String(r?.measurement_subtype || "normal").toLowerCase().trim() === "sin_medicion";
                       const isSubmitted = String(r?.measurement_status || "").toLowerCase().trim() === "submitted";
                       const needsFinal = needsFinalTechnicalApproval(r);
@@ -745,7 +746,7 @@ export default function AprobacionTecnicaPage() {
                           <td>{r.end_customer?.address || "—"}</td>
                           <td>{measurementStatusLabel(r.measurement_status, r)}</td>
                           <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
-                          {!hideScheduleColumns ? <td>{fmtDate(r.measurement_scheduled_for)}</td> : null}
+                          {!hideScheduleColumns ? <td>{fmtDate(parseDateOnly(r.measurement_scheduled_for))}</td> : null}
                           {!hideScheduleColumns ? <td style={{ minWidth: 220 }}><div style={{ display: "flex", gap: 8, alignItems: "center" }}><Input type="date" value={dateValue} disabled={isPendingComercial} onChange={(v) => setMeasurementDates((prev) => ({ ...prev, [r.id]: v }))} style={{ width: "100%" }} /><Button disabled={isPendingComercial || scheduleM.isPending || !dateValue} onClick={() => scheduleM.mutate({ id: r.id, scheduledFor: dateValue })}>Guardar</Button></div></td> : null}
                           <td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>{isPendingComercial ? <Button variant="ghost" disabled title="Pendiente de aprobación comercial post-medición">Bloqueado</Button> : <Button variant={(isSubmitted || needsFinal) ? "primary" : "ghost"} onClick={() => navigate(`/mediciones/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>{isSinMedicion ? "Completar detalle técnico" : ((isSubmitted || needsFinal) ? "Aprobar final" : "Abrir")}</Button>}</div></td>
                         </tr>

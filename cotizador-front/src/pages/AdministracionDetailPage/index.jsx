@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { adminGetHistoryDetail } from "../../api/admin.js";
 import { useAuthStore } from "../../domain/auth/store.js";
 import Button from "../../ui/Button.jsx";
+import { parseDateOnly } from "../../utils/dateOnly.js";
 
 const KIND_LABELS = { porton: "Portón", ipanel: "Ipanel", plegados: "Plegados", puerta: "Puerta", otros: "Otros" };
 
@@ -309,7 +310,7 @@ export default function AdministracionDetailPage() {
         {hasMeasurement && (
           <>
             {quote.measurement_scheduled_for && (
-              <TimelineRow label="Medición programada para" value={fmtDate(quote.measurement_scheduled_for)} />
+              <TimelineRow label="Medición programada para" value={fmtDate(parseDateOnly(quote.measurement_scheduled_for))} />
             )}
             <TimelineRow
               label="Medición realizada"
