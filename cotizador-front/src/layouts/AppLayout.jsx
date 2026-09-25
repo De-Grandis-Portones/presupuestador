@@ -381,7 +381,7 @@ export default function AppLayout() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-            <TicketWidget />
+            <TicketWidget onOpenTutorial={() => navigate("/tutorial")} />
             <TechnicalConsultHeaderButton />
             <CommercialConsultHeaderButton />
             <OdooStatusBadge />

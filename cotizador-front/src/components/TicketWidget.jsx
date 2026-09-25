@@ -107,7 +107,11 @@ const T = {
   danger: "#b3261e",
 };
 
-export default function TicketWidget() {
+// onOpenTutorial es opcional: si la app lo pasa, al pie del panel aparece un
+// apartado chico "¿Cómo se usa?" que lleva al tutorial de esa app. Así el
+// widget sigue siendo el mismo en todas las apps y cada una decide si tiene
+// tutorial propio.
+export default function TicketWidget({ onOpenTutorial } = {}) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("nueva");
   const panelRef = useRef(null);
@@ -344,7 +348,7 @@ export default function TicketWidget() {
                 fontWeight: tab === "nueva" ? 700 : 400,
               }}
             >
-              Nuevo ticket
+              Reportar error
             </button>
             <button
               type="button"
@@ -356,7 +360,7 @@ export default function TicketWidget() {
                 fontWeight: tab === "mias" ? 700 : 400,
               }}
             >
-              Mis tickets
+              Mis consultas
             </button>
           </div>
 
@@ -638,6 +642,35 @@ export default function TicketWidget() {
               </div>
             )}
           </div>
+
+          {onOpenTutorial && (
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px", borderTop: `1px solid ${T.border}`, background: "#f8fafc",
+              }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }} aria-hidden="true">📘</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>¿Cómo se usa el Presupuestador?</div>
+                <div style={{ fontSize: 11, color: T.inkWeak }}>Tutorial paso a paso de todo el programa</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenTutorial();
+                }}
+                style={{
+                  flexShrink: 0, padding: "6px 10px", fontSize: 12, borderRadius: 8,
+                  border: `1px solid ${T.brand}`, background: T.surface, color: T.brand700,
+                  fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                Ver tutorial
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

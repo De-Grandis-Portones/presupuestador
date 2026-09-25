@@ -524,3 +524,227 @@ th, td {
   color: var(--dg-text);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
+
+/* Tutorial (/tutorial): índice a la izquierda + secciones. Solo tokens --dg-*
+   y tintes rgba, así se lee igual en modo claro y oscuro. */
+.tutorial-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.tutorial-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tutorial-search {
+  font: inherit;
+  width: 260px;
+  max-width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--dg-border);
+  background: var(--dg-card);
+  color: var(--dg-text);
+  font-size: 14px;
+}
+.tutorial-layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.tutorial-toc {
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tutorial-toc-title {
+  font-weight: 900;
+  color: var(--dg-petrol);
+  margin-bottom: 6px;
+}
+.tutorial-toc-item {
+  font: inherit;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dg-text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.tutorial-toc-item:hover {
+  background: rgba(1, 163, 159, 0.10);
+}
+.tutorial-toc-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(1, 163, 159, 0.14);
+  color: var(--dg-petrol);
+  font-size: 12px;
+  font-weight: 800;
+}
+.tutorial-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  /* Deja lugar para el botón flotante de "Reportar error" (abajo a la derecha). */
+  padding-bottom: 80px;
+}
+.tutorial-section {
+  scroll-margin-top: 12px;
+  line-height: 1.55;
+  font-size: 14px;
+}
+.tutorial-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.tutorial-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  color: var(--dg-petrol);
+}
+.tutorial-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tutorial-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--dg-border);
+  color: var(--dg-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.tutorial-chip--mine {
+  border-color: rgba(1, 163, 159, 0.5);
+  background: rgba(1, 163, 159, 0.12);
+  color: var(--dg-text);
+}
+.tutorial-intro {
+  margin: 6px 0 10px;
+  color: var(--dg-muted);
+  font-size: 14px;
+}
+.tutorial-p {
+  margin: 8px 0;
+}
+.tutorial-sub {
+  margin: 16px 0 6px;
+  font-size: 15px;
+  color: var(--dg-petrol);
+}
+.tutorial-steps,
+.tutorial-list {
+  margin: 6px 0;
+  padding-left: 22px;
+}
+.tutorial-steps li,
+.tutorial-list li {
+  margin: 4px 0;
+}
+.tutorial-defs {
+  margin: 8px 0;
+  display: grid;
+  gap: 6px;
+}
+.tutorial-def {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--dg-tint);
+  border: 1px solid var(--dg-border-soft);
+}
+.tutorial-def dt {
+  font-weight: 800;
+}
+.tutorial-def dd {
+  margin: 0;
+}
+.tutorial-flow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+.tutorial-flow-step {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(1, 163, 159, 0.35);
+  background: rgba(1, 163, 159, 0.08);
+  font-size: 13px;
+  font-weight: 700;
+}
+.tutorial-flow-arrow {
+  color: var(--dg-muted);
+  font-weight: 800;
+}
+.tutorial-callout {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 13.5px;
+}
+.tutorial-callout--tip {
+  background: rgba(1, 163, 159, 0.08);
+  border-color: rgba(1, 163, 159, 0.30);
+}
+.tutorial-callout--warn {
+  background: rgba(205, 168, 0, 0.10);
+  border-color: rgba(205, 168, 0, 0.40);
+}
+.tutorial-callout-icon {
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.tutorial-callout-title {
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+@media (max-width: 900px) {
+  .tutorial-layout {
+    grid-template-columns: 1fr;
+  }
+  .tutorial-toc {
+    position: static;
+    max-height: none;
+  }
+  .tutorial-def {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
