@@ -155,9 +155,9 @@ function OdooStatusBadge() {
       style={{
         padding: "8px 12px",
         borderRadius: 999,
-        border: `1px solid ${isOnline ? "#1f7a45" : "#a12626"}`,
-        background: isOnline ? "#eaf8ef" : "#fdecec",
-        color: isOnline ? "#1f7a45" : "#a12626",
+        border: `1px solid ${isOnline ? "var(--dg-success-text)" : "var(--dg-danger-text)"}`,
+        background: isOnline ? "var(--dg-success-bg)" : "var(--dg-danger-bg)",
+        color: isOnline ? "var(--dg-success-text)" : "var(--dg-danger-text)",
         fontWeight: 800,
         fontSize: 13,
         lineHeight: 1,

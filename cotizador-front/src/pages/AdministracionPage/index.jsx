@@ -23,8 +23,8 @@ function formatDate(iso) {
 
 function DecisionBadge({ decision }) {
   if (!decision || decision === "pending") return <span style={{ color: "var(--dg-muted)", fontSize: 12 }}>Pendiente</span>;
-  if (decision === "approved") return <span style={{ color: "#1b5e20", fontSize: 12, fontWeight: 700 }}>✓ Aprobado</span>;
-  if (decision === "rejected") return <span style={{ color: "#b71c1c", fontSize: 12, fontWeight: 700 }}>✗ Rechazado</span>;
+  if (decision === "approved") return <span style={{ color: "var(--dg-success-text)", fontSize: 12, fontWeight: 700 }}>✓ Aprobado</span>;
+  if (decision === "rejected") return <span style={{ color: "var(--dg-danger-text)", fontSize: 12, fontWeight: 700 }}>✗ Rechazado</span>;
   return <span style={{ fontSize: 12 }}>{decision}</span>;
 }
 
@@ -148,7 +148,7 @@ export default function AdministracionPage() {
       <div className="spacer" />
 
       {q.isLoading && <div className="card muted" style={{ textAlign: "center" }}>Cargando...</div>}
-      {q.isError && <div className="card" style={{ color: "red" }}>Error: {q.error?.message}</div>}
+      {q.isError && <div className="card" style={{ color: "var(--dg-danger-text)" }}>Error: {q.error?.message}</div>}
 
       {!q.isLoading && !q.isError && (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
@@ -182,10 +182,10 @@ export default function AdministracionPage() {
                       onMouseLeave={(e) => { e.currentTarget.style.background = ""; }}
                     >
                       <td style={td}><span style={{ fontWeight: 700 }}>{r.odoo_sale_order_name || "—"}</span></td>
-                      <td style={td}><span style={{ fontWeight: nv ? 700 : 400, color: nv ? "#1b5e20" : "var(--dg-muted)" }}>{nv || "—"}</span></td>
+                      <td style={td}><span style={{ fontWeight: nv ? 700 : 400, color: nv ? "var(--dg-success-text)" : "var(--dg-muted)" }}>{nv || "—"}</span></td>
                       <td style={td}>{KIND_LABELS[r.catalog_kind] || r.catalog_kind || "—"}</td>
                       <td style={td}>
-                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: r.fulfillment_mode === "acopio" ? "#e3f2fd" : "#e8f5e9", color: r.fulfillment_mode === "acopio" ? "#0d47a1" : "#1b5e20" }}>
+                        <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, background: r.fulfillment_mode === "acopio" ? "var(--dg-info-bg)" : "var(--dg-success-bg)", color: r.fulfillment_mode === "acopio" ? "var(--dg-info-text)" : "var(--dg-success-text)" }}>
                           {r.fulfillment_mode === "acopio" ? "Acopio" : r.fulfillment_mode === "produccion" ? "Producción" : "—"}
                         </span>
                       </td>

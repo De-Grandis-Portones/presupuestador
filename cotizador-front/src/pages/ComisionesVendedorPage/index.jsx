@@ -123,7 +123,7 @@ function ComisionDetalleModal({ sellerName, invoices, onClose, onShowClaim }) {
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
-              <tr style={{ textAlign: "left", borderBottom: "1px solid #eee" }}>
+              <tr style={{ textAlign: "left", borderBottom: "1px solid var(--dg-border-soft)" }}>
                 <th style={{ padding: "8px 10px" }}>Fecha</th>
                 <th style={{ padding: "8px 10px" }}>Doc.</th>
                 <th style={{ padding: "8px 10px" }}>Comprobante</th>
@@ -137,7 +137,7 @@ function ComisionDetalleModal({ sellerName, invoices, onClose, onShowClaim }) {
             </thead>
             <tbody>
               {invoices.map((inv, i) => (
-                <tr key={`${inv.move_name}-${i}`} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                <tr key={`${inv.move_name}-${i}`} style={{ borderBottom: "1px solid var(--dg-border-soft)" }}>
                   <td style={{ padding: "8px 10px" }}>{inv.invoice_date}</td>
                   <td style={{ padding: "8px 10px" }}>{docLabel(inv.move_type)}</td>
                   <td style={{ padding: "8px 10px" }}>{inv.move_name || "—"}</td>
@@ -153,7 +153,7 @@ function ComisionDetalleModal({ sellerName, invoices, onClose, onShowClaim }) {
                         tabIndex={0}
                         onClick={() => onShowClaim(inv)}
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onShowClaim(inv); }}
-                        style={{ background: "var(--dg-card)", color: "#2563eb", border: "1px solid #2563eb", borderRadius: 999, padding: "2px 10px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+                        style={{ background: "var(--dg-card)", color: "var(--dg-info-text)", border: "1px solid var(--dg-info-text)", borderRadius: 999, padding: "2px 10px", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
                       >
                         Ver {docPrefixLabel(inv.claimed_by)}
                       </span>
@@ -180,7 +180,7 @@ function StatCard({ label, value, accent }) {
       style={{
         flex: "1 1 220px",
         minWidth: 220,
-        border: "1px solid #eee",
+        border: "1px solid var(--dg-border-soft)",
         borderRadius: 14,
         padding: 18,
         background: accent ? "rgba(1,163,159,0.06)" : "var(--dg-card)",
@@ -196,14 +196,14 @@ function StatCard({ label, value, accent }) {
 
 function ClaimsNotice({ onOpenTicket }) {
   return (
-    <div className="card" style={{ border: "1px solid #dbeafe", background: "#eff6ff" }}>
-      <div style={{ fontWeight: 800, color: "#1e3a8a", marginBottom: 6 }}>
+    <div className="card" style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)" }}>
+      <div style={{ fontWeight: 800, color: "var(--dg-info-text)", marginBottom: 6 }}>
         ¿Un reclamo sobre el cálculo de tu comisión?
       </div>
-      <div style={{ color: "#1e3a8a", fontSize: 14 }}>
+      <div style={{ color: "var(--dg-info-text)", fontSize: 14 }}>
         Si necesitás hacer un reclamo sobre el cálculo de las comisiones, debe realizarlo por medio de un ticket a Comercial hasta:
       </div>
-      <ul style={{ color: "#1e3a8a", fontSize: 14, margin: "8px 0 0", paddingLeft: 20 }}>
+      <ul style={{ color: "var(--dg-info-text)", fontSize: 14, margin: "8px 0 0", paddingLeft: 20 }}>
         <li><b>Primera quincena:</b> día 05 del mes siguiente (5 días antes del pago).</li>
         <li><b>Segunda quincena:</b> día 20 del mes siguiente (5 días antes del pago).</li>
       </ul>
@@ -284,7 +284,7 @@ export default function ComisionesVendedorPage() {
       <div className="spacer" />
 
       {commQ.isLoading ? <div className="card"><div className="muted">Cargando tu comisión…</div></div> : null}
-      {commQ.isError ? <div className="card"><div style={{ color: "#d93025", fontSize: 13 }}>{commQ.error.message}</div></div> : null}
+      {commQ.isError ? <div className="card"><div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{commQ.error.message}</div></div> : null}
 
       {data ? (
         <div className="card">

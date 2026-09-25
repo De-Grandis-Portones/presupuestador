@@ -96,7 +96,9 @@
   transform: translateY(-4px) scale(1.02);
   border-color: rgba(1, 163, 159, 0.36);
   box-shadow: 0 18px 36px rgba(0, 80, 96, 0.12);
-  background: linear-gradient(180deg, rgba(1, 163, 159, 0.08) 0%, rgba(255,255,255,1) 38%);
+  /* El final del degradé es la tarjeta del tema (no blanco fijo): en dark mode
+     el blanco dejaba el título/descripcion claros sobre fondo blanco. */
+  background: linear-gradient(180deg, rgba(1, 163, 159, 0.08) 0%, var(--dg-card) 38%);
 }
 
 .btn--primary:not(:disabled):hover,

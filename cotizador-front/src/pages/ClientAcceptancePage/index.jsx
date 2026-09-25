@@ -52,7 +52,7 @@ const schemeOverlayBaseStyle = {
   alignItems: "center",
   justifyContent: "center",
   fontWeight: 900,
-  color: "var(--dg-text)",
+  color: "#111",
   textShadow: "0 1px 0 rgba(255,255,255,0.9)",
   background: "rgba(255,255,255,0.65)",
   borderRadius: 6,
@@ -672,10 +672,10 @@ export function TermsModal({ onClose, onAccept }) {
               style={{
                 marginTop: 12, width: "100%", padding: "12px 0", borderRadius: 8,
                 border: "none",
-                background: accepted ? "#111" : "var(--dg-border)",
+                background: accepted ? "var(--dg-text)" : "var(--dg-border)",
                 cursor: accepted ? "pointer" : "not-allowed",
                 fontSize: 14, fontWeight: 700,
-                color: accepted ? "#fff" : "#9ca3af",
+                color: accepted ? "var(--dg-card)" : "var(--dg-muted)",
                 flexShrink: 0, transition: "background 0.15s",
               }}
             >
@@ -785,7 +785,7 @@ export default function ClientAcceptancePage() {
     return <div className="container"><div className="card"><div className="muted">Cargando datos técnicos del portón...</div></div></div>;
   }
   if (acceptanceQ.isError) {
-    return <div className="container"><div className="card"><div style={{ color: "#d93025", fontSize: 13 }}>{acceptanceQ.error?.message || "No se pudo cargar la aceptación del cliente"}</div></div></div>;
+    return <div className="container"><div className="card"><div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{acceptanceQ.error?.message || "No se pudo cargar la aceptación del cliente"}</div></div></div>;
   }
   if (!quote) {
     return <div className="container"><div className="card"><div className="muted">No se encontraron datos para esta aceptación.</div></div></div>;
@@ -799,7 +799,7 @@ export default function ClientAcceptancePage() {
     return (
       <div className="container" style={{ maxWidth: 700, margin: "0 auto", padding: "24px 12px" }}>
         <Card>
-          <h2 style={{ marginTop: 0, marginBottom: 8, color: "#b71c1c" }}>Portón cancelado</h2>
+          <h2 style={{ marginTop: 0, marginBottom: 8, color: "var(--dg-danger-text)" }}>Portón cancelado</h2>
           <div style={{ marginBottom: 4 }}>
             {quote?.final_sale_order_name || quote?.odoo_sale_order_name
               ? `El portón ${quote.final_sale_order_name || quote.odoo_sale_order_name} fue cancelado.`
@@ -919,7 +919,7 @@ export default function ClientAcceptancePage() {
         ) : null}
         {accepted?.accepted_at ? (
           <>
-            <div style={{ color: "#065f46", fontWeight: 800, marginBottom: 12 }}>
+            <div style={{ color: "var(--dg-success-text)", fontWeight: 800, marginBottom: 12 }}>
               La aceptación ya fue registrada correctamente.
             </div>
             <Row>
@@ -975,12 +975,12 @@ export default function ClientAcceptancePage() {
                     {acceptM.isPending ? "Registrando..." : "Confirmar aceptación"}
                   </Button>
                 </div>
-                {submitError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 12 }}>{submitError}</div> : null}
+                {submitError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 12 }}>{submitError}</div> : null}
               </>
             ) : null}
 
             {step === "done" && accepted?.accepted_at ? (
-              <div style={{ color: "#065f46", fontWeight: 800 }}>La aceptación fue registrada correctamente.</div>
+              <div style={{ color: "var(--dg-success-text)", fontWeight: 800 }}>La aceptación fue registrada correctamente.</div>
             ) : null}
           </>
         )}

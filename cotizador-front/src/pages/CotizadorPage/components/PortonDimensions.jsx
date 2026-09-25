@@ -764,11 +764,11 @@ export function computeParantesSchemeProps({ dimensions = {}, lines = [], params
 }
 function inputStateStyle(hasError) {
   return hasError
-    ? { width: "100%", borderColor: "#dc2626", boxShadow: "0 0 0 3px rgba(220, 38, 38, 0.12)", background: "#fff7f7" }
+    ? { width: "100%", borderColor: "#dc2626", boxShadow: "0 0 0 3px rgba(220, 38, 38, 0.12)", background: "var(--dg-danger-bg)" }
     : { width: "100%" };
 }
 function disabledComputedInputStyle(extra = {}) {
-  return { width: "100%", background: "#f3f4f6", color: "#475569", borderColor: "#d1d5db", ...extra };
+  return { width: "100%", background: "var(--dg-surface-3)", color: "var(--dg-text-soft)", borderColor: "var(--dg-border)", ...extra };
 }
 function measurementTripleMm(values) {
   const nums = (Array.isArray(values) ? values : [])
@@ -784,9 +784,9 @@ function MeasuredValuesNote({ triple }) {
       style={{
         fontSize: 12,
         fontWeight: 800,
-        border: "1.5px solid #fca5a5",
-        background: "#fef2f2",
-        color: "#7f1d1d",
+        border: "1.5px solid var(--dg-danger-border)",
+        background: "var(--dg-danger-bg)",
+        color: "var(--dg-danger-text)",
         borderRadius: 8,
         padding: "6px 10px",
       }}
@@ -794,7 +794,7 @@ function MeasuredValuesNote({ triple }) {
       Valores medidos:{" "}
       {triple.values.map((v, i) => (
         <span key={i}>
-          <span style={{ color: v === triple.min ? "#166534" : "#7f1d1d" }}>
+          <span style={{ color: v === triple.min ? "var(--dg-success-text)" : "var(--dg-danger-text)" }}>
             {v}
           </span>
           {i < triple.values.length - 1 ? " / " : ""}
@@ -815,9 +815,9 @@ function FieldBox({ label, helper, helperColor, children }) {
 }
 function ComputedCard({ label, value, warn = false }) {
   return (
-    <div style={{ border: warn ? "1px solid #fca5a5" : "1px solid #d1d5db", borderRadius: 10, padding: 10, background: warn ? "#fef2f2" : "#f3f4f6" }}>
+    <div style={{ border: warn ? "1px solid var(--dg-danger-border)" : "1px solid var(--dg-border)", borderRadius: 10, padding: 10, background: warn ? "var(--dg-danger-bg)" : "var(--dg-surface-3)" }}>
       <div className="muted">{label}</div>
-      <div style={{ fontWeight: 800, color: warn ? "#b91c1c" : "#334155" }}>{value || "-"}</div>
+      <div style={{ fontWeight: 800, color: warn ? "var(--dg-danger-text)" : "var(--dg-text)" }}>{value || "-"}</div>
     </div>
   );
 }
@@ -975,10 +975,10 @@ export function ParantesSchemeDiagram({
   const axisStart = isHorizontal ? rectY : rectX;
   const crossStart = isHorizontal ? rectX : rectY;
   const crossSize = isHorizontal ? rectW : rectH;
-  const segmentColor = "#dc2626";
+  const segmentColor = "var(--dg-danger-text)";
   const paranteColor = "#2563eb";
   const fixedColor = "#16a34a";
-  const lateralColor = "#111827";
+  const lateralColor = "var(--dg-text)";
   const axisLabelA = isHorizontal ? "Superior" : "Izquierdo";
   const axisLabelB = isHorizontal ? "Inferior" : "Derecho";
   const effectivePortonWidthMm = Math.max(1, Number(portonWidthMm || 0) || Number(baseDimensionMm || 0) || 1);
@@ -1010,17 +1010,17 @@ export function ParantesSchemeDiagram({
             </div>
           </div>
           {onClose ? (
-            <button type="button" onClick={onClose} style={{ border: "1px solid #ddd", borderRadius: 10, padding: "8px 12px", background: "#fff", cursor: "pointer" }}>
+            <button type="button" onClick={onClose} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, padding: "8px 12px", background: "var(--dg-card)", cursor: "pointer" }}>
               Cerrar
             </button>
           ) : null}
         </div>
         <div className="spacer" />
-        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "auto", border: "1px solid #e5e7eb", borderRadius: 14, background: "#f8fafc" }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "auto", border: "1px solid var(--dg-border)", borderRadius: 14, background: "var(--dg-surface-2)" }}>
           {isHorizontal ? (
             <>
-              <text x="10" y={rectY + 8} fontSize="13" fontWeight="800" fill="#111827">{axisLabelA}</text>
-              <text x="10" y={rectY + rectH + 18} fontSize="13" fontWeight="800" fill="#111827">{axisLabelB}</text>
+              <text x="10" y={rectY + 8} fontSize="13" fontWeight="800" fill="var(--dg-text)">{axisLabelA}</text>
+              <text x="10" y={rectY + rectH + 18} fontSize="13" fontWeight="800" fill="var(--dg-text)">{axisLabelB}</text>
             </>
           ) : (
             <>
@@ -1030,7 +1030,7 @@ export function ParantesSchemeDiagram({
                 textAnchor="middle"
                 fontSize="13"
                 fontWeight="800"
-                fill="#111827"
+                fill="var(--dg-text)"
                 transform={`rotate(-90 ${rectX - 36} ${rectY + rectH / 2})`}
               >
                 {axisLabelA}
@@ -1041,16 +1041,16 @@ export function ParantesSchemeDiagram({
                 textAnchor="middle"
                 fontSize="13"
                 fontWeight="800"
-                fill="#111827"
+                fill="var(--dg-text)"
                 transform={`rotate(90 ${rectX + rectW + 36} ${rectY + rectH / 2})`}
               >
                 {axisLabelB}
               </text>
             </>
           )}
-          <rect x={rectX} y={rectY} width={rectW} height={rectH} rx="8" fill="#ffffff" stroke="#334155" strokeWidth="3" />
-          <line x1={rectX + rectW / 2} y1={rectY} x2={rectX + rectW / 2} y2={rectY + rectH} stroke="#e5e7eb" strokeWidth="1" />
-          <line x1={rectX} y1={rectY + rectH / 2} x2={rectX + rectW} y2={rectY + rectH / 2} stroke="#e5e7eb" strokeWidth="1" />
+          <rect x={rectX} y={rectY} width={rectW} height={rectH} rx="8" fill="var(--dg-card)" stroke="var(--dg-text)" strokeWidth="3" />
+          <line x1={rectX + rectW / 2} y1={rectY} x2={rectX + rectW / 2} y2={rectY + rectH} stroke="var(--dg-border)" strokeWidth="1" />
+          <line x1={rectX} y1={rectY + rectH / 2} x2={rectX + rectW} y2={rectY + rectH / 2} stroke="var(--dg-border)" strokeWidth="1" />
           {isHorizontal ? (
             <>
               <line x1={horizontalStartX} y1={rectY + 4} x2={horizontalEndX} y2={rectY + 4} stroke={lateralColor} strokeWidth="8" strokeLinecap="round" />
@@ -1065,12 +1065,12 @@ export function ParantesSchemeDiagram({
           {showFixedVerticalReference ? (
             <g>
               <line x1={fixedBoundaryPx} y1={rectY} x2={fixedBoundaryPx} y2={rectY + rectH} stroke={fixedColor} strokeWidth="6" strokeLinecap="round" />
-              <rect x={Math.max(rectX + 4, Math.min(rectX + rectW - 100, fixedBoundaryPx - 50))} y={rectY + 10} width="100" height="22" rx="7" fill="#dcfce7" stroke={fixedColor} />
-              <text x={Math.max(rectX + 54, Math.min(rectX + rectW - 50, fixedBoundaryPx))} y={rectY + 26} textAnchor="middle" fontSize="11" fontWeight="900" fill="#166534">Parante fijo</text>
+              <rect x={Math.max(rectX + 4, Math.min(rectX + rectW - 100, fixedBoundaryPx - 50))} y={rectY + 10} width="100" height="22" rx="7" fill="var(--dg-success-bg)" stroke={fixedColor} />
+              <text x={Math.max(rectX + 54, Math.min(rectX + rectW - 50, fixedBoundaryPx))} y={rectY + 26} textAnchor="middle" fontSize="11" fontWeight="900" fill="var(--dg-success-text)">Parante fijo</text>
               {normalizedDoorLabel && doorTextWidth > 60 ? (
                 <g>
-                  <rect x={Math.max(rectX + 6, doorTextX - Math.min(95, doorTextWidth / 2 - 6))} y={rectY + rectH / 2 - 15} width={Math.min(190, Math.max(90, doorTextWidth - 12))} height="30" rx="9" fill="#fef3c7" stroke="#f59e0b" />
-                  <text x={doorTextX} y={rectY + rectH / 2 + 5} textAnchor="middle" fontSize="13" fontWeight="900" fill="#92400e">{normalizedDoorLabel}</text>
+                  <rect x={Math.max(rectX + 6, doorTextX - Math.min(95, doorTextWidth / 2 - 6))} y={rectY + rectH / 2 - 15} width={Math.min(190, Math.max(90, doorTextWidth - 12))} height="30" rx="9" fill="var(--dg-warning-bg)" stroke="#f59e0b" />
+                  <text x={doorTextX} y={rectY + rectH / 2 + 5} textAnchor="middle" fontSize="13" fontWeight="900" fill="var(--dg-warning-text)">{normalizedDoorLabel}</text>
                 </g>
               ) : null}
               <line x1={fixedSide === "izquierdo" ? rectX : fixedBoundaryPx} y1={rectY - 16} x2={fixedSide === "izquierdo" ? fixedBoundaryPx : rectX + rectW} y2={rectY - 16} stroke={fixedColor} strokeWidth="2" />
@@ -1168,7 +1168,7 @@ export function ParantesSketchModal({ open, onClose, ...diagramProps }) {
           width: "min(980px, 96vw)",
           maxHeight: "92vh",
           overflow: "auto",
-          background: "#fff",
+          background: "var(--dg-card)",
           borderRadius: 16,
           padding: 16,
           boxShadow: "0 20px 60px rgba(15,23,42,0.3)",
@@ -1234,9 +1234,9 @@ export function IpanelDivisionsSketch({
   }
   return (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 420px) minmax(240px, 1fr)", gap: 18, alignItems: "start" }}>
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#f8fafc" }}>
+          <div style={{ border: "1px solid var(--dg-border)", borderRadius: 16, padding: 14, background: "var(--dg-surface-2)" }}>
             <svg width="100%" viewBox={`-80 -50 ${panelWidthPx + (isVertical ? 160 : 290)} ${panelHeightPx + (isVertical ? 200 : 170)}`} role="img" aria-label="Esquema del Ipanel con divisiones">
-              <rect x={panelX} y={panelY} width={panelWidthPx} height={panelHeightPx} rx="14" fill="#ffffff" stroke="#0f172a" strokeWidth="2.2" />
+              <rect x={panelX} y={panelY} width={panelWidthPx} height={panelHeightPx} rx="14" fill="var(--dg-card)" stroke="var(--dg-text)" strokeWidth="2.2" />
               {bands.map((band) => {
                 const startPx = (axisDimensionMm > 0 ? band.startMm / axisDimensionMm : 0) * mainAxisPx;
                 const sizePx = (axisDimensionMm > 0 ? band.sizeMm / axisDimensionMm : 0) * mainAxisPx;
@@ -1245,11 +1245,11 @@ export function IpanelDivisionsSketch({
                   const y = isVertical ? panelY : panelY + startPx;
                   const width = isVertical ? sizePx : panelWidthPx;
                   const height = isVertical ? panelHeightPx : sizePx;
-                  const guideColor = "#2563eb";
+                  const guideColor = "var(--dg-info-text)";
                   const isAlt = band.index % 2 === 1;
                   return (
                     <g key={`band-${band.type}-${band.index}`}>
-                      <rect x={x} y={y} width={Math.max(0, width)} height={Math.max(0, height)} fill={band.index % 2 === 0 ? "#dff3f6" : "#eef2f7"} />
+                      <rect x={x} y={y} width={Math.max(0, width)} height={Math.max(0, height)} fill={band.index % 2 === 0 ? "var(--dg-accent-bg)" : "var(--dg-surface-3)"} />
                       {isVertical ? (
                         <g>
                           {(() => {
@@ -1292,7 +1292,7 @@ export function IpanelDivisionsSketch({
                           return (
                             <>
                               <line x1={boundaryX} y1={panelY} x2={boundaryX} y2={panelY + panelHeightPx} stroke={red} strokeWidth="2.2" />
-                              <line x1={boundaryX} y1={panelY} x2={boundaryX} y2={panelY + panelHeightPx} stroke="#334155" strokeWidth="1.1" strokeDasharray="4 4" />
+                              <line x1={boundaryX} y1={panelY} x2={boundaryX} y2={panelY + panelHeightPx} stroke="var(--dg-text)" strokeWidth="1.1" strokeDasharray="4 4" />
                             </>
                           );
                         }
@@ -1300,7 +1300,7 @@ export function IpanelDivisionsSketch({
                         return (
                           <>
                             <line x1={panelX} y1={boundaryY} x2={panelX + panelWidthPx} y2={boundaryY} stroke={red} strokeWidth="2.2" />
-                            <line x1={panelX} y1={boundaryY} x2={panelX + panelWidthPx} y2={boundaryY} stroke="#334155" strokeWidth="1.1" strokeDasharray="4 4" />
+                            <line x1={panelX} y1={boundaryY} x2={panelX + panelWidthPx} y2={boundaryY} stroke="var(--dg-text)" strokeWidth="1.1" strokeDasharray="4 4" />
                           </>
                         );
                       })() : null}
@@ -1321,7 +1321,7 @@ export function IpanelDivisionsSketch({
                 const centerY2 = isVertical ? rectY + stripeH : rectY + stripeH / 2;
                 return (
                   <g key={`band-${band.type}-${band.index}`}>
-                    <rect x={rectX} y={rectY} width={stripeW} height={stripeH} fill="#ffffff" stroke={red} strokeWidth="1.4" />
+                    <rect x={rectX} y={rectY} width={stripeW} height={stripeH} fill="var(--dg-card)" stroke={red} strokeWidth="1.4" />
                     {isVertical ? (
                       <>
                         <line x1={rectX + borderThickness / 2} y1={rectY} x2={rectX + borderThickness / 2} y2={rectY + stripeH} stroke={red} strokeWidth={borderThickness} />
@@ -1333,13 +1333,13 @@ export function IpanelDivisionsSketch({
                         <line x1={rectX} y1={rectY + stripeH - borderThickness / 2} x2={rectX + stripeW} y2={rectY + stripeH - borderThickness / 2} stroke={red} strokeWidth={borderThickness} />
                       </>
                     )}
-                    <line x1={centerX1} y1={centerY1} x2={centerX2} y2={centerY2} stroke="#334155" strokeWidth="1.3" strokeDasharray="4 4" />
+                    <line x1={centerX1} y1={centerY1} x2={centerX2} y2={centerY2} stroke="var(--dg-text)" strokeWidth="1.3" strokeDasharray="4 4" />
                   </g>
                 );
               })}
             </svg>
           </div>
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#fff" }}>
+          <div style={{ border: "1px solid var(--dg-border)", borderRadius: 16, padding: 14, background: "var(--dg-card)" }}>
             <div style={{ fontWeight: 900, marginBottom: 8 }}>Detalle</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
               <ComputedCard label="Ancho" value={panelWidthMm > 0 ? formatMm(panelWidthMm) : "-"} />
@@ -1367,7 +1367,7 @@ function IpanelDivisionsSketchModal({
   const count = Array.isArray(sectionSizes) ? sectionSizes.length : 0;
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "#fff", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
+      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "var(--dg-card)", borderRadius: 18, border: "1px solid var(--dg-border)", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 18 }}>Esquema del Ipanel</div>
@@ -1375,7 +1375,7 @@ function IpanelDivisionsSketchModal({
               Orientación de lamas {isVertical ? "vertical" : "horizontal"} · {count || 0} secciones · línea entre secciones {formatMm(dividerMm)}
             </div>
           </div>
-          <button type="button" onClick={onClose} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
+          <button type="button" onClick={onClose} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
         </div>
         <IpanelDivisionsSketch
           orientation={orientation}
@@ -1568,11 +1568,11 @@ function IpanelLamasSetupModal({
           width: "min(860px, 96vw)",
           maxHeight: "92vh",
           overflow: "auto",
-          background: "#fff",
+          background: "var(--dg-card)",
           borderRadius: 18,
           padding: 18,
           boxShadow: "0 22px 70px rgba(15,23,42,0.35)",
-          border: "1px solid #e5e7eb",
+          border: "1px solid var(--dg-border)",
         }}
       >
         <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 6 }}>
@@ -1583,7 +1583,7 @@ function IpanelLamasSetupModal({
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, alignItems: "start" }}>
-          <FieldBox label="Ancho del Ipanel (m)" helper={`Sin límite si el alto es menor a ${IPANEL_EXTENDED_MAX_M.toFixed(2)} m.`} helperColor={widthInvalid ? "#b91c1c" : undefined}>
+          <FieldBox label="Ancho del Ipanel (m)" helper={`Sin límite si el alto es menor a ${IPANEL_EXTENDED_MAX_M.toFixed(2)} m.`} helperColor={widthInvalid ? "var(--dg-danger-text)" : undefined}>
             <Input
               type="text"
               inputMode="decimal"
@@ -1598,7 +1598,7 @@ function IpanelLamasSetupModal({
               style={inputStateStyle(widthInvalid)}
             />
           </FieldBox>
-          <FieldBox label="Alto del Ipanel (m)" helper={`Sin límite si el ancho es menor a ${IPANEL_EXTENDED_MAX_M.toFixed(2)} m.`} helperColor={heightInvalid ? "#b91c1c" : undefined}>
+          <FieldBox label="Alto del Ipanel (m)" helper={`Sin límite si el ancho es menor a ${IPANEL_EXTENDED_MAX_M.toFixed(2)} m.`} helperColor={heightInvalid ? "var(--dg-danger-text)" : undefined}>
             <Input
               type="text"
               inputMode="decimal"
@@ -1627,13 +1627,13 @@ function IpanelLamasSetupModal({
                 }
                 setError("");
               }}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}
             >
               <option value="horizontal">Horizontal</option>
               <option value="vertical">Vertical</option>
             </select>
           </FieldBox>
-          <FieldBox label="Cantidad de divisiones" helper={`Entero entre 2 y ${maxDivisions}.`} helperColor={divisionsOutOfBounds ? "#b91c1c" : undefined}>
+          <FieldBox label="Cantidad de divisiones" helper={`Entero entre 2 y ${maxDivisions}.`} helperColor={divisionsOutOfBounds ? "var(--dg-danger-text)" : undefined}>
             <Input
               type="text"
               inputMode="numeric"
@@ -1657,10 +1657,10 @@ function IpanelLamasSetupModal({
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "8px 0 14px" }}>
-          <button type="button" onClick={applyClassicDistribution} style={{ border: "1px solid #c7d2fe", borderRadius: 10, background: "#eef2ff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>
+          <button type="button" onClick={applyClassicDistribution} style={{ border: "1px solid var(--dg-purple-border)", borderRadius: 10, background: "var(--dg-purple-bg)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>
             Usar distribución clásica automática
           </button>
-          <button type="button" onClick={applyUniformDistribution} style={{ border: "1px solid #d1d5db", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>
+          <button type="button" onClick={applyUniformDistribution} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>
             Repartir uniforme
           </button>
         </div>
@@ -1695,7 +1695,7 @@ function IpanelLamasSetupModal({
           <ComputedCard label="Estado" value={metrics.exceeds ? `Excede ${formatMm(Math.abs(metrics.remainingMm))}` : (metrics.matchesExactly ? "Reparto completo" : `Restan ${formatMm(metrics.remainingMm)}`)} />
         </div>
 
-        {error ? <div style={{ color: "#b91c1c", fontWeight: 800, marginTop: 12 }}>{error}</div> : null}
+        {error ? <div style={{ color: "var(--dg-danger-text)", fontWeight: 800, marginTop: 12 }}>{error}</div> : null}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
           <button
@@ -2300,15 +2300,15 @@ export default function PortonDimensions({ kind = "porton" }) {
         initialClassicMode={isIpanelClassicDistribution}
         onSave={saveIpanelLamasSetup}
       />
-      <div style={{ border: `1px solid ${hasSizeError ? "#fca5a5" : "transparent"}`, borderRadius: 14, padding: 4, background: hasSizeError ? "#fff7f7" : "transparent" }}>
+      <div style={{ border: `1px solid ${hasSizeError ? "var(--dg-danger-border)" : "transparent"}`, borderRadius: 14, padding: 4, background: hasSizeError ? "color-mix(in srgb, var(--dg-danger-bg) 50%, transparent)" : "transparent" }}>
       <div style={{ fontWeight: 800, marginBottom: 8 }}>{title}</div>
-      {hasSizeError ? <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "#fee2e2", color: "#991b1b", fontWeight: 700 }}>Se encuentra fuera de los limites de tamano.</div> : null}
+      {hasSizeError ? <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", fontWeight: 700 }}>Se encuentra fuera de los limites de tamano.</div> : null}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, alignItems: "start" }}>
-        <FieldBox label={isPorton ? "Ancho del vano (m)" : "Ancho (m)"} helper={widthHelper} helperColor={widthOutOfBounds ? "#b91c1c" : undefined}>
+        <FieldBox label={isPorton ? "Ancho del vano (m)" : "Ancho (m)"} helper={widthHelper} helperColor={widthOutOfBounds ? "var(--dg-danger-text)" : undefined}>
           <Input type="text" inputMode="decimal" value={widthRaw} onChange={(v) => isPorton ? setVanoDimension("width", v) : setDimensions({ width: normalizeDecimal(v) })} onBlur={(e) => isPorton ? setVanoDimension("width", e?.target?.value) : setDimensions({ width: normalizeDecimal(e?.target?.value) })} placeholder={isIpanel ? "Ej: 1.16" : "Ej: 3.2"} style={inputStateStyle(widthOutOfBounds)} />
           {isPorton ? <MeasuredValuesNote triple={measuredWidths} /> : null}
         </FieldBox>
-        <FieldBox label={isPorton ? "Alto del vano (m)" : "Alto (m)"} helper={heightHelper} helperColor={heightOutOfBounds ? "#b91c1c" : undefined}>
+        <FieldBox label={isPorton ? "Alto del vano (m)" : "Alto (m)"} helper={heightHelper} helperColor={heightOutOfBounds ? "var(--dg-danger-text)" : undefined}>
           <Input type="text" inputMode="decimal" value={heightRaw} onChange={(v) => isPorton ? setVanoDimension("height", v) : setDimensions({ height: normalizeDecimal(v) })} onBlur={(e) => isPorton ? setVanoDimension("height", e?.target?.value) : setDimensions({ height: normalizeDecimal(e?.target?.value) })} placeholder={heightPlaceholder} style={inputStateStyle(heightOutOfBounds)} />
           {isPorton ? <MeasuredValuesNote triple={measuredHeights} /> : null}
         </FieldBox>
@@ -2328,13 +2328,13 @@ export default function PortonDimensions({ kind = "porton" }) {
                   ...(nextDivisions ? { ipanel_divisiones: nextDivisions, cantidad_divisiones_ipanel: nextDivisions } : {}),
                 });
               }}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}
             >
               <option value="horizontal">Horizontal</option>
               <option value="vertical">Vertical</option>
             </select>
           </FieldBox>
-          <FieldBox label="Cantidad de divisiones" helper={`Entero positivo entre 2 y ${ipanelDivisionsMax}.`} helperColor={ipanelDivisionsHasError ? "#b91c1c" : undefined}>
+          <FieldBox label="Cantidad de divisiones" helper={`Entero positivo entre 2 y ${ipanelDivisionsMax}.`} helperColor={ipanelDivisionsHasError ? "var(--dg-danger-text)" : undefined}>
             <Input
               type="text"
               inputMode="numeric"
@@ -2353,25 +2353,25 @@ export default function PortonDimensions({ kind = "porton" }) {
           </FieldBox>
         </>) : null}
         {isPlegados ? (<>
-          <FieldBox label="Superficie del plegado"><div style={{ fontWeight: 800, fontSize: 16, minHeight: 40, display: "flex", alignItems: "center", padding: "9px 12px", borderRadius: 10, border: "1px solid #d1d5db", background: "#f3f4f6", color: "#334155" }}>{area ? `${area.toFixed(2)} m2` : "-"}</div></FieldBox>
+          <FieldBox label="Superficie del plegado"><div style={{ fontWeight: 800, fontSize: 16, minHeight: 40, display: "flex", alignItems: "center", padding: "9px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", background: "var(--dg-surface-3)", color: "var(--dg-text)" }}>{area ? `${area.toFixed(2)} m2` : "-"}</div></FieldBox>
           <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>Descripción del plegado</div>
-            <textarea value={String(dimensions?.plegado_descripcion ?? dimensions?.descripcion_plegado ?? dimensions?.description ?? "")} onChange={(e) => setDimensions({ plegado_descripcion: e.target.value, descripcion_plegado: e.target.value })} rows={4} style={{ width: "100%", borderRadius: 10, border: "1px solid #ddd", padding: "11px 12px", resize: "vertical", fontFamily: "inherit", fontWeight: 700, fontSize: 15, lineHeight: 1.45 }} placeholder="Describí el plegado, material, observaciones o cualquier dato técnico necesario..." />
+            <div style={{ fontWeight: 900, fontSize: 15, color: "var(--dg-text)" }}>Descripción del plegado</div>
+            <textarea value={String(dimensions?.plegado_descripcion ?? dimensions?.descripcion_plegado ?? dimensions?.description ?? "")} onChange={(e) => setDimensions({ plegado_descripcion: e.target.value, descripcion_plegado: e.target.value })} rows={4} style={{ width: "100%", borderRadius: 10, border: "1px solid var(--dg-border)", padding: "11px 12px", resize: "vertical", fontFamily: "inherit", fontWeight: 700, fontSize: 15, lineHeight: 1.45 }} placeholder="Describí el plegado, material, observaciones o cualquier dato técnico necesario..." />
             <div className="muted">Información técnica o detalle que verá Comercial y Técnica.</div>
           </div>
-          <div style={{ gridColumn: "1 / -1", border: "1px solid #d9e5f7", background: "#f7fbff", borderRadius: 12, padding: 12 }}>
+          <div style={{ gridColumn: "1 / -1", border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", borderRadius: 12, padding: 12 }}>
             <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>Adjuntá el plano</div>
             <div className="muted" style={{ marginBottom: 10 }}>Obligatorio para plegados. Puede ser PDF o imagen.</div>
             <input type="file" accept="application/pdf,image/*" onChange={handlePlegadoAttachmentChange} />
             {plegadoAttachment ? (
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
                 <span style={{ fontWeight: 800 }}>{formatPlegadoAttachmentMeta(plegadoAttachment)}</span>
-                <button type="button" onClick={() => openPlegadoAttachment(plegadoAttachment)} style={{ border: "1px solid #c7d2fe", borderRadius: 10, background: "#eef2ff", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}>Ver plano</button>
-                <button type="button" onClick={() => downloadPlegadoAttachment(plegadoAttachment)} style={{ border: "1px solid #d1d5db", borderRadius: 10, background: "#fff", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}>Descargar</button>
-                <button type="button" onClick={() => setDimensions({ plegado_plano_attachment: null, plano_plegado_attachment: null })} style={{ border: "1px solid #fecaca", borderRadius: 10, background: "#fff1f2", color: "#991b1b", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}>Quitar</button>
+                <button type="button" onClick={() => openPlegadoAttachment(plegadoAttachment)} style={{ border: "1px solid var(--dg-purple-border)", borderRadius: 10, background: "var(--dg-purple-bg)", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}>Ver plano</button>
+                <button type="button" onClick={() => downloadPlegadoAttachment(plegadoAttachment)} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}>Descargar</button>
+                <button type="button" onClick={() => setDimensions({ plegado_plano_attachment: null, plano_plegado_attachment: null })} style={{ border: "1px solid var(--dg-danger-border)", borderRadius: 10, background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}>Quitar</button>
               </div>
             ) : <div className="muted" style={{ marginTop: 10 }}>Sin plano adjunto.</div>}
-            {plegadoAttachmentError ? <div style={{ color: "#b91c1c", fontWeight: 800, marginTop: 8 }}>{plegadoAttachmentError}</div> : null}
+            {plegadoAttachmentError ? <div style={{ color: "var(--dg-danger-text)", fontWeight: 800, marginTop: 8 }}>{plegadoAttachmentError}</div> : null}
           </div>
         </>) : null}
         {isPorton ? (<>
@@ -2386,7 +2386,7 @@ export default function PortonDimensions({ kind = "porton" }) {
           ) : null}
           {explicitVanoMeasures && !dimensions?.vano_size_auto_calc ? (
             <FieldBox label="Calculo automatico">
-              <div style={{ fontSize: 13, color: "#92400e", fontWeight: 700, padding: "9px 12px", borderRadius: 10, border: "1px solid #fde68a", background: "#fffbeb", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontSize: 13, color: "var(--dg-warning-text)", fontWeight: 700, padding: "9px 12px", borderRadius: 10, border: "1px solid var(--dg-warning-border)", background: "var(--dg-warning-bg)", display: "flex", flexDirection: "column", gap: 8 }}>
                 <span>Este presupuesto es anterior al calculo automatico por vano: el ancho/alto no se recalculan solos para no modificar lo ya guardado.</span>
                 <button
                   type="button"
@@ -2395,7 +2395,7 @@ export default function PortonDimensions({ kind = "porton" }) {
                     if (!ok) return;
                     setDimensions({ vano_size_auto_calc: true });
                   }}
-                  style={{ alignSelf: "flex-start", border: "1px solid #d97706", borderRadius: 10, background: "#fff", color: "#92400e", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}
+                  style={{ alignSelf: "flex-start", border: "1px solid #d97706", borderRadius: 10, background: "var(--dg-card)", color: "var(--dg-warning-text)", padding: "7px 10px", fontWeight: 800, cursor: "pointer" }}
                 >
                   Recalcular ahora
                 </button>
@@ -2404,16 +2404,16 @@ export default function PortonDimensions({ kind = "porton" }) {
           ) : null}
           <FieldBox label="Tipo / Sistema derivado"><Input value={portonType || ""} disabled placeholder="Se completa segun la combinacion de productos" style={disabledComputedInputStyle()} /></FieldBox>
           <FieldBox label="Kg por m2"><Input value={formatNumberForInput(preview.effectiveKgM2)} placeholder="Se calcula automaticamente segun el sistema" style={disabledComputedInputStyle()} disabled /></FieldBox>
-          <FieldBox label="Superficie"><div style={{ fontWeight: 800, fontSize: 16, minHeight: 40, display: "flex", alignItems: "center", padding: "9px 12px", borderRadius: 10, border: "1px solid #d1d5db", background: "#f3f4f6", color: "#334155" }}>{area ? `${area.toFixed(2)} m2` : "-"}</div></FieldBox>
-          <FieldBox label="Orientacion de los parantes" helper={orientationReadOnlyHelper}><select value={parantesFieldsReadOnly ? effectiveParantesOrientation : orientation} onChange={(e) => { if (!parantesFieldsReadOnly) setDimensions({ orientacion_parantes: e.target.value }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: parantesFieldsReadOnly ? "#f3f4f6" : "#fff", color: parantesFieldsReadOnly ? "#475569" : undefined }} disabled={parantesFieldsReadOnly}><option value="verticales">Verticales</option><option value="horizontal">Horizontal</option></select></FieldBox>
+          <FieldBox label="Superficie"><div style={{ fontWeight: 800, fontSize: 16, minHeight: 40, display: "flex", alignItems: "center", padding: "9px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", background: "var(--dg-surface-3)", color: "var(--dg-text)" }}>{area ? `${area.toFixed(2)} m2` : "-"}</div></FieldBox>
+          <FieldBox label="Orientacion de los parantes" helper={orientationReadOnlyHelper}><select value={parantesFieldsReadOnly ? effectiveParantesOrientation : orientation} onChange={(e) => { if (!parantesFieldsReadOnly) setDimensions({ orientacion_parantes: e.target.value }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: parantesFieldsReadOnly ? "var(--dg-surface-3)" : "var(--dg-card)", color: parantesFieldsReadOnly ? "var(--dg-text-soft)" : undefined }} disabled={parantesFieldsReadOnly}><option value="verticales">Verticales</option><option value="horizontal">Horizontal</option></select></FieldBox>
           <FieldBox label="Cantidad de parantes" helper={parantesHelper}><Input type="text" inputMode="numeric" value={String(dimensions?.cantidad_parantes ?? "")} disabled={parantesFieldsReadOnly} onChange={(v) => { if (!parantesFieldsReadOnly) setDimensions({ cantidad_parantes: normalizeIntegerInput(v) }); }} onBlur={(e) => { if (!parantesFieldsReadOnly) setDimensions({ cantidad_parantes: normalizeIntegerInput(e?.target?.value) }); }} style={parantesFieldsReadOnly ? disabledComputedInputStyle() : { width: "100%" }} placeholder="Ej: 3" /></FieldBox>
-          <FieldBox label="Distribucion de los parantes" helper={parantesFieldsReadOnly ? "Solo lectura. Para no aptos se usa repartido automaticamente." : ""}><select value={distribution} onChange={(e) => { if (!parantesFieldsReadOnly) setDimensions({ distribucion_parantes: e.target.value }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: parantesFieldsReadOnly ? "#f3f4f6" : "#fff", color: parantesFieldsReadOnly ? "#475569" : undefined }} disabled={parantesFieldsReadOnly}><option value="repartido">Repartido</option><option value="especial">Especial</option></select></FieldBox>
+          <FieldBox label="Distribucion de los parantes" helper={parantesFieldsReadOnly ? "Solo lectura. Para no aptos se usa repartido automaticamente." : ""}><select value={distribution} onChange={(e) => { if (!parantesFieldsReadOnly) setDimensions({ distribucion_parantes: e.target.value }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: parantesFieldsReadOnly ? "var(--dg-surface-3)" : "var(--dg-card)", color: parantesFieldsReadOnly ? "var(--dg-text-soft)" : undefined }} disabled={parantesFieldsReadOnly}><option value="repartido">Repartido</option><option value="especial">Especial</option></select></FieldBox>
         </>) : null}
       </div>
 
       {hasIpanelLamas22Panel && ipanelDivisionsCount >= 2 ? (<>
         <div className="spacer" />
-        <div style={{ border: "1px solid #dbeafe", background: "#f8fbff", borderRadius: 14, padding: 12 }}>
+        <div style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", borderRadius: 14, padding: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             <div>
               <div style={{ fontWeight: 900, marginBottom: 4 }}>Esquema del Ipanel</div>
@@ -2421,7 +2421,7 @@ export default function PortonDimensions({ kind = "porton" }) {
                 {ipanelLamasOrientation === "vertical" ? "Las divisiones se reparten sobre el ancho del panel." : "Las divisiones se reparten sobre el alto del panel."} Cada línea de separación interior ocupa {formatMm(IPANEL_DIVIDER_LINE_MM)} y se muestra punteada.
               </div>
             </div>
-            <button type="button" onClick={() => setIpanelSketchOpen(true)} style={{ border: "1px solid #c7d2fe", borderRadius: 10, background: "#eef2ff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Ver esquema</button>
+            <button type="button" onClick={() => setIpanelSketchOpen(true)} style={{ border: "1px solid var(--dg-purple-border)", borderRadius: 10, background: "var(--dg-purple-bg)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Ver esquema</button>
           </div>
           <div className="spacer" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
@@ -2451,10 +2451,10 @@ export default function PortonDimensions({ kind = "porton" }) {
             ))}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-            <button type="button" onClick={redistributeIpanelSections} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Repartir en partes iguales</button>
-            <button type="button" onClick={applyClassicIpanelDistribution} style={{ border: "1px solid #0f766e", borderRadius: 10, background: "#ecfdf5", color: "#0f766e", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Distribución clásica</button>
+            <button type="button" onClick={redistributeIpanelSections} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Repartir en partes iguales</button>
+            <button type="button" onClick={applyClassicIpanelDistribution} style={{ border: "1px solid var(--dg-accent-text)", borderRadius: 10, background: "var(--dg-accent-bg)", color: "var(--dg-accent-text)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Distribución clásica</button>
           </div>
-          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: ipanelSectionMetrics.exceeds ? "#fee2e2" : "#eff6ff", color: ipanelSectionMetrics.exceeds ? "#991b1b" : "#1d4ed8", fontWeight: 700 }}>
+          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: ipanelSectionMetrics.exceeds ? "var(--dg-danger-bg)" : "var(--dg-info-bg)", color: ipanelSectionMetrics.exceeds ? "var(--dg-danger-text)" : "var(--dg-info-text)", fontWeight: 700 }}>
             {ipanelSectionMetrics.exceeds
               ? `Las medidas de las secciones superan la dimensión total disponible. Reducí ${formatMm(Math.abs(ipanelSectionMetrics.remainingMm))} para continuar.`
               : ipanelSectionMetrics.matchesExactly
@@ -2466,19 +2466,19 @@ export default function PortonDimensions({ kind = "porton" }) {
 
       {showSpecialParantesDistances ? (<>
         <div className="spacer" />
-        <div style={{ border: "1px solid #e0e7ff", background: "#f8fbff", borderRadius: 14, padding: 12 }}>
-          <FieldBox label="Observaciones de distribucion especial"><textarea value={String(dimensions?.observaciones_parantes ?? "")} onChange={(e) => setDimensions({ observaciones_parantes: e.target.value })} rows={3} style={{ width: "100%", borderRadius: 10, border: "1px solid #ddd", padding: "10px 12px", resize: "vertical", fontFamily: "inherit" }} placeholder="Indica como debe ser la distribucion especial de los parantes." /></FieldBox>
+        <div style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", borderRadius: 14, padding: 12 }}>
+          <FieldBox label="Observaciones de distribucion especial"><textarea value={String(dimensions?.observaciones_parantes ?? "")} onChange={(e) => setDimensions({ observaciones_parantes: e.target.value })} rows={3} style={{ width: "100%", borderRadius: 10, border: "1px solid var(--dg-border)", padding: "10px 12px", resize: "vertical", fontFamily: "inherit" }} placeholder="Indica como debe ser la distribucion especial de los parantes." /></FieldBox>
           <div className="spacer" />
           {aptoHasDoorFixedReference ? <>
-            <div style={{ fontWeight: 800, color: "#0f172a" }}>Parante vertical de puerta fijo</div>
+            <div style={{ fontWeight: 800, color: "var(--dg-text)" }}>Parante vertical de puerta fijo</div>
             <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
-              <FieldBox label="Lado del parante fijo" helper="Se usa como referencia para distribuir el resto."><select value={aptoReferenciaLado} onChange={(e) => setDimensions({ parantes_referencia_lado: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}><option value="izquierdo">Izquierdo</option><option value="derecho">Derecho</option></select></FieldBox>
+              <FieldBox label="Lado del parante fijo" helper="Se usa como referencia para distribuir el resto."><select value={aptoReferenciaLado} onChange={(e) => setDimensions({ parantes_referencia_lado: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}><option value="izquierdo">Izquierdo</option><option value="derecho">Derecho</option></select></FieldBox>
               <FieldBox label="Distancia del parante fijo" helper="Numero en mm desde el lado elegido. En especial se puede editar."><Input type="text" inputMode="decimal" value={aptoReferenciaDistancia} onChange={(v) => setDimensions({ parantes_referencia_distancia_mm: normalizeDecimalMmInput(v), parantes_primer_parante_distancia_mm: normalizeDecimalMmInput(v) })} onBlur={(e) => { const next = normalizeDecimalMmInput(e?.target?.value) || String(DOOR_FIXED_PARANTE_DISTANCE_MM); setDimensions({ parantes_referencia_distancia_mm: next, parantes_primer_parante_distancia_mm: next }); }} placeholder="Ej: 825" style={{ width: "100%" }} /></FieldBox>
             </div>
           </> : <>
             <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 700 }}><input type="checkbox" checked={aptoManualFixedReferenceEnabled} onChange={(e) => setAptoFixedFirstParante(e.target.checked)} />Fijar un parante inicial</label>
             {aptoManualFixedReferenceEnabled ? <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
-              <FieldBox label="Lado del parante fijo" helper="Elegí el lateral desde donde se mide el primer parante."><select value={aptoReferenciaLado} onChange={(e) => setDimensions({ parantes_referencia_lado: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}><option value="izquierdo">Izquierdo</option><option value="derecho">Derecho</option></select></FieldBox>
+              <FieldBox label="Lado del parante fijo" helper="Elegí el lateral desde donde se mide el primer parante."><select value={aptoReferenciaLado} onChange={(e) => setDimensions({ parantes_referencia_lado: e.target.value })} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}><option value="izquierdo">Izquierdo</option><option value="derecho">Derecho</option></select></FieldBox>
               <FieldBox label="Distancia del parante fijo" helper="Numero en mm desde el lado elegido. Luego se distribuye el resto."><Input type="text" inputMode="decimal" value={aptoReferenciaDistancia} onChange={(v) => setDimensions({ parantes_referencia_distancia_mm: normalizeDecimalMmInput(v), parantes_primer_parante_distancia_mm: normalizeDecimalMmInput(v) })} onBlur={(e) => { const next = normalizeDecimalMmInput(e?.target?.value) || String(DOOR_FIXED_PARANTE_DISTANCE_MM); setDimensions({ parantes_referencia_distancia_mm: next, parantes_primer_parante_distancia_mm: next }); }} placeholder="Ej: 825" style={{ width: "100%" }} /></FieldBox>
             </div> : null}
           </>}
@@ -2498,15 +2498,15 @@ export default function PortonDimensions({ kind = "porton" }) {
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}><button type="button" onClick={addParanteDistance} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>+ Agregar parante</button></div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}><button type="button" onClick={addParanteDistance} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>+ Agregar parante</button></div>
         </div>
       </>) : null}
 
       {isPorton ? (<>
         <div className="spacer" />
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", border: "1px solid var(--dg-border)", borderRadius: 14, padding: 12, background: "var(--dg-card)" }}>
           <div><div style={{ fontWeight: 900, marginBottom: 4 }}>Esquema de hoja y parantes</div><div className="muted">Disponible para todos los portones. Los parantes laterales se muestran aparte y no se cuentan dentro de la cantidad ingresada.</div></div>
-          <button type="button" onClick={() => setParantesSketchOpen(true)} style={{ border: "1px solid #c7d2fe", borderRadius: 10, background: "#eef2ff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Ver esquema de parantes</button>
+          <button type="button" onClick={() => setParantesSketchOpen(true)} style={{ border: "1px solid var(--dg-purple-border)", borderRadius: 10, background: "var(--dg-purple-bg)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Ver esquema de parantes</button>
         </div>
         <div className="spacer" />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
@@ -2526,7 +2526,7 @@ export default function PortonDimensions({ kind = "porton" }) {
         {/* Tope de peso desactivado a pedido (revertido en main, no borrado por si hay que
         reactivarlo). Descomentar para volver a mostrar el cartel de aviso.
         {preview.estimatedWeightKg > PORTON_MAX_WEIGHT_KG ? (
-          <div style={{ marginTop: 8, fontSize: 13, color: "#b91c1c", fontWeight: 700, padding: "9px 12px", borderRadius: 10, border: "1px solid #fca5a5", background: "#fef2f2" }}>
+          <div style={{ marginTop: 8, fontSize: 13, color: "var(--dg-danger-text)", fontWeight: 700, padding: "9px 12px", borderRadius: 10, border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)" }}>
             El peso estimado supera el máximo permitido de {PORTON_MAX_WEIGHT_KG} kg para un portón. Ajustá el revestimiento (kg/m2) o las medidas antes de guardar.
           </div>
         ) : null}

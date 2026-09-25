@@ -66,7 +66,7 @@ export default function PuertaPanelPage() {
   });
 
   if (q.isLoading) return <div className="container"><div className="card">Cargando...</div></div>;
-  if (q.isError) return <div className="container"><div className="card" style={{ color: "#d93025" }}>{q.error.message}</div></div>;
+  if (q.isError) return <div className="container"><div className="card" style={{ color: "var(--dg-danger-text)" }}>{q.error.message}</div></div>;
 
   return (
     <div className="container">
@@ -97,7 +97,7 @@ export default function PuertaPanelPage() {
       {!isDoorLinked(door) && canSellerEdit ? (
         <>
           <div className="spacer" />
-          <div className="card" style={{ border: "1px solid #f2c1be", background: "#fff5f5" }}>
+          <div className="card" style={{ border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)" }}>
             <div style={{ fontWeight: 900, marginBottom: 8 }}>Vincular a porton</div>
             <div className="muted" style={{ marginBottom: 10 }}>La puerta puede guardarse como borrador, pero para confirmarla debe estar vinculada a un presupuesto de porton.</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -107,20 +107,20 @@ export default function PuertaPanelPage() {
               </select>
               <Button onClick={() => linkM.mutate()} disabled={linkM.isPending || !selectedPortonId}>{linkM.isPending ? "Vinculando..." : "Vincular"}</Button>
             </div>
-            {quotesQ.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{quotesQ.error.message}</div> : null}
+            {quotesQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{quotesQ.error.message}</div> : null}
           </div>
         </>
       ) : null}
 
       <div className="spacer" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
-        <div className="card" style={{ border: "1px solid #d9e5f7", background: "#f7fbff" }}>
+        <div className="card" style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)" }}>
           <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Estructura</div>
           <div className="muted" style={{ marginBottom: 14 }}>Cotiza la estructura propia de la puerta en la seccion separada de puertas.</div>
           <div className="muted" style={{ marginBottom: 10 }}>Presupuesto: <b>{numberOrDash(structureQ.data?.quote_number || structureQuoteId)}</b></div>
           <Button variant="primary" onClick={() => navigate(`/cotizador/${structureEditorKind(structureQ.data, door)}/${structureQuoteId}?door_workflow=1&workflow_stage=estructura&door_id=${encodeURIComponent(id)}`)} disabled={!structureQuoteId || structureQ.isLoading}>Completar estructura</Button>
         </div>
-        <div className="card" style={{ border: "1px solid #d9e5f7", background: "#f7fbff" }}>
+        <div className="card" style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)" }}>
           <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Ipanel</div>
           <div className="muted" style={{ marginBottom: 14 }}>Revestimiento de la puerta. Las medidas se actualizan automaticamente desde Reglas Tecnicas puertas.</div>
           <div className="muted" style={{ marginBottom: 10 }}>Presupuesto: <b>{numberOrDash(ipanelQ.data?.quote_number || ipanelQuoteId)}</b></div>

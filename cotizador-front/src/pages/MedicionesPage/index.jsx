@@ -65,9 +65,9 @@ function NvPill({ value }) {
       style={{
         display: "inline-flex",
         fontWeight: 900,
-        color: "#0f5132",
-        background: "#e7f7ed",
-        border: "1px solid #bfe6c8",
+        color: "var(--dg-success-text)",
+        background: "var(--dg-success-bg)",
+        border: "1px solid var(--dg-success-border)",
         borderRadius: 999,
         padding: "3px 8px",
         whiteSpace: "nowrap",
@@ -133,9 +133,9 @@ function StatusPill({ value }) {
         display: "inline-flex",
         alignItems: "center",
         borderRadius: 999,
-        background: "#eef6ff",
-        border: "1px solid #cfe7ff",
-        color: "#075985",
+        background: "var(--dg-info-bg)",
+        border: "1px solid var(--dg-info-border)",
+        color: "var(--dg-info-text)",
         padding: "4px 8px",
         fontSize: 12,
         fontWeight: 800,
@@ -465,7 +465,7 @@ function MedicionMediaModal({ quoteId, quoteLabel, onClose, onSaved }) {
           {q.isLoading ? (
             <div className="muted">Cargando…</div>
           ) : q.isError ? (
-            <div style={{ color: "#d93025", fontSize: 13 }}>{q.error?.message || "No se pudieron cargar los archivos"}</div>
+            <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{q.error?.message || "No se pudieron cargar los archivos"}</div>
           ) : (
             <>
               <label
@@ -507,7 +507,7 @@ function MedicionMediaModal({ quoteId, quoteLabel, onClose, onSaved }) {
                 />
               </label>
 
-              {error ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{error}</div> : null}
+              {error ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{error}</div> : null}
 
               {media.length > 0 ? (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
@@ -722,7 +722,7 @@ export default function MedicionesPage() {
 
       <div className="card">
         {measQ.isLoading && <div className="muted">Cargando…</div>}
-        {measQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{measQ.error.message}</div>}
+        {measQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{measQ.error.message}</div>}
         {!measQ.isLoading && !rows.length && <div className="muted">Sin resultados</div>}
 
         {!!rows.length && (

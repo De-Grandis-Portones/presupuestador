@@ -40,7 +40,7 @@ function addDaysIso(iso, days) {
 }
 
 function DecisionRow({ label, decision, at, byName, notes }) {
-  const color = decision === "approved" ? "#1b5e20" : decision === "rejected" ? "#b71c1c" : "var(--dg-muted)";
+  const color = decision === "approved" ? "var(--dg-success-text)" : decision === "rejected" ? "var(--dg-danger-text)" : "var(--dg-muted)";
   const text = decision === "approved" ? "✓ Aprobado" : decision === "rejected" ? "✗ Rechazado" : decision === "pending" ? "Pendiente" : decision || "—";
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid var(--dg-border)" }}>
@@ -174,7 +174,7 @@ export default function AdministracionDetailPage() {
 
   if (!allowed) return <div className="container"><div className="spacer" /><div className="card">No autorizado.</div></div>;
   if (q.isLoading) return <div className="container"><div className="spacer" /><div className="card muted">Cargando...</div></div>;
-  if (q.isError) return <div className="container"><div className="spacer" /><div className="card" style={{ color: "red" }}>Error: {q.error?.message}</div></div>;
+  if (q.isError) return <div className="container"><div className="spacer" /><div className="card" style={{ color: "var(--dg-danger-text)" }}>Error: {q.error?.message}</div></div>;
 
   const quote = q.data;
   if (!quote) return null;
@@ -218,7 +218,7 @@ export default function AdministracionDetailPage() {
         <div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             {npRef && <span style={{ fontSize: 20, fontWeight: 900 }}>{npRef}</span>}
-            {nvRef && <span style={{ fontSize: 16, fontWeight: 700, color: "#1b5e20", background: "#e8f5e9", padding: "2px 10px", borderRadius: 999 }}>{nvRef}</span>}
+            {nvRef && <span style={{ fontSize: 16, fontWeight: 700, color: "var(--dg-success-text)", background: "var(--dg-success-bg)", padding: "2px 10px", borderRadius: 999 }}>{nvRef}</span>}
             <span style={{ fontSize: 13, color: "var(--dg-muted)", padding: "2px 8px", background: "var(--dg-tint)", borderRadius: 999 }}>{kindLabel}</span>
             <span style={{ fontSize: 13, color: "var(--dg-muted)", padding: "2px 8px", background: "var(--dg-tint)", borderRadius: 999 }}>{modeLabel}</span>
           </div>
@@ -228,12 +228,12 @@ export default function AdministracionDetailPage() {
           </div>
           <div style={{ marginTop: 6, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
             {totalAmount && (
-              <span style={{ fontSize: 15, fontWeight: 700, color: "#1b5e20", background: "#e8f5e9", padding: "3px 10px", borderRadius: 6 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--dg-success-text)", background: "var(--dg-success-bg)", padding: "3px 10px", borderRadius: 6 }}>
                 {hasOfficialTotal ? "Total (IVA incluido)" : "Total"}: {fmtMoney(totalAmount)}
               </span>
             )}
             {quote.payload?.condition_text && (
-              <span style={{ fontSize: 13, color: "var(--dg-muted)", background: "#f3f0ff", padding: "3px 10px", borderRadius: 6, border: "1px solid #d1c4e9" }}>
+              <span style={{ fontSize: 13, color: "var(--dg-muted)", background: "var(--dg-purple-bg)", padding: "3px 10px", borderRadius: 6, border: "1px solid var(--dg-purple-border)" }}>
                 Condición: {quote.payload.condition_text}
               </span>
             )}
@@ -261,7 +261,7 @@ export default function AdministracionDetailPage() {
           </div>
         )}
         {quote.note && (
-          <div style={{ marginTop: 12, padding: "8px 12px", background: "#fffde7", borderRadius: 6, fontSize: 13, color: "var(--dg-muted)" }}>
+          <div style={{ marginTop: 12, padding: "8px 12px", background: "var(--dg-warning-bg)", borderRadius: 6, fontSize: 13, color: "var(--dg-muted)" }}>
             Observaciones: {quote.note}
           </div>
         )}
@@ -294,7 +294,7 @@ export default function AdministracionDetailPage() {
         />
         <TimelineRow label="NP generado en Odoo" value={npRef || "—"} />
         {quote.rejection_notes && (
-          <div style={{ marginTop: 8, padding: "8px 12px", background: "#ffebee", borderRadius: 6, fontSize: 13, color: "#b71c1c" }}>
+          <div style={{ marginTop: 8, padding: "8px 12px", background: "var(--dg-danger-bg)", borderRadius: 6, fontSize: 13, color: "var(--dg-danger-text)" }}>
             Notas de rechazo: {quote.rejection_notes}
           </div>
         )}
@@ -303,7 +303,7 @@ export default function AdministracionDetailPage() {
       <div className="spacer" />
 
       {/* Historial Técnico */}
-      <SectionCard title="Historial Técnico" accent="#5c35a8">
+      <SectionCard title="Historial Técnico" accent="var(--dg-purple-text)">
         <TimelineRow label="Modo de cumplimiento" value={modeLabel} />
         <TimelineRow label="Requiere medición" value={quote.requires_measurement ? "Sí" : "No"} />
 
@@ -366,22 +366,22 @@ export default function AdministracionDetailPage() {
         {quote.measurement_share_enabled_at && (() => {
           const acceptance = quote.payload?.measurement_client_acceptance;
           return (
-            <div style={{ marginTop: 12, padding: "12px 14px", background: acceptance ? "#e8f5e9" : "#fffde7", borderRadius: 8, border: `1px solid ${acceptance ? "#a5d6a7" : "#ffe082"}` }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: acceptance ? "#1b5e20" : "#f57f17" }}>
+            <div style={{ marginTop: 12, padding: "12px 14px", background: acceptance ? "var(--dg-success-bg)" : "var(--dg-warning-bg)", borderRadius: 8, border: `1px solid ${acceptance ? "var(--dg-success-border)" : "var(--dg-warning-border)"}` }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: acceptance ? "var(--dg-success-text)" : "var(--dg-warning-text)" }}>
                 {acceptance ? "✓ Aceptación del cliente completada" : "Link enviado — pendiente de aceptación"}
               </div>
               {acceptance ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "8px 16px" }}>
                   <div>
-                    <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase", letterSpacing: 0.5 }}>Nombre completo</div>
+                    <div style={{ fontSize: 11, color: "var(--dg-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>Nombre completo</div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{acceptance.full_name || "—"}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase", letterSpacing: 0.5 }}>DNI</div>
+                    <div style={{ fontSize: 11, color: "var(--dg-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>DNI</div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{acceptance.dni || "—"}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase", letterSpacing: 0.5 }}>Fecha de aceptación</div>
+                    <div style={{ fontSize: 11, color: "var(--dg-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>Fecha de aceptación</div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{fmt(acceptance.accepted_at || quote.measurement_client_accepted_at)}</div>
                   </div>
                 </div>

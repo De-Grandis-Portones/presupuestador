@@ -8,6 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <title>Presupuestador</title>
+    <script>
+      // Aplica el tema antes del primer pintado (misma lógica que
+      // src/domain/theme/store.js) para que en dark mode no haya un flash claro
+      // mientras carga el bundle.
+      (function () {
+        try {
+          var mode = localStorage.getItem("dgp_theme_mode");
+          if (mode !== "light" && mode !== "dark") {
+            mode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.setAttribute("data-theme", mode);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

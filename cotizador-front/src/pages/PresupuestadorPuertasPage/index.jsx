@@ -847,9 +847,9 @@ export default function PresupuestadorPuertasPage() {
       </div>
 
       {quoteQ.isLoading ? <><div className="spacer" /><div className="card"><div className="muted">Cargando puerta...</div></div></> : null}
-      {quoteQ.isError ? <><div className="spacer" /><div className="card"><div style={{ color: "#d93025" }}>{quoteQ.error.message}</div></div></> : null}
+      {quoteQ.isError ? <><div className="spacer" /><div className="card"><div style={{ color: "var(--dg-danger-text)" }}>{quoteQ.error.message}</div></div></> : null}
       {!pricingContextReady ? (
-        <><div className="spacer" /><div className="card" style={{ background: pricesError ? "#fdecea" : "#fff8e1", border: pricesError ? "1px solid #e5a8a1" : "1px solid #f2d08a" }}>
+        <><div className="spacer" /><div className="card" style={{ background: pricesError ? "var(--dg-danger-bg)" : "var(--dg-warning-bg)", border: pricesError ? "1px solid var(--dg-danger-border)" : "1px solid var(--dg-warning-border)" }}>
           <div style={{ fontWeight: 900, marginBottom: 6 }}>{pricesError ? "No se pudieron cargar los precios" : "Preparando lista de precios"}</div>
           <div className="muted">{pricingContextMessage || "Esperá unos segundos antes de seleccionar productos o confirmar. Esto evita presupuestar con una lista incorrecta."}</div>
           {pricesError ? (
@@ -862,26 +862,26 @@ export default function PresupuestadorPuertasPage() {
 
       {confirmChoiceOpen ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0, 0, 0, 0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1000 }} onClick={() => { if (!confirmM.isPending) setConfirmChoiceOpen(false); }}>
-          <div className="card" style={{ width: "100%", maxWidth: 880, background: "var(--dg-card)", border: "1px solid #ddd", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }} onClick={(e) => e.stopPropagation()}>
+          <div className="card" style={{ width: "100%", maxWidth: 880, background: "var(--dg-card)", border: "1px solid var(--dg-border)", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Elegí el destino de la puerta</div>
             <div className="muted" style={{ marginBottom: 18 }}>La puerta usa el mismo circuito de aprobación que un portón.</div>
-            <div style={{ border: "1px solid #f2d08a", background: "#fff8e1", borderRadius: 14, padding: 14, marginBottom: 16 }}>
+            <div style={{ border: "1px solid var(--dg-warning-border)", background: "var(--dg-warning-bg)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>Observación</div>
               <div className="muted" style={{ marginBottom: 8 }}>Opcional. Queda impresa en el presupuesto/proforma y visible para Comercial y Técnica.</div>
               <textarea
                 value={confirmBudgetObservation}
                 onChange={(e) => setConfirmBudgetObservation(e.target.value)}
                 placeholder="Escribí una observación para esta confirmación..."
-                style={{ width: "100%", minHeight: 78, padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", outline: "none", resize: "vertical" }}
+                style={{ width: "100%", minHeight: 78, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", outline: "none", resize: "vertical" }}
               />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
-              <div style={{ border: "1px solid #d9e5f7", background: "#f7fbff", borderRadius: 14, padding: 16 }}>
+              <div style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", borderRadius: 14, padding: 16 }}>
                 <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Acopio</div>
                 <div className="muted" style={{ marginBottom: 14 }}>La puerta queda en espera y genera Nota de Pedido PNP al aprobarse.</div>
                 <Button onClick={() => confirmDoorWithOptionalPortonWarning("acopio")} disabled={confirmM.isPending || !pricingContextReady}>Confirmar en Acopio</Button>
               </div>
-              <div style={{ border: "1px solid #f2d3bf", background: "#fff8f3", borderRadius: 14, padding: 16 }}>
+              <div style={{ border: "1px solid var(--dg-warning-border)", background: "var(--dg-warning-bg)", borderRadius: 14, padding: 16 }}>
                 <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Producción</div>
                 <div className="muted" style={{ marginBottom: 14 }}>La puerta entra al circuito productivo y genera Nota de Pedido PNP al aprobarse.</div>
                 <Button variant="primary" onClick={() => confirmDoorWithOptionalPortonWarning("produccion")} disabled={confirmM.isPending || !pricingContextReady}>Confirmar en Producción</Button>
@@ -903,14 +903,14 @@ export default function PresupuestadorPuertasPage() {
               value={portonSearch}
               onChange={(e) => setPortonSearch(e.target.value)}
               placeholder="Buscar por NP/NV, nombre, apellido, teléfono, email o localidad..."
-              style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", width: "100%" }}
+              style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", width: "100%" }}
             />
           </div>
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>
               Presupuesto de portón {portonSearch ? `(${filteredPortonQuotes.length} resultado${filteredPortonQuotes.length === 1 ? "" : "s"})` : ""}
             </div>
-            <select value={linkedPortonId} onChange={(e) => applyPortonData(e.target.value)} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", width: "100%" }}>
+            <select value={linkedPortonId} onChange={(e) => applyPortonData(e.target.value)} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", width: "100%" }}>
               <option value="">Sin portón vinculado</option>
               {filteredPortonQuotes.map((q) => (
                 <option key={q.id} value={q.id}>{quoteDisplayReference(q)} · {q?.end_customer?.name || [q?.end_customer?.first_name, q?.end_customer?.last_name].filter(Boolean).join(" ") || "Sin cliente"} · {q?.status || "draft"}</option>
@@ -935,7 +935,7 @@ export default function PresupuestadorPuertasPage() {
           {pricingContextReady ? (
             <PuertaCatalog />
           ) : (
-            <div style={{ border: "1px dashed #f2d08a", background: "#fffdf2", borderRadius: 14, padding: 16 }}>
+            <div style={{ border: "1px dashed var(--dg-warning-border)", background: "var(--dg-warning-bg)", borderRadius: 14, padding: 16 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>Catálogo bloqueado momentáneamente</div>
               <div className="muted">{pricingContextMessage || "La app está resolviendo la lista de precios correcta."}</div>
             </div>
@@ -949,8 +949,8 @@ export default function PresupuestadorPuertasPage() {
       </div>
 
       {(saveM.isError || confirmM.isError) ? <div className="spacer" /> : null}
-      {saveM.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{saveM.error.message}</div> : null}
-      {confirmM.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{confirmM.error.message}</div> : null}
+      {saveM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{saveM.error.message}</div> : null}
+      {confirmM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{confirmM.error.message}</div> : null}
     </div>
   );
 }

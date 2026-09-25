@@ -94,17 +94,17 @@ const TICKET_CATEGORIAS = [
 ];
 
 const ESTADO_LABEL = { pending: "Pendiente", in_progress: "En curso", closed: "Cerrado" };
-const ESTADO_COLOR = { pending: "#b45309", in_progress: "#92720c", closed: "#15803d" };
+const ESTADO_COLOR = { pending: "var(--dg-orange-text)", in_progress: "var(--dg-warning-text)", closed: "var(--dg-success-text)" };
 
 const T = {
-  surface: "#ffffff",
-  ink: "#0f172a",
-  inkWeak: "#475569",
-  border: "#dfe3e8",
+  surface: "var(--dg-card)",
+  ink: "var(--dg-text)",
+  inkWeak: "var(--dg-text-soft)",
+  border: "var(--dg-border)",
   brand: "#008241",
-  brand700: "#0a6a33",
-  brand100: "#e8f6ee",
-  danger: "#b3261e",
+  brand700: "var(--dg-success-text)",
+  brand100: "var(--dg-success-bg)",
+  danger: "var(--dg-danger-text)",
 };
 
 export default function TicketWidget() {
@@ -314,7 +314,7 @@ export default function TicketWidget() {
               minWidth: 18, height: 18, padding: "0 4px", borderRadius: 999,
               background: "#dc2626", color: "#fff", fontSize: 11, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
-              border: "2px solid #fff",
+              border: "2px solid var(--dg-card)",
             }}
           >
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -615,7 +615,7 @@ export default function TicketWidget() {
                           disabled={anulando}
                           style={{
                             padding: "4px 10px", fontSize: 12, borderRadius: 8, border: "none",
-                            background: T.danger, color: "#fff", fontWeight: 700, cursor: "pointer",
+                            background: "var(--dg-danger-solid)", color: "#fff", fontWeight: 700, cursor: "pointer",
                           }}
                         >
                           {anulando ? "Anulando..." : "Sí, anular"}
