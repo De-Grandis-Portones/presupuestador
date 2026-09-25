@@ -550,7 +550,7 @@ function detectDoorType(quote) {
 }
 function getLegWidthMmByType(piernasTipo) {
   const key = String(piernasTipo || "").trim().toLowerCase();
-  const map = { angostas: 230, comunes: 270, anchas: 370, superanchas: 370, especiales: 370 };
+  const map = { angostas: 230, comunes: 270, anchas: 370, superanchas: 470, especiales: 470 };
   return Number(map[key] || 0);
 }
 function getPasoWidthDeductionMm(piernasTipo, surfaceParameters) {
@@ -607,6 +607,7 @@ function resolveTechnicalSummary({ quote, form, surfaceParameters = {} }) {
     alto_paso_mm: altoPasoMm || local.alto_paso_mm,
     peso_estimado_kg: pesoEstimadoKg || local.peso_estimado_kg,
     piernas_tipo: piernasTipo || local.piernas_tipo,
+    ancho_pierna_mm: (piernasTipo && getLegWidthMmByType(piernasTipo)) || local.ancho_pierna_mm,
   };
 }
 function computeAutomaticSummary({ quote, form, surfaceParameters = {} }) {
