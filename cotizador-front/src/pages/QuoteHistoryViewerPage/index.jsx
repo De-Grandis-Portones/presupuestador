@@ -50,7 +50,7 @@ function Field({ label, value }) {
   return (
     <div style={{ flex: 1, minWidth: 220 }}>
       <div className="muted" style={{ marginBottom: 6 }}>{label}</div>
-      <div style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #e5e7eb", background: "var(--dg-card)" }}>
+      <div style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}>
         {value || <span className="muted">—</span>}
       </div>
     </div>
@@ -171,7 +171,7 @@ export default function QuoteHistoryViewerPage() {
           </Button>
         </div>
 
-        {searchQ.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 10 }}>{searchQ.error.message}</div> : null}
+        {searchQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>{searchQ.error.message}</div> : null}
       </div>
 
       {searchQ.isLoading ? (
@@ -187,7 +187,7 @@ export default function QuoteHistoryViewerPage() {
                 <div
                   key={item.id}
                   style={{
-                    border: selected ? "2px solid rgba(1,163,159,0.35)" : "1px solid #e5e7eb",
+                    border: selected ? "2px solid rgba(1,163,159,0.35)" : "1px solid var(--dg-border)",
                     borderRadius: 12,
                     padding: 12,
                     background: selected ? "rgba(1,163,159,0.06)" : "var(--dg-card)",
@@ -221,8 +221,8 @@ export default function QuoteHistoryViewerPage() {
             title="Estado y referencias"
             right={(
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <span style={badgeStyle("#eef4ff", "#c7dafc", "#075985")}>Original: {text(history.original_quote?.status) || "—"}</span>
-                <span style={badgeStyle("#e7f7ed", "#bfe6c8", "#0f5132")}>NV final: {text(history.final_copy?.final_sale_order_name || history.original_quote?.final_sale_order_name) || "—"}</span>
+                <span style={badgeStyle("var(--dg-info-bg)", "var(--dg-info-border)", "var(--dg-info-text)")}>Original: {text(history.original_quote?.status) || "—"}</span>
+                <span style={badgeStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>NV final: {text(history.final_copy?.final_sale_order_name || history.original_quote?.final_sale_order_name) || "—"}</span>
               </div>
             )}
           >
@@ -258,7 +258,7 @@ export default function QuoteHistoryViewerPage() {
           <Section title="Productos presupuestados">
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {budgetSummary.length ? budgetSummary.map((item) => (
-                <div key={item.key} style={{ border: "1px solid #eee", borderRadius: 10, padding: 10 }}>
+                <div key={item.key} style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 10, padding: 10 }}>
                   <b>{item.sectionName}:</b> {item.value || "—"}
                 </div>
               )) : <div className="muted">Sin productos visibles.</div>}
@@ -314,7 +314,7 @@ export default function QuoteHistoryViewerPage() {
             {history.timeline?.length ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {history.timeline.map((event) => (
-                  <div key={event.key} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "var(--dg-card)" }}>
+                  <div key={event.key} style={{ border: "1px solid var(--dg-border)", borderRadius: 12, padding: 12, background: "var(--dg-card)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                       <div style={{ fontWeight: 800 }}>{event.title}</div>
                       <div className="muted">{formatDateTime(event.at)}</div>

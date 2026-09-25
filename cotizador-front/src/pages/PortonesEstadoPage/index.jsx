@@ -9,16 +9,18 @@ import PaginationControls from "../../ui/PaginationControls.jsx";
 
 const PAGE_SIZE = 25;
 
+// Colores de estado adaptados a tema claro/oscuro con las familias semánticas de
+// styles.css (cada familia tiene su variante clara y oscura).
 const STATUS_COLORS = {
-  green:  { bg: "#e8f5e9", text: "#1b5e20", border: "#a5d6a7" },
-  teal:   { bg: "#e0f2f1", text: "#004d40", border: "#80cbc4" },
-  blue:   { bg: "#e3f2fd", text: "#0d47a1", border: "#90caf9" },
-  yellow: { bg: "#fffde7", text: "#f57f17", border: "#fff176" },
-  orange: { bg: "#fff3e0", text: "#bf360c", border: "#ffcc80" },
-  red:    { bg: "#ffebee", text: "#b71c1c", border: "#ef9a9a" },
-  purple: { bg: "#f3e5f5", text: "#6a1b9a", border: "#ce93d8" },
-  pink:   { bg: "#fce4ec", text: "#ad1457", border: "#f48fb1" },
-  gray:   { bg: "var(--dg-card)", text: "#424242", border: "var(--dg-border)" },
+  green:  { bg: "var(--dg-success-bg)", text: "var(--dg-success-text)", border: "var(--dg-success-border)" },
+  teal:   { bg: "var(--dg-accent-bg)", text: "var(--dg-accent-text)", border: "var(--dg-accent-border)" },
+  blue:   { bg: "var(--dg-info-bg)", text: "var(--dg-info-text)", border: "var(--dg-info-border)" },
+  yellow: { bg: "var(--dg-warning-bg)", text: "var(--dg-warning-text)", border: "var(--dg-warning-border)" },
+  orange: { bg: "var(--dg-orange-bg)", text: "var(--dg-orange-text)", border: "var(--dg-orange-border)" },
+  red:    { bg: "var(--dg-danger-bg)", text: "var(--dg-danger-text)", border: "var(--dg-danger-border)" },
+  purple: { bg: "var(--dg-purple-bg)", text: "var(--dg-purple-text)", border: "var(--dg-purple-border)" },
+  pink:   { bg: "var(--dg-pink-bg)", text: "var(--dg-pink-text)", border: "var(--dg-pink-border)" },
+  gray:   { bg: "var(--dg-card)", text: "var(--dg-neutral-text)", border: "var(--dg-border)" },
 };
 
 const PRODUCT_KIND_LABELS = {
@@ -210,9 +212,9 @@ function DaysBadge({ days }) {
       marginLeft: 8,
       padding: "2px 10px",
       borderRadius: 999,
-      border: `1px solid ${urgent ? "#ef9a9a" : "#ffe082"}`,
-      background: urgent ? "#ffebee" : "#fffde7",
-      color: urgent ? "#b71c1c" : "#f57f17",
+      border: `1px solid ${urgent ? "var(--dg-danger-border)" : "var(--dg-warning-border)"}`,
+      background: urgent ? "var(--dg-danger-bg)" : "var(--dg-warning-bg)",
+      color: urgent ? "var(--dg-danger-text)" : "var(--dg-warning-text)",
       fontWeight: 700,
       fontSize: 12,
       whiteSpace: "nowrap",
@@ -287,17 +289,17 @@ function LinkPopup({ url, onClose }) {
 
   return (
     <div ref={ref} style={{
-      position: "absolute", zIndex: 100, background: "var(--dg-card)", border: "1px solid #ddd",
+      position: "absolute", zIndex: 100, background: "var(--dg-card)", border: "1px solid var(--dg-border)",
       borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", padding: "14px 16px",
       minWidth: 340, maxWidth: 480, right: 0, top: "calc(100% + 4px)",
     }}>
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>Link de aceptación del cliente:</div>
+      <div style={{ fontSize: 12, color: "var(--dg-muted)", marginBottom: 6 }}>Link de aceptación del cliente:</div>
       <div style={{ fontSize: 12, wordBreak: "break-all", background: "var(--dg-card)", padding: "6px 8px", borderRadius: 4, color: "var(--dg-text)", marginBottom: 10 }}>
         {url}
       </div>
       <button
         onClick={handleCopy}
-        style={{ padding: "5px 14px", borderRadius: 6, border: "1px solid #ccc", background: copied ? "#e8f5e9" : "var(--dg-card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: copied ? "#1b5e20" : "var(--dg-text)" }}
+        style={{ padding: "5px 14px", borderRadius: 6, border: "1px solid var(--dg-border)", background: copied ? "var(--dg-success-bg)" : "var(--dg-card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: copied ? "var(--dg-success-text)" : "var(--dg-text)" }}
       >
         {copied ? "✓ Copiado" : "Copiar link"}
       </button>
@@ -342,12 +344,12 @@ function PhoneModal({ row, onClose }) {
         </div>
         {phones.map((p) => (
           <div key={p.label} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dg-muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
               {p.label}
             </div>
             <a
               href={`tel:+549${p.value.replace(/\D/g, "")}`}
-              style={{ fontSize: 17, fontWeight: 700, color: "#0d47a1", textDecoration: "none" }}
+              style={{ fontSize: 17, fontWeight: 700, color: "var(--dg-info-text)", textDecoration: "none" }}
             >
               {p.value}
             </a>
@@ -357,7 +359,7 @@ function PhoneModal({ row, onClose }) {
           onClick={onClose}
           style={{
             marginTop: 8, width: "100%", padding: "8px 0", borderRadius: 7,
-            border: "1px solid #e0e0e0", background: "var(--dg-card)", cursor: "pointer",
+            border: "1px solid var(--dg-border)", background: "var(--dg-card)", cursor: "pointer",
             fontSize: 13, fontWeight: 600, color: "var(--dg-muted)",
           }}
         >
@@ -396,14 +398,14 @@ function CancelNvModal({ row, onClose, onConfirm, pending }) {
           padding: "24px 26px", width: "100%", maxWidth: 480,
         }}
       >
-        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10, color: "#b71c1c" }}>
+        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10, color: "var(--dg-danger-text)" }}>
           Cancelar {row?.displayRef}
         </div>
         <div style={{ fontSize: 13.5, color: "var(--dg-text)", lineHeight: 1.6, marginBottom: 14 }}>
           La cancelación se debe reflejar en la nota de crédito correspondiente. En Odoo esta NV no se modifica —
           eso queda a cargo de Administración por separado.
         </div>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#b71c1c", marginBottom: 16 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--dg-danger-text)", marginBottom: 16 }}>
           Esta acción no tiene vuelta atrás.
         </div>
         <div className="muted" style={{ marginBottom: 6, fontSize: 13, fontWeight: 600 }}>Motivo de la cancelación</div>
@@ -414,7 +416,7 @@ function CancelNvModal({ row, onClose, onConfirm, pending }) {
           autoFocus
           style={{
             width: "100%", minHeight: 80, padding: 10, borderRadius: 8,
-            border: "1px solid #ddd", fontFamily: "inherit", fontSize: 13.5, resize: "vertical",
+            border: "1px solid var(--dg-border)", fontFamily: "inherit", fontSize: 13.5, resize: "vertical",
           }}
         />
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
@@ -422,7 +424,7 @@ function CancelNvModal({ row, onClose, onConfirm, pending }) {
             onClick={onClose}
             disabled={pending}
             style={{
-              padding: "8px 16px", borderRadius: 8, border: "1px solid #e0e0e0",
+              padding: "8px 16px", borderRadius: 8, border: "1px solid var(--dg-border)",
               background: "var(--dg-card)", cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: "var(--dg-muted)",
             }}
           >
@@ -433,7 +435,7 @@ function CancelNvModal({ row, onClose, onConfirm, pending }) {
             disabled={!canConfirm}
             style={{
               padding: "8px 18px", borderRadius: 8, border: "none",
-              background: canConfirm ? "#b71c1c" : "#eecccc",
+              background: canConfirm ? "#b71c1c" : "var(--dg-danger-border)",
               cursor: canConfirm ? "pointer" : "not-allowed",
               fontSize: 13.5, fontWeight: 700, color: "#fff",
             }}
@@ -590,9 +592,9 @@ export default function PortonesEstadoPage() {
               style={{
                 padding: "5px 14px",
                 borderRadius: 999,
-                border: `1px solid ${active ? "#333" : "var(--dg-border)"}`,
-                background: active ? "#333" : "var(--dg-card)",
-                color: active ? "#fff" : "var(--dg-text)",
+                border: `1px solid ${active ? "var(--dg-text)" : "var(--dg-border)"}`,
+                background: active ? "var(--dg-text)" : "var(--dg-card)",
+                color: active ? "var(--dg-card)" : "var(--dg-text)",
                 fontWeight: active ? 700 : 400,
                 cursor: "pointer",
                 fontSize: 13,
@@ -610,7 +612,7 @@ export default function PortonesEstadoPage() {
             marginLeft: "auto",
             padding: "6px 12px",
             borderRadius: 6,
-            border: "1px solid #ccc",
+            border: "1px solid var(--dg-border)",
             fontSize: 13,
             minWidth: 220,
           }}
@@ -620,13 +622,13 @@ export default function PortonesEstadoPage() {
       <div className="spacer" />
 
       {q.isLoading && <div className="card muted" style={{ textAlign: "center" }}>Cargando...</div>}
-      {q.isError && <div className="card" style={{ color: "red" }}>Error: {q.error?.message}</div>}
+      {q.isError && <div className="card" style={{ color: "var(--dg-danger-text)" }}>Error: {q.error?.message}</div>}
 
       {!q.isLoading && !q.isError && (
         <div className="card" style={{ padding: 0, overflow: "visible" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "var(--dg-card)", borderBottom: "2px solid #e0e0e0" }}>
+              <tr style={{ background: "var(--dg-card)", borderBottom: "2px solid var(--dg-border)" }}>
                 <th style={thStyle}>Referencia</th>
                 <th style={thStyle}>Cliente</th>
                 <th style={thStyle}>Vendedor / Distribuidor</th>
@@ -639,7 +641,7 @@ export default function PortonesEstadoPage() {
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: "24px 16px", color: "#888" }}>
+                  <td colSpan={7} style={{ textAlign: "center", padding: "24px 16px", color: "var(--dg-muted)" }}>
                     No hay portones que coincidan con el filtro.
                   </td>
                 </tr>
@@ -654,11 +656,11 @@ export default function PortonesEstadoPage() {
                   <tr
                     key={r.id}
                     style={{
-                      borderBottom: "1px solid #f0f0f0",
+                      borderBottom: "1px solid var(--dg-border-soft)",
                       transition: "background 0.15s",
-                      ...(isCancelled ? { color: "#b71c1c", textDecoration: "line-through" } : null),
+                      ...(isCancelled ? { color: "var(--dg-danger-text)", textDecoration: "line-through" } : null),
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "#fafafa"; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--dg-surface-2)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = ""; }}
                   >
                     <td style={tdStyle}>
@@ -669,8 +671,8 @@ export default function PortonesEstadoPage() {
                             onClick={() => setCancelModalRow(r)}
                             title="Cancelar esta NV"
                             style={{
-                              padding: "2px 8px", borderRadius: 5, border: "1px solid #ef9a9a",
-                              background: "#ffebee", color: "#b71c1c", cursor: "pointer",
+                              padding: "2px 8px", borderRadius: 5, border: "1px solid var(--dg-danger-border)",
+                              background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", cursor: "pointer",
                               fontSize: 11, fontWeight: 700, lineHeight: 1.4, whiteSpace: "nowrap",
                             }}
                           >
@@ -687,8 +689,8 @@ export default function PortonesEstadoPage() {
                             onClick={() => setPhoneModalRow(r)}
                             title="Ver teléfonos"
                             style={{
-                              padding: "2px 7px", borderRadius: 5, border: "1px solid #90caf9",
-                              background: "#e3f2fd", color: "#0d47a1", cursor: "pointer",
+                              padding: "2px 7px", borderRadius: 5, border: "1px solid var(--dg-info-border)",
+                              background: "var(--dg-info-bg)", color: "var(--dg-info-text)", cursor: "pointer",
                               fontSize: 13, lineHeight: 1, flexShrink: 0,
                             }}
                           >
@@ -709,8 +711,8 @@ export default function PortonesEstadoPage() {
                             }}
                             title={`Copiar teléfono: ${r.created_by_phone}`}
                             style={{
-                              padding: "2px 7px", borderRadius: 5, border: "1px solid #90caf9",
-                              background: "#e3f2fd", color: "#0d47a1", cursor: "pointer",
+                              padding: "2px 7px", borderRadius: 5, border: "1px solid var(--dg-info-border)",
+                              background: "var(--dg-info-bg)", color: "var(--dg-info-text)", cursor: "pointer",
                               fontSize: 13, lineHeight: 1, flexShrink: 0,
                             }}
                           >
@@ -725,7 +727,7 @@ export default function PortonesEstadoPage() {
                         <DaysBadge days={daysSince(r.measurement_review_at)} />
                       )}
                     </td>
-                    <td style={{ ...tdStyle, color: "#888", fontSize: 13 }}>
+                    <td style={{ ...tdStyle, color: "var(--dg-muted)", fontSize: 13 }}>
                       {/* production_set_at es columna nueva (sin backfill a proposito): los que
                           ya estaban en produccion antes de este cambio muestran "—" para siempre,
                           solo se completa para transiciones a produccion de acá en adelante. */}
@@ -737,8 +739,8 @@ export default function PortonesEstadoPage() {
                           <button
                             onClick={() => setLinkPopupId(showLinkPopup ? null : r.id)}
                             style={{
-                              padding: "3px 10px", borderRadius: 6, border: "1px solid #90caf9",
-                              background: "#e3f2fd", color: "#0d47a1", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                              padding: "3px 10px", borderRadius: 6, border: "1px solid var(--dg-info-border)",
+                              background: "var(--dg-info-bg)", color: "var(--dg-info-text)", cursor: "pointer", fontSize: 12, fontWeight: 600,
                             }}
                           >
                             🔗 Ver link
@@ -752,27 +754,27 @@ export default function PortonesEstadoPage() {
                         <div style={{ fontSize: 12, color: "var(--dg-text)" }}>
                           <div style={{ fontWeight: 600 }}>{acceptance.full_name || "—"}</div>
                           <div style={{ color: "var(--dg-muted)" }}>DNI: {acceptance.dni || "—"}</div>
-                          <div style={{ color: "#888" }}>{formatDateTime(acceptance.accepted_at || r.measurement_client_accepted_at)}</div>
+                          <div style={{ color: "var(--dg-muted)" }}>{formatDateTime(acceptance.accepted_at || r.measurement_client_accepted_at)}</div>
                           {r.production_delivery_week && (
-                            <div style={{ color: "#0d47a1", fontWeight: 600, marginTop: 4 }}>
+                            <div style={{ color: "var(--dg-info-text)", fontWeight: 600, marginTop: 4 }}>
                               Fin de producción estimada: Semana {r.production_delivery_week} - {Number(r.production_delivery_week) + 1} (desde {formatDate(r.production_delivery_week_start)} hasta {formatDate(addDaysIso(r.production_delivery_week_end, 7))})
                             </div>
                           )}
                         </div>
                       ) : r.measurement_share_enabled_at ? (
-                        <div style={{ fontSize: 12, color: "#999", fontStyle: "italic" }}>Pendiente de aceptación</div>
+                        <div style={{ fontSize: 12, color: "var(--dg-muted)", fontStyle: "italic" }}>Pendiente de aceptación</div>
                       ) : (
                         <span style={{ color: "var(--dg-muted)" }}>—</span>
                       )}
                     </td>
                     <td style={{ ...tdStyle, textAlign: "center" }}>
                       {isCancelled ? (
-                        <span style={{ color: "#ccc" }}>—</span>
+                        <span style={{ color: "var(--dg-muted)" }}>—</span>
                       ) : acceptanceUrl ? (
                         r.measurement_link_sent_confirmed_at ? (
                           <span
                             title={`Confirmado ${formatDateTime(r.measurement_link_sent_confirmed_at)}`}
-                            style={{ fontSize: 18, color: "#2e7d32", cursor: "default" }}
+                            style={{ fontSize: 18, color: "var(--dg-success-text)", cursor: "default" }}
                           >
                             ✓
                           </span>
@@ -782,8 +784,8 @@ export default function PortonesEstadoPage() {
                             disabled={confirmLinkSentM.isPending && confirmLinkSentM.variables === r.id}
                             title="Confirmar que ya se envió el link al cliente"
                             style={{
-                              padding: "2px 9px", borderRadius: 6, border: "1px solid #ef9a9a",
-                              background: "#ffebee", color: "#b71c1c", cursor: "pointer", fontSize: 14, lineHeight: 1.4,
+                              padding: "2px 9px", borderRadius: 6, border: "1px solid var(--dg-danger-border)",
+                              background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", cursor: "pointer", fontSize: 14, lineHeight: 1.4,
                             }}
                           >
                             ✗

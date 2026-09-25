@@ -65,8 +65,8 @@ export default function PuertaWorkflowPage() {
       <div className="spacer" />
       <div className="card" style={{ background: "var(--dg-card)" }}>
         {portonQ.isLoading && <div className="muted">Cargando presupuesto de porton...</div>}
-        {portonQ.isError && <div style={{ color: "#d93025" }}>{portonQ.error.message}</div>}
-        {!portonQ.isLoading && !isPorton && <div style={{ color: "#d93025" }}>Este flujo solo aplica a presupuestos de porton.</div>}
+        {portonQ.isError && <div style={{ color: "var(--dg-danger-text)" }}>{portonQ.error.message}</div>}
+        {!portonQ.isLoading && !isPorton && <div style={{ color: "var(--dg-danger-text)" }}>Este flujo solo aplica a presupuestos de porton.</div>}
         {summary ? (
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <div><span className="muted">Presupuesto:</span> <b>{summary.number}</b></div>
@@ -79,12 +79,12 @@ export default function PuertaWorkflowPage() {
 
       <div className="spacer" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
-        <div className="card" style={{ border: "1px solid #d9e5f7", background: "#f7fbff" }}>
+        <div className="card" style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)" }}>
           <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Crear y abrir estructura</div>
           <div className="muted" style={{ marginBottom: 14 }}>Crea una puerta nueva, su presupuesto de estructura y su Ipanel automatico.</div>
           <Button variant="primary" onClick={() => createAndOpen("estructura")} disabled={createM.isPending || !isPorton}>{createM.isPending ? "Preparando..." : "Abrir estructura"}</Button>
         </div>
-        <div className="card" style={{ border: "1px solid #d9e5f7", background: "#f7fbff" }}>
+        <div className="card" style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)" }}>
           <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Crear y abrir Ipanel</div>
           <div className="muted" style={{ marginBottom: 14 }}>El Ipanel es el revestimiento de la puerta y queda vinculado automaticamente.</div>
           <Button onClick={() => createAndOpen("ipanel")} disabled={createM.isPending || !isPorton}>{createM.isPending ? "Preparando..." : "Abrir Ipanel"}</Button>

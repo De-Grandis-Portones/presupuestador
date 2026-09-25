@@ -5,7 +5,7 @@ import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
 
 const TEAL = "#01A39F";
-const PETROL = "#005060";
+const PETROL = "var(--dg-petrol)"; // texto: se adapta al dark mode
 
 function Icon({ children, size = 18, color, style }) {
   return (
@@ -119,7 +119,7 @@ export default function MeetPublicSchedulingPage() {
     return (
       <div className="container" style={{ maxWidth: 600, margin: "0 auto", padding: "24px 12px" }}>
         <div className="card" style={{ textAlign: "center", padding: "32px 24px" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 999, background: "#e6f7f5", color: TEAL, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+          <div style={{ width: 56, height: 56, borderRadius: 999, background: "var(--dg-accent-bg)", color: TEAL, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <CheckCircleIcon size={30} />
           </div>
           <h2 style={{ marginTop: 0, marginBottom: 10, color: PETROL }}>¡Reunión agendada!</h2>
@@ -153,7 +153,7 @@ export default function MeetPublicSchedulingPage() {
         className="card"
         style={{
           marginBottom: 16,
-          background: `linear-gradient(135deg, ${PETROL} 0%, ${TEAL} 100%)`,
+          background: `linear-gradient(135deg, #005060 0%, ${TEAL} 100%)`,
           color: "#fff",
           border: "none",
           display: "flex",
@@ -178,7 +178,7 @@ export default function MeetPublicSchedulingPage() {
       ) : null}
 
       {availabilityQ.isError ? (
-        <Card><div style={{ color: "#d93025" }}>{availabilityQ.error?.message || "No se pudo cargar la disponibilidad"}</div></Card>
+        <Card><div style={{ color: "var(--dg-danger-text)" }}>{availabilityQ.error?.message || "No se pudo cargar la disponibilidad"}</div></Card>
       ) : null}
 
       {!availabilityQ.isLoading && !slots.length ? (
@@ -206,7 +206,7 @@ export default function MeetPublicSchedulingPage() {
                       transition: "all 120ms ease",
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = TEAL; e.currentTarget.style.color = "#fff"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = PETROL; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "var(--dg-card)"; e.currentTarget.style.color = PETROL; }}
                   >
                     {formatTime(slot.start_at)}
                   </button>
@@ -267,7 +267,7 @@ export default function MeetPublicSchedulingPage() {
                 {bookM.isPending ? "Confirmando..." : "Confirmar reunión"}
               </Button>
               {bookM.error ? (
-                <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{bookM.error.message}</div>
+                <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{bookM.error.message}</div>
               ) : null}
             </div>
           </div>

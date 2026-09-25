@@ -135,7 +135,7 @@ export default function LoginPage() {
           </div>
 
           <div className="spacer" />
-          {m.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{m.error.message}</div>}
+          {m.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{m.error.message}</div>}
           <div className="spacer" />
 
           <div style={{ display: "flex", justifyContent: "center" }}>

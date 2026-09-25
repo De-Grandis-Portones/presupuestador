@@ -137,11 +137,11 @@ function DoorMeasurementScheme({ altoValues, anchoValues }) {
             const botLineBottom = vanoBottom - 24;
             return (
               <g key={`alto-${i}`}>
-                <line x1={cx} y1={topLineTop} x2={cx} y2={topLineBottom} stroke="#111" strokeWidth="2" />
-                <polygon points={`${cx - 6},${topLineBottom - 8} ${cx + 6},${topLineBottom - 8} ${cx},${topLineBottom}`} fill="#111" />
-                <line x1={cx} y1={botLineTop} x2={cx} y2={botLineBottom} stroke="#111" strokeWidth="2" />
-                <polygon points={`${cx - 6},${botLineBottom + 8} ${cx + 6},${botLineBottom + 8} ${cx},${botLineBottom}`} fill="#111" />
-                <rect x={cx - boxW / 2} y={boxY} width={boxW} height={boxH} fill="#fff" stroke="#111" strokeWidth="2" strokeDasharray="6 5" />
+                <line x1={cx} y1={topLineTop} x2={cx} y2={topLineBottom} stroke="var(--dg-text)" strokeWidth="2" />
+                <polygon points={`${cx - 6},${topLineBottom - 8} ${cx + 6},${topLineBottom - 8} ${cx},${topLineBottom}`} fill="var(--dg-text)" />
+                <line x1={cx} y1={botLineTop} x2={cx} y2={botLineBottom} stroke="var(--dg-text)" strokeWidth="2" />
+                <polygon points={`${cx - 6},${botLineBottom + 8} ${cx + 6},${botLineBottom + 8} ${cx},${botLineBottom}`} fill="var(--dg-text)" />
+                <rect x={cx - boxW / 2} y={boxY} width={boxW} height={boxH} fill="var(--dg-card)" stroke="var(--dg-text)" strokeWidth="2" strokeDasharray="6 5" />
                 <text className="caf-panel-label" x={cx} y={boxY + boxH / 2 + 6} fontSize="19" textAnchor="middle">
                   {val}
                 </text>
@@ -155,7 +155,7 @@ function DoorMeasurementScheme({ altoValues, anchoValues }) {
             const cy = anchoYs[i];
             return (
               <g key={`ancho-${i}`}>
-                <rect x={anchoX} y={cy - aboxH / 2} width={aboxW} height={aboxH} fill="#fff" stroke="#111" strokeWidth="2" strokeDasharray="6 5" />
+                <rect x={anchoX} y={cy - aboxH / 2} width={aboxW} height={aboxH} fill="var(--dg-card)" stroke="var(--dg-text)" strokeWidth="2" strokeDasharray="6 5" />
                 <text className="caf-panel-label" x={anchoX + aboxW / 2} y={cy + 6} fontSize="19" textAnchor="middle">
                   {val}
                 </text>
@@ -460,7 +460,7 @@ function AcceptanceSection({
                 </Button>
               </div>
               {submitError ? (
-                <div style={{ color: "#d93025", fontSize: 13, marginTop: 12 }}>{submitError}</div>
+                <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 12 }}>{submitError}</div>
               ) : null}
             </>
           ) : null}
@@ -500,35 +500,39 @@ function CafStyle() {
       .caf-nv-who { text-align: right; }
       .caf-nv-who .caf-nv-name { font-size: 15px; font-weight: 700; color: #0d3d22; }
       .caf-nv-who .caf-nv-sub { font-size: 12.5px; color: rgba(13,61,34,0.62); margin-top: 2px; }
-      .caf-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(15,23,42,0.04); }
+      :root[data-theme="dark"] .caf-nv-strip { background: radial-gradient(ellipse at center, #1d4a31 0%, var(--dg-success-bg) 100%); color: var(--dg-success-text); }
+      :root[data-theme="dark"] .caf-nv-num, :root[data-theme="dark"] .caf-nv-who .caf-nv-name { color: var(--dg-success-text); }
+      :root[data-theme="dark"] .caf-nv-label, :root[data-theme="dark"] .caf-nv-who .caf-nv-sub { color: var(--dg-text-soft); }
+      .caf-card { background: var(--dg-card); border: 1px solid var(--dg-border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(15,23,42,0.04); }
       .caf-card-head { padding: 14px 18px 6px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-      .caf-card-head h2 { margin: 0; font-size: 14.5px; font-weight: 700; color: #14532d; }
-      .caf-tag { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #0e7a6f; background: rgba(14,122,111,0.1); border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+      .caf-card-head h2 { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--dg-success-text); }
+      .caf-tag { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dg-accent-text); background: rgba(14,122,111,0.1); border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
       .caf-card-body { padding: 6px 18px 18px; }
       .caf-kv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-      .caf-kv { background: #f7faf8; border: 1px solid #e5e5e5; border-radius: 10px; padding: 9px 11px; text-align: center; }
+      .caf-kv { background: var(--dg-surface-2); border: 1px solid var(--dg-border); border-radius: 10px; padding: 9px 11px; text-align: center; }
       .caf-kv-k { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7280; font-weight: 600; }
       .caf-kv-v { font-size: 14px; font-weight: 600; margin-top: 3px; word-break: break-word; }
-      .caf-kv-v a { color: #0e7a6f; }
+      .caf-kv-v a { color: var(--dg-accent-text); }
       .caf-muted { color: #6b7280; }
-      .caf-scheme-box { border: 1px dashed #cbd5e1; border-radius: 14px; background: #fff; padding: 14px; }
+      :root[data-theme="dark"] .caf-kv-k, :root[data-theme="dark"] .caf-muted { color: var(--dg-muted); }
+      .caf-scheme-box { border: 1px dashed var(--dg-border); border-radius: 14px; background: var(--dg-card); padding: 14px; }
       .caf-scheme-wrap { width: 100%; margin: 0 auto; }
       .caf-scheme-wrap svg { width: 100%; height: auto; display: block; }
-      .caf-panel-label { font-weight: 800; fill: #0f172a; }
-      .caf-scheme-caption { font-size: 11px; color: #6b7280; margin-top: 8px; text-align: center; }
+      .caf-panel-label { font-weight: 800; fill: var(--dg-text); }
+      .caf-scheme-caption { font-size: 11px; color: var(--dg-muted); margin-top: 8px; text-align: center; }
       .caf-items { display: flex; flex-direction: column; gap: 16px; }
-      .caf-budget-group { border: 3px dotted #0f172a; border-radius: 12px; padding: 12px 14px; }
-      .caf-budget-group-title { font-weight: 800; color: #14532d; font-size: 13px; margin-bottom: 6px; }
-      .caf-item-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 8px 10px; border-bottom: 1px solid #eee; border-radius: 8px; }
+      .caf-budget-group { border: 3px dotted var(--dg-text); border-radius: 12px; padding: 12px 14px; }
+      .caf-budget-group-title { font-weight: 800; color: var(--dg-success-text); font-size: 13px; margin-bottom: 6px; }
+      .caf-item-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 8px 10px; border-bottom: 1px solid var(--dg-border-soft); border-radius: 8px; }
       .caf-item-row:last-child { border-bottom: none; }
       .caf-item-name { font-weight: 700; }
-      .caf-item-changed { background: #eafaf0; border: 1px solid #bfe8cf; }
-      .caf-changed-badge { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #14532d; background: #bfe8cf; border-radius: 999px; padding: 2px 7px; }
-      .caf-legend { margin-top: 12px; font-size: 12px; color: #14532d; background: #eafaf0; border: 1px solid #bfe8cf; border-radius: 10px; padding: 8px 12px; }
-      .caf-production-note { background: #f7fbff; border: 1px solid #d9e5f7; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
-      .caf-accepted-note { color: #065f46; font-weight: 800; margin-bottom: 12px; }
+      .caf-item-changed { background: var(--dg-success-bg); border: 1px solid var(--dg-success-border); }
+      .caf-changed-badge { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dg-text); background: var(--dg-success-border); border-radius: 999px; padding: 2px 7px; }
+      .caf-legend { margin-top: 12px; font-size: 12px; color: var(--dg-success-text); background: var(--dg-success-bg); border: 1px solid var(--dg-success-border); border-radius: 10px; padding: 8px 12px; }
+      .caf-production-note { background: var(--dg-info-bg); border: 1px solid var(--dg-info-border); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+      .caf-accepted-note { color: var(--dg-success-text); font-weight: 800; margin-bottom: 12px; }
       .caf-accept-step-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
-      .caf-terms-link { background: none; border: none; cursor: pointer; color: #6b7280; font-size: 13px; text-decoration: underline; }
+      .caf-terms-link { background: none; border: none; cursor: pointer; color: var(--dg-muted); font-size: 13px; text-decoration: underline; }
       @media (max-width: 480px) {
         .caf-item-row { flex-direction: column; gap: 3px; }
       }

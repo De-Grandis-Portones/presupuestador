@@ -12,7 +12,7 @@ function numberValue(value) {
 }
 function Select({ value, onChange, options }) {
   return (
-    <select value={value || ""} onChange={(e) => onChange(e.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", width: "100%" }}>
+    <select value={value || ""} onChange={(e) => onChange(e.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", width: "100%" }}>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
@@ -62,7 +62,7 @@ export default function SuperuserDoorTechnicalRulesPage() {
       <div className="spacer" />
       <div className="card">
         {q.isLoading && <div className="muted">Cargando...</div>}
-        {q.isError && <div style={{ color: "#d93025" }}>{q.error.message}</div>}
+        {q.isError && <div style={{ color: "var(--dg-danger-text)" }}>{q.error.message}</div>}
         {form ? (
           <>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

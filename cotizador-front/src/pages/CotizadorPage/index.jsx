@@ -407,7 +407,7 @@ function patchPortonDimensionValidationUi(dimensions, unlimitedDimensions = fals
     const text = String(node.textContent || "").trim();
     if (/^Minimo\s+2\.4\s*m\s*-\s*Maximo\s+7\s*m$/i.test(text) || /^Minimo\s+2\.30?\s*m\s*-\s*Maximo\s+7\s*m$/i.test(text) || /^Sin límite para esta cuenta$/i.test(text)) {
       node.textContent = unlimitedDimensions ? "Sin límite para esta cuenta" : `Minimo ${WIDTH_MIN_M.toFixed(2)} m - Maximo ${WIDTH_MAX_M} m`;
-      if (widthOk) node.style.color = "#6b7280";
+      if (widthOk) node.style.color = "var(--dg-muted)";
     }
   }
 
@@ -422,14 +422,14 @@ function patchPortonDimensionValidationUi(dimensions, unlimitedDimensions = fals
 
   const inputs = Array.from(root.querySelectorAll("input"));
   if (widthOk && inputs[0]) {
-    inputs[0].style.borderColor = "#d1d5db";
+    inputs[0].style.borderColor = "var(--dg-border)";
     inputs[0].style.boxShadow = "none";
-    inputs[0].style.background = "#fff";
+    inputs[0].style.background = "var(--dg-card)";
   }
   if (heightOk && inputs[1]) {
-    inputs[1].style.borderColor = "#d1d5db";
+    inputs[1].style.borderColor = "var(--dg-border)";
     inputs[1].style.boxShadow = "none";
-    inputs[1].style.background = "#fff";
+    inputs[1].style.background = "var(--dg-card)";
   }
 }
 function patchIpanelDimensionValidationUi(dimensions) {
@@ -449,11 +449,11 @@ function patchIpanelDimensionValidationUi(dimensions) {
     const text = String(node.textContent || "").trim();
     if (/^(?:Maximo\s+1\.(?:13|16)\s*m|Panel\s+simple\s+max\s+1\.(?:13|16)\s*m)/i.test(text)) {
       node.textContent = "Panel simple max 1.16 m. Lamas y varillado: sin límite si el otro lado es menor a 4.00 m";
-      if (widthOk) node.style.color = "#6b7280";
+      if (widthOk) node.style.color = "var(--dg-muted)";
     }
     if (/^Maximo\s+2\.45\s*m/i.test(text)) {
       node.textContent = "Panel simple max 2.45 m. Lamas y varillado: sin límite si el otro lado es menor a 4.00 m";
-      if (heightOk) node.style.color = "#6b7280";
+      if (heightOk) node.style.color = "var(--dg-muted)";
     }
   }
 
@@ -468,14 +468,14 @@ function patchIpanelDimensionValidationUi(dimensions) {
 
   const inputs = Array.from(root.querySelectorAll("input"));
   if (widthOk && inputs[0]) {
-    inputs[0].style.borderColor = "#d1d5db";
+    inputs[0].style.borderColor = "var(--dg-border)";
     inputs[0].style.boxShadow = "none";
-    inputs[0].style.background = "#fff";
+    inputs[0].style.background = "var(--dg-card)";
   }
   if (heightOk && inputs[1]) {
-    inputs[1].style.borderColor = "#d1d5db";
+    inputs[1].style.borderColor = "var(--dg-border)";
     inputs[1].style.boxShadow = "none";
-    inputs[1].style.background = "#fff";
+    inputs[1].style.background = "var(--dg-card)";
   }
 }
 function formatMetric(v) { const n = Number(v || 0); return Number.isFinite(n) && n > 0 ? String(n).replace(/\.00$/, "") : ""; }
@@ -1728,7 +1728,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {hasSection37Mismatch ? (
-            <div style={{ width: "100%", color: "#b3261e", fontWeight: 700, fontSize: 13, textAlign: "right" }}>
+            <div style={{ width: "100%", color: "var(--dg-danger-text)", fontWeight: 700, fontSize: 13, textAlign: "right" }}>
               ⚠ El precio de Coplanar/Clásico no tiene la instalación sumada correctamente. Recargá la página (Shift+F5) antes de guardar, generar PDF o confirmar.
             </div>
           ) : null}
@@ -1746,7 +1746,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
       </div>
 
       {!pricingContextReady ? (
-        <><div className="spacer" /><div className="card" style={{ background: pricesError ? "#fdecea" : "#fff8e1", border: pricesError ? "1px solid #e5a8a1" : "1px solid #f2d08a" }}>
+        <><div className="spacer" /><div className="card" style={{ background: pricesError ? "var(--dg-danger-bg)" : "var(--dg-warning-bg)", border: pricesError ? "1px solid var(--dg-danger-border)" : "1px solid var(--dg-warning-border)" }}>
           <div style={{ fontWeight: 900, marginBottom: 6 }}>{pricesError ? "No se pudieron cargar los precios" : "Preparando lista de precios"}</div>
           <div className="muted">{pricingContextMessage || "Esperá unos segundos antes de seleccionar productos o confirmar. Esto evita presupuestar con una lista incorrecta."}</div>
           {pricesError ? (
@@ -1758,7 +1758,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
       ) : null}
 
       {isReturnedMeasurementQuote ? (
-        <><div className="spacer" /><div className="card" style={{ background: "#fff8f3", border: "1px solid #f2d3bf" }}>
+        <><div className="spacer" /><div className="card" style={{ background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)" }}>
           <div style={{ fontWeight: 900, marginBottom: 6 }}>Presupuesto devuelto desde medición / datos técnicos</div>
           <div className="muted" style={{ marginBottom: 8 }}>{returnedMeasurementReason || "El medidor o técnica devolvió este portón para que ajustes el presupuesto antes de continuar."}</div>
           {returnedMeasurementForced ? <div className="muted">Este caso quedó bloqueado por superficie final mayor a la presupuestada fuera de tolerancia. Después de ajustar, usá <b>Confirmar y enviar a Comercial</b>.</div> : <div className="muted">Podés ajustar los ítems del presupuesto. El ítem <b>Facturado previamente</b> queda visible para calcular la diferencia. Cuando termines, usá <b>Confirmar y enviar a Comercial</b>.</div>}
@@ -1783,14 +1783,14 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
                   value={portonSearch}
                   onChange={(e) => setPortonSearch(e.target.value)}
                   placeholder="Buscar por presupuesto, NP, NV, cliente, teléfono o localidad..."
-                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", width: "100%" }}
+                  style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", width: "100%" }}
                 />
               </div>
               <div>
                 <div className="muted" style={{ marginBottom: 6 }}>
                   Presupuesto / NP / NV de portón {portonSearch ? `(${filteredPortonQuotes.length} resultado${filteredPortonQuotes.length === 1 ? "" : "s"})` : ""}
                 </div>
-                <select value={linkedPortonId} onChange={(e) => applyLinkedPortonData(e.target.value)} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", width: "100%" }}>
+                <select value={linkedPortonId} onChange={(e) => applyLinkedPortonData(e.target.value)} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", width: "100%" }}>
                   <option value="">Sin portón vinculado</option>
                   {filteredPortonQuotes.map((q) => (
                     <option key={q.id} value={q.id}>{quoteDisplayReference(q)} · {q?.end_customer?.name || [q?.end_customer?.first_name, q?.end_customer?.last_name].filter(Boolean).join(" ") || "Sin cliente"} · {q?.status || "draft"}</option>
@@ -1813,9 +1813,9 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
       {normalizedCatalogKind === "porton" ? (
         <>
           <div className="spacer" />
-          <div className="card" style={{ background: "#f7fbff", border: "1px solid #d9e5f7" }}>
-            <div style={{ fontWeight: 900, marginBottom: 8, color: "#111827" }}>Producción estimada</div>
-            <div style={{ fontWeight: 900, fontSize: 22, lineHeight: 1.25, color: "#111827" }}>
+          <div className="card" style={{ background: "var(--dg-info-bg)", border: "1px solid var(--dg-info-border)" }}>
+            <div style={{ fontWeight: 900, marginBottom: 8, color: "var(--dg-text)" }}>Producción estimada</div>
+            <div style={{ fontWeight: 900, fontSize: 22, lineHeight: 1.25, color: "var(--dg-text)" }}>
               {productionDelivery
                 ? formatProductionDeliveryDisplay(productionDelivery)
                 : (productionDeliveryQ.isLoading
@@ -1823,7 +1823,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
                   : "No hay planificación de producción cargada para estimar la producción.")}
             </div>
             {productionDeliveryQ.isError ? (
-              <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{productionDeliveryQ.error.message}</div>
+              <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{productionDeliveryQ.error.message}</div>
             ) : null}
           </div>
         </>
@@ -1831,22 +1831,22 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
 
       {!isRevisionQuote && !isReturnedMeasurementQuote && confirmChoiceOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0, 0, 0, 0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1000 }} onClick={() => { if (!confirmM.isPending) setConfirmChoiceOpen(false); }}>
-          <div className="card" style={{ width: "100%", maxWidth: 880, background: "#fff", border: "1px solid #ddd", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }} onClick={(e) => e.stopPropagation()}>
+          <div className="card" style={{ width: "100%", maxWidth: 880, background: "var(--dg-card)", border: "1px solid var(--dg-border)", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 6 }}>Elegí el destino del presupuesto</div>
             <div className="muted" style={{ marginBottom: 18 }}>Esta decisión cambia cómo sigue el circuito del portón después de confirmar.</div>
-            <div style={{ border: "1px solid #f2d08a", background: "#fff8e1", borderRadius: 14, padding: 14, marginBottom: 16 }}>
+            <div style={{ border: "1px solid var(--dg-warning-border)", background: "var(--dg-warning-bg)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>Observación</div>
               <div className="muted" style={{ marginBottom: 8 }}>Opcional. Queda impresa en el presupuesto/proforma y visible para Comercial y Técnica.</div>
               <textarea
                 value={confirmBudgetObservation}
                 onChange={(e) => setConfirmBudgetObservation(e.target.value)}
                 placeholder="Escribí una observación para esta confirmación..."
-                style={{ width: "100%", minHeight: 78, padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", outline: "none", resize: "vertical" }}
+                style={{ width: "100%", minHeight: 78, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--dg-border)", outline: "none", resize: "vertical" }}
               />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
-              <div style={{ border: "1px solid #d9e5f7", background: "#f7fbff", borderRadius: 14, padding: 16 }}><div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Acopio</div><div className="muted" style={{ marginBottom: 14 }}>El portón queda en espera. Se podrá seguir gestionando desde <b>Acopio → Producción</b> y mantiene una instancia de edición.</div><Button onClick={() => confirmM.mutate({ fulfillmentMode: "acopio", budgetObservation: confirmBudgetObservation })} disabled={confirmM.isPending || !pricingContextReady || hasSection37Mismatch}>{confirmM.isPending ? "Confirmando..." : "Confirmar en Acopio"}</Button></div>
-              <div style={{ border: "1px solid #f2d3bf", background: "#fff8f3", borderRadius: 14, padding: 16 }}><div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Producción</div><div className="muted" style={{ marginBottom: 14 }}>El portón entra directo en circuito productivo. Ya no podrá editarse desde <b>Presupuestos</b>.</div><Button variant="primary" onClick={() => confirmM.mutate({ fulfillmentMode: "produccion", budgetObservation: confirmBudgetObservation })} disabled={confirmM.isPending || !pricingContextReady || hasSection37Mismatch}>{confirmM.isPending ? "Confirmando..." : "Confirmar en Producción"}</Button></div>
+              <div style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", borderRadius: 14, padding: 16 }}><div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Acopio</div><div className="muted" style={{ marginBottom: 14 }}>El portón queda en espera. Se podrá seguir gestionando desde <b>Acopio → Producción</b> y mantiene una instancia de edición.</div><Button onClick={() => confirmM.mutate({ fulfillmentMode: "acopio", budgetObservation: confirmBudgetObservation })} disabled={confirmM.isPending || !pricingContextReady || hasSection37Mismatch}>{confirmM.isPending ? "Confirmando..." : "Confirmar en Acopio"}</Button></div>
+              <div style={{ border: "1px solid var(--dg-warning-border)", background: "var(--dg-warning-bg)", borderRadius: 14, padding: 16 }}><div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Producción</div><div className="muted" style={{ marginBottom: 14 }}>El portón entra directo en circuito productivo. Ya no podrá editarse desde <b>Presupuestos</b>.</div><Button variant="primary" onClick={() => confirmM.mutate({ fulfillmentMode: "produccion", budgetObservation: confirmBudgetObservation })} disabled={confirmM.isPending || !pricingContextReady || hasSection37Mismatch}>{confirmM.isPending ? "Confirmando..." : "Confirmar en Producción"}</Button></div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}><Button variant="ghost" onClick={() => setConfirmChoiceOpen(false)} disabled={confirmM.isPending}>Cancelar</Button></div>
           </div>
@@ -1871,7 +1871,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
           {pricingContextReady ? (
             <SectionCatalog kind={catalogKind} onDownloadPresupuesto={onDownloadPresupuesto} />
           ) : (
-            <div style={{ border: "1px dashed #f2d08a", background: "#fffdf2", borderRadius: 14, padding: 16 }}>
+            <div style={{ border: "1px dashed var(--dg-warning-border)", background: "var(--dg-warning-bg)", borderRadius: 14, padding: 16 }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>Catálogo bloqueado momentáneamente</div>
               <div className="muted">{pricingContextMessage || "La app está resolviendo la lista de precios correcta."}</div>
             </div>
@@ -1896,10 +1896,10 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
       </div>
 
       {(saveM.isError || confirmM.isError || resetReturnedM.isError || confirmReturnedM.isError) && <div className="spacer" />}
-      {saveM.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{saveM.error.message}</div>}
-      {confirmM.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{confirmM.error.message}</div>}
-      {resetReturnedM.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{resetReturnedM.error.message}</div>}
-      {confirmReturnedM.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{confirmReturnedM.error.message}</div>}
+      {saveM.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{saveM.error.message}</div>}
+      {confirmM.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{confirmM.error.message}</div>}
+      {resetReturnedM.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{resetReturnedM.error.message}</div>}
+      {confirmReturnedM.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{confirmReturnedM.error.message}</div>}
     </div>
   );
 }

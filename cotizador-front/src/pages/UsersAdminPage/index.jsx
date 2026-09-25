@@ -342,7 +342,7 @@ export default function UsersAdminPage() {
               <select
                 value={fOdooPricelistId}
                 onChange={(e) => setFOdooPricelistId(e.target.value)}
-                style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
               >
                 <option value="">Seleccione lista…</option>
                 {pricelists.map((pl) => (
@@ -352,7 +352,7 @@ export default function UsersAdminPage() {
                 ))}
               </select>
               {pricelistsQ.isLoading ? <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Cargando listas desde Odoo…</div> : null}
-              {pricelistsQ.isError ? <div style={{ color: "#d93025", fontSize: 12, marginTop: 6 }}>{pricelistsQ.error.message}</div> : null}
+              {pricelistsQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 12, marginTop: 6 }}>{pricelistsQ.error.message}</div> : null}
             </div>
           ) : null}
 
@@ -362,7 +362,7 @@ export default function UsersAdminPage() {
               <select
                 value={fAssignedSellerUserId}
                 onChange={(e) => setFAssignedSellerUserId(e.target.value)}
-                style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
               >
                 <option value="">Seleccione vendedor…</option>
                 {vendorUsers.map((v) => (
@@ -372,7 +372,7 @@ export default function UsersAdminPage() {
                 ))}
               </select>
               {vendorUsersQ.isLoading ? <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Cargando vendedores…</div> : null}
-              {vendorUsersQ.isError ? <div style={{ color: "#d93025", fontSize: 12, marginTop: 6 }}>{vendorUsersQ.error.message}</div> : null}
+              {vendorUsersQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 12, marginTop: 6 }}>{vendorUsersQ.error.message}</div> : null}
             </div>
           ) : null}
 
@@ -436,7 +436,7 @@ export default function UsersAdminPage() {
 
         {(createM.isError || updateM.isError) && <div className="spacer" />}
         {(createM.isError || updateM.isError) && (
-          <div style={{ color: "#d93025", fontSize: 13 }}>
+          <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>
             {(createM.error || updateM.error)?.message}
           </div>
         )}
@@ -471,7 +471,7 @@ export default function UsersAdminPage() {
           <select
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value)}
-            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", minWidth: 190 }}
+            style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 190 }}
           >
             <option value="all">Activos e inactivos</option>
             <option value="true">Solo activos</option>
@@ -487,7 +487,7 @@ export default function UsersAdminPage() {
 
       <div className="card" style={{ overflowX: "auto" }}>
         {usersQ.isLoading && <div className="muted">Cargando…</div>}
-        {usersQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{usersQ.error.message}</div>}
+        {usersQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{usersQ.error.message}</div>}
         {!usersQ.isLoading && !filtered.length && <div className="muted">Sin usuarios</div>}
 
         {!!filtered.length && (
@@ -526,7 +526,7 @@ export default function UsersAdminPage() {
                         <div style={{ fontWeight: 900 }}>{u.username}</div>
                         {u.visible_password ? <div className="muted" style={{ fontSize: 12 }}>Pass: {u.visible_password}</div> : null}
                         {u.unlimited_dimensions ? (
-                          <div style={{ fontSize: 11, fontWeight: 700, color: "#b45309", marginTop: 2 }} title="Excepción activa: sin límite de medidas en portón">
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--dg-warning-text)", marginTop: 2 }} title="Excepción activa: sin límite de medidas en portón">
                             ⚠ Sin límite de medidas
                           </div>
                         ) : null}

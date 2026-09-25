@@ -151,7 +151,7 @@ function doorOdooReference(d) {
 function OdooReferenceCell({ value }) {
   const text = String(value || "").trim();
   if (!text) return <span className="muted">—</span>;
-  return <span style={{ fontWeight: 900, color: "#0f5132", background: "#e7f7ed", border: "1px solid #bfe6c8", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
+  return <span style={{ fontWeight: 900, color: "var(--dg-success-text)", background: "var(--dg-success-bg)", border: "1px solid var(--dg-success-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
 }
 
 function getRejectionInfoFromQuote(q) {
@@ -204,7 +204,7 @@ function RejectedStatusButton({ label, onClick }) {
         padding: 0,
         margin: 0,
         cursor: "pointer",
-        color: "#b42318",
+        color: "var(--dg-danger-text)",
         fontWeight: 700,
         textDecoration: "underline",
       }}
@@ -236,7 +236,7 @@ function PlegadoModal({ row, onClose }) {
   const attachment = getPlegadoAttachment(row || {});
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1000 }}>
-      <div className="card" onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 760, background: "#fff" }}>
+      <div className="card" onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 760, background: "var(--dg-card)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
           <div style={{ fontWeight: 900, fontSize: 20 }}>Plano y comentarios del plegado</div>
           <Button variant="ghost" onClick={onClose}>Cerrar</Button>
@@ -245,7 +245,7 @@ function PlegadoModal({ row, onClose }) {
         <div className="muted">Superficie</div>
         <div style={{ fontWeight: 900, marginBottom: 12 }}>{surface || "—"}</div>
         <div className="muted">Descripción / comentarios</div>
-        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, fontWeight: 800, fontSize: 15, background: "#f7fbff", border: "1px solid #d9e5f7", borderRadius: 12, padding: 12 }}>{description || "Sin descripción"}</div>
+        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, fontWeight: 800, fontSize: 15, background: "var(--dg-info-bg)", border: "1px solid var(--dg-info-border)", borderRadius: 12, padding: 12 }}>{description || "Sin descripción"}</div>
         <div className="spacer" />
         <div className="muted">Plano</div>
         {attachment ? (
@@ -283,15 +283,15 @@ function LinkPopup({ url, onClose }) {
   }
   return (
     <div ref={ref} style={{
-      position: "absolute", zIndex: 100, background: "#fff", border: "1px solid #ddd",
+      position: "absolute", zIndex: 100, background: "var(--dg-card)", border: "1px solid var(--dg-border)",
       borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", padding: "14px 16px",
       minWidth: 320, maxWidth: 460, right: 0, top: "calc(100% + 4px)",
     }}>
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>Link de aceptación del cliente:</div>
-      <div style={{ fontSize: 12, wordBreak: "break-all", background: "#f5f5f5", padding: "6px 8px", borderRadius: 4, color: "#333", marginBottom: 10 }}>{url}</div>
+      <div style={{ fontSize: 12, color: "var(--dg-muted)", marginBottom: 6 }}>Link de aceptación del cliente:</div>
+      <div style={{ fontSize: 12, wordBreak: "break-all", background: "var(--dg-surface-3)", padding: "6px 8px", borderRadius: 4, color: "var(--dg-text)", marginBottom: 10 }}>{url}</div>
       <button
         onClick={handleCopy}
-        style={{ padding: "5px 14px", borderRadius: 6, border: "1px solid #ccc", background: copied ? "#e8f5e9" : "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: copied ? "#1b5e20" : "#333" }}
+        style={{ padding: "5px 14px", borderRadius: 6, border: "1px solid var(--dg-border)", background: copied ? "var(--dg-success-bg)" : "var(--dg-card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: copied ? "var(--dg-success-text)" : "var(--dg-text)" }}
       >
         {copied ? "✓ Copiado" : "Copiar link"}
       </button>
@@ -304,20 +304,20 @@ function TypeBadge({ label }) {
   const isIpanel = label === "Ipanel";
   const isPlegados = label === "Plegados";
   const isOtros = label === "Otros";
-  let background = "#eef2ff";
-  let color = "#3730a3";
+  let background = "var(--dg-purple-bg)";
+  let color = "var(--dg-purple-text)";
   if (isDoor) {
-    background = "#f5f3ff";
-    color = "#6b21a8";
+    background = "var(--dg-info-bg)";
+    color = "var(--dg-info-text)";
   } else if (isIpanel) {
-    background = "#ecfeff";
-    color = "#155e75";
+    background = "var(--dg-accent-bg)";
+    color = "var(--dg-accent-text)";
   } else if (isPlegados) {
-    background = "#fff7ed";
-    color = "#9a3412";
+    background = "var(--dg-warning-bg)";
+    color = "var(--dg-warning-text)";
   } else if (isOtros) {
-    background = "#ecfdf5";
-    color = "#166534";
+    background = "var(--dg-success-bg)";
+    color = "var(--dg-success-text)";
   }
   return <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 800, background, color, whiteSpace: "nowrap" }}>{label}</span>;
 }
@@ -448,13 +448,13 @@ export default function PresupuestosPage() {
           )}
           <Button variant={filter === "devueltos" ? "primary" : "ghost"} onClick={() => setFilter("devueltos")}>Devueltos por medición</Button>
         </div>
-        <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Buscar por tipo, cliente, localidad, dirección, teléfono o estado…" style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #ddd" }} />
+        <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Buscar por tipo, cliente, localidad, dirección, teléfono o estado…" style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid var(--dg-border)" }} />
       </div>
 
       <div className="spacer" />
       <div className="card">
         {isLoading && <div className="muted">Cargando...</div>}
-        {error && <div style={{ color: "#d93025", fontSize: 13 }}>{error.message}</div>}
+        {error && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{error.message}</div>}
         {!isLoading && !rows.length && <div className="muted">Sin presupuestos</div>}
         {!!rows.length && (
           <>
@@ -522,10 +522,10 @@ export default function PresupuestosPage() {
                   const measurementLabel = isTechnicalOnly ? "Ver detalle técnico" : "Ver medición";
                   const isCancelled = !!r.cancelled_at;
                   return (
-                    <tr key={r.id} style={isCancelled ? { color: "#b71c1c", textDecoration: "line-through" } : undefined}>
+                    <tr key={r.id} style={isCancelled ? { color: "var(--dg-danger-text)", textDecoration: "line-through" } : undefined}>
                       <td>
                         {r.quote_number
-                          ? <span style={{ fontWeight: 800, color: "#374151", fontSize: 13 }}>#{r.quote_number}</span>
+                          ? <span style={{ fontWeight: 800, color: "var(--dg-text)", fontSize: 13 }}>#{r.quote_number}</span>
                           : <span className="muted">—</span>}
                       </td>
                       <td>{fmtDateTime(r.created_at)}</td>
@@ -561,28 +561,28 @@ export default function PresupuestosPage() {
                               <div style={{ marginBottom: acceptance ? 8 : 0 }}>
                                 <button
                                   onClick={() => setLinkPopupId(showLinkPopup ? null : r.id)}
-                                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #90caf9", background: "#e3f2fd", color: "#0d47a1", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", color: "var(--dg-info-text)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
                                 >
                                   🔗 Ver link
                                 </button>
                                 {showLinkPopup && <LinkPopup url={acceptanceUrl} onClose={() => setLinkPopupId(null)} />}
                               </div>
-                            ) : <span style={{ color: "#ccc", fontSize: 12 }}>Sin link aún</span>}
+                            ) : <span style={{ color: "var(--dg-muted)", fontSize: 12 }}>Sin link aún</span>}
                             {acceptance ? (
-                              <div style={{ fontSize: 12, color: "#333", marginTop: acceptanceUrl ? 6 : 0 }}>
+                              <div style={{ fontSize: 12, color: "var(--dg-text)", marginTop: acceptanceUrl ? 6 : 0 }}>
                                 <div style={{ fontWeight: 700 }}>{acceptance.full_name || "—"}</div>
-                                <div style={{ color: "#666" }}>DNI: {acceptance.dni || "—"}</div>
-                                <div style={{ color: "#888" }}>{fmtDateTime(acceptance.accepted_at || r.measurement_client_accepted_at)}</div>
+                                <div style={{ color: "var(--dg-muted)" }}>DNI: {acceptance.dni || "—"}</div>
+                                <div style={{ color: "var(--dg-muted)" }}>{fmtDateTime(acceptance.accepted_at || r.measurement_client_accepted_at)}</div>
                               </div>
                             ) : r.measurement_share_enabled_at ? (
-                              <div style={{ fontSize: 12, color: "#999", fontStyle: "italic", marginTop: 4 }}>Pendiente de aceptación</div>
+                              <div style={{ fontSize: 12, color: "var(--dg-muted)", fontStyle: "italic", marginTop: 4 }}>Pendiente de aceptación</div>
                             ) : null}
                           </td>
                         );
                       })() : null}
                       <td className="right" style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
                         {isCancelled ? (
-                          <span style={{ color: "#b71c1c", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+                          <span style={{ color: "var(--dg-danger-text)", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
                             Cancelado{r.cancellation_reason ? ` — ${r.cancellation_reason}` : ""}
                           </span>
                         ) : (
@@ -633,7 +633,7 @@ export default function PresupuestosPage() {
           <div
             className="card"
             onClick={(e) => e.stopPropagation()}
-            style={{ width: "100%", maxWidth: 640, background: "#fff" }}
+            style={{ width: "100%", maxWidth: 640, background: "var(--dg-card)" }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
               <div style={{ fontWeight: 900, fontSize: 20 }}>{rejectionModal.title}</div>
@@ -644,8 +644,8 @@ export default function PresupuestosPage() {
               style={{
                 whiteSpace: "pre-wrap",
                 lineHeight: 1.5,
-                background: "#fff8f3",
-                border: "1px solid #f2d3bf",
+                background: "var(--dg-warning-bg)",
+                border: "1px solid var(--dg-warning-border)",
                 borderRadius: 12,
                 padding: 16,
               }}

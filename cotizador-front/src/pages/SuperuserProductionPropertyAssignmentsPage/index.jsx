@@ -109,7 +109,7 @@ export default function SuperuserProductionPropertyAssignmentsPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por grupo, propiedad origen o propiedad destino..."
-            style={{ flex: 1, minWidth: 280, padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+            style={{ flex: 1, minWidth: 280, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
           />
           <div className="muted">{filtered.length} propiedad(es)</div>
         </div>
@@ -119,19 +119,19 @@ export default function SuperuserProductionPropertyAssignmentsPage() {
 
       <div className="card" style={{ overflowX: "auto" }}>
         {query.isLoading ? <div className="muted">Cargando...</div> : null}
-        {query.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{query.error.message}</div> : null}
+        {query.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{query.error.message}</div> : null}
         {!query.isLoading && !query.isError && !filtered.length ? <div className="muted">Sin propiedades para mostrar.</div> : null}
 
         {!!filtered.length && (
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1400 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Grupo</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Propiedad presupuestador</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Descripción</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Propiedad integrador</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Activa</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Acción</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Grupo</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Propiedad presupuestador</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Descripción</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Propiedad integrador</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Activa</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -141,17 +141,17 @@ export default function SuperuserProductionPropertyAssignmentsPage() {
 
                 return (
                   <tr key={sourceKey}>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       {item.group || "—"}
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 700 }}>{item.label || sourceKey}</div>
                       <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{sourceKey}</div>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       {item.description || "—"}
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top", minWidth: 360 }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top", minWidth: 360 }}>
                       <select
                         value={draft.target_property || ""}
                         onChange={(e) => {
@@ -164,7 +164,7 @@ export default function SuperuserProductionPropertyAssignmentsPage() {
                             },
                           }));
                         }}
-                        style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                        style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
                       >
                         <option value="">Sin asignar</option>
                         {targetProperties.map((target) => (
@@ -172,7 +172,7 @@ export default function SuperuserProductionPropertyAssignmentsPage() {
                         ))}
                       </select>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                         <input
                           type="checkbox"
@@ -191,7 +191,7 @@ export default function SuperuserProductionPropertyAssignmentsPage() {
                         {draft.is_active !== false ? "Sí" : "No"}
                       </label>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top", whiteSpace: "nowrap" }}>
                       <Button
                         variant="primary"
                         onClick={() => saveMutation.mutate({

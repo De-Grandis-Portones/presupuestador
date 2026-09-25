@@ -902,7 +902,7 @@ function ApprovalRowsGrid({ rows }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
       {rows.map((item) => (
-        <div key={item.label} style={{ border: "1px solid #e5e5e5", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
+        <div key={item.label} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
           <div className="muted" style={{ fontSize: 12 }}>{item.label}</div>
           <div style={{ fontWeight: 800, marginTop: 4 }}>{item.value}</div>
         </div>
@@ -999,7 +999,7 @@ function CommercialMeasurementReviewCard({
   const toleranceAbsorbedLine = diff?.added?.find((l) => String(l?.name || "").startsWith("Diferencia de medición absorbida"));
   const fullyAbsorbed = toleranceAbsorbedLine && Math.abs(Number(diff?.diffAmount || 0)) < 1;
   return (
-    <div className="card" style={{ background: "#fff8e1", border: "1px solid #f2d08a" }}>
+    <div className="card" style={{ background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)" }}>
       <div style={{ fontWeight: 900, marginBottom: 6 }}>Revisión comercial de medición</div>
       <div className="muted" style={{ marginBottom: 10 }}>
         El vendedor editó este presupuesto después de la medición. Esta es la diferencia respecto al presupuesto original antes de aprobar.
@@ -1012,7 +1012,7 @@ function CommercialMeasurementReviewCard({
       ) : (
         <>
           {toleranceAbsorbedLine ? (
-            <div style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", borderRadius: 8, padding: "10px 12px", marginBottom: 10, color: "#1b5e20", fontWeight: 700 }}>
+            <div style={{ background: "var(--dg-success-bg)", border: "1px solid var(--dg-success-border)", borderRadius: 8, padding: "10px 12px", marginBottom: 10, color: "var(--dg-success-text)", fontWeight: 700 }}>
               {fullyAbsorbed
                 ? `✅ Ajustado a $0: ${toleranceAbsorbedLine.name.replace(/^Diferencia de medición absorbida /, "")} — la modificación de medidas está dentro del rango eximido, no se le cobra nada extra al cliente.`
                 : `✅ Se absorbió parte de la diferencia de medición (${toleranceAbsorbedLine.name.replace(/^Diferencia de medición absorbida /, "")}) por estar dentro del rango eximido; el resto de la diferencia sí se cobra (ver "Diferencia" abajo).`}
@@ -1038,14 +1038,14 @@ function CommercialMeasurementReviewCard({
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="Motivo si devolvés al vendedor / si aprobás, este comentario queda en la nota de la NV en Odoo…"
-            style={{ width: "100%", minHeight: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", outline: "none", resize: "vertical" }}
+            style={{ width: "100%", minHeight: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--dg-border)", outline: "none", resize: "vertical" }}
           />
           <div className="spacer" />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Button disabled={isPending} onClick={onApprove}>{isPending ? "Procesando..." : "Aprobar"}</Button>
             <Button variant="danger" disabled={isPending} onClick={onReject}>Devolver al vendedor</Button>
           </div>
-          {isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 10 }}>{errorMessage}</div> : null}
+          {isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>{errorMessage}</div> : null}
         </>
       ) : null}
     </div>
@@ -1059,19 +1059,19 @@ function ProformaTotalsCard({ quote, conditionMode, financingPercent = 0 }) {
   const baseIva = round2ForApproval(financedSubtotal * ivaRate);
   const baseTotal = round2ForApproval(financedSubtotal + baseIva);
   return (
-    <div className="card" style={{ background: "#f0fffe", border: "1px solid #b2e8e0", marginTop: 12 }}>
+    <div className="card" style={{ background: "var(--dg-accent-bg)", border: "1px solid var(--dg-accent-border)", marginTop: 12 }}>
       <div style={{ fontWeight: 900, marginBottom: 4 }}>Proforma (precios base)</div>
       <div className="muted" style={{ marginBottom: 10, fontSize: 13 }}>Importes a precios De Grandis sin coeficiente distribuidor.</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
-        <div style={{ border: "1px solid #b2e8e0", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
+        <div style={{ border: "1px solid var(--dg-accent-border)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
           <div className="muted" style={{ fontSize: 12 }}>Subtotal base</div>
           <div style={{ fontWeight: 800, marginTop: 4 }}>{formatARS(financedSubtotal)}</div>
         </div>
-        <div style={{ border: "1px solid #b2e8e0", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
+        <div style={{ border: "1px solid var(--dg-accent-border)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
           <div className="muted" style={{ fontSize: 12 }}>IVA ({formatIvaRateForApproval(ivaRate)})</div>
           <div style={{ fontWeight: 800, marginTop: 4 }}>{formatARS(baseIva)}</div>
         </div>
-        <div style={{ border: "1px solid #7dd8cc", borderRadius: 10, padding: "8px 10px", background: "#e8faf7" }}>
+        <div style={{ border: "1px solid rgba(1, 163, 159, 0.5)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-accent-bg)" }}>
           <div className="muted" style={{ fontSize: 12 }}>Total proforma</div>
           <div style={{ fontWeight: 900, marginTop: 4 }}>{formatARS(baseTotal)}</div>
         </div>
@@ -1101,7 +1101,7 @@ function ApprovalTotalsBottomCard({ quote, conditionMode, financingPercent = 0 }
       <div className="muted" style={{ marginBottom: 10 }}>Importes calculados igual que en el presupuestador y el PDF enviado al cliente.</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
         {rows.map((item) => (
-          <div key={item.label} style={{ border: "1px solid #e5e5e5", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
+          <div key={item.label} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-card)" }}>
             <div className="muted" style={{ fontSize: 12 }}>{item.label}</div>
             <div style={{ fontWeight: item.strong ? 900 : 800, marginTop: 4 }}>{item.value}</div>
           </div>
@@ -1150,14 +1150,14 @@ function BillingModal({ value, onChange, onClose, onConfirm, loading, requiresBi
     };
   }, [vatDigits, odooLookup.status, odooLookup.vat, onChange, value]);
 
-  const lookupColor = odooLookup.status === "found" ? "#0f7b3d" : (odooLookup.status === "not_found" || odooLookup.status === "error" ? "#b91c1c" : "var(--dg-muted)");
+  const lookupColor = odooLookup.status === "found" ? "var(--dg-success-text)" : (odooLookup.status === "not_found" || odooLookup.status === "error" ? "var(--dg-danger-text)" : "var(--dg-muted)");
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1000 }} onClick={() => { if (!loading) onClose(); }}>
-      <div className="card" style={{ width: "100%", maxWidth: 860, background: "var(--dg-card)", border: "1px solid #ddd", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }} onClick={(e) => e.stopPropagation()}>
+      <div className="card" style={{ width: "100%", maxWidth: 860, background: "var(--dg-card)", border: "1px solid var(--dg-border)", boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 8 }}>Datos fiscales de facturación</div>
         <div className="muted" style={{ marginBottom: 16 }}>{requiresBilling ? "Para esta condición debés cargar los datos fiscales de facturación antes de aprobar." : "Si no cargás estos datos, se facturará con los datos del cliente cargado en el presupuesto."}</div>
-        {optionsError ? <div style={{ color: "#d93025", fontSize: 13, marginBottom: 12 }}>{optionsError}</div> : null}
+        {optionsError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginBottom: 12 }}>{optionsError}</div> : null}
         {optionsLoading ? <div className="muted" style={{ marginBottom: 12 }}>Cargando opciones fiscales desde Odoo…</div> : null}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
           <div>
@@ -1174,7 +1174,7 @@ function BillingModal({ value, onChange, onClose, onConfirm, loading, requiresBi
           </div>
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>Tipo de identificación</div>
-            <select value={value.identification_type_id} onChange={(e) => { const selected = normalizeBillingSelectionValue(identificationTypes, e.target.value); onChange({ ...value, identification_type_id: String(e.target.value || ""), identification_type_name: selected?.name || "" }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", outline: "none", background: "var(--dg-card)" }}>
+            <select value={value.identification_type_id} onChange={(e) => { const selected = normalizeBillingSelectionValue(identificationTypes, e.target.value); onChange({ ...value, identification_type_id: String(e.target.value || ""), identification_type_name: selected?.name || "" }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", outline: "none", background: "var(--dg-card)" }}>
               <option value="">Seleccionar…</option>
               {identificationTypes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
@@ -1182,7 +1182,7 @@ function BillingModal({ value, onChange, onClose, onConfirm, loading, requiresBi
           <div><div className="muted" style={{ marginBottom: 6 }}>Razón social / nombre fiscal</div><Input value={value.name} onChange={(v) => onChange({ ...value, name: v })} style={{ width: "100%" }} /></div>
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>Tipo de responsabilidad AFIP</div>
-            <select value={value.afip_responsibility_type_id} onChange={(e) => { const selected = normalizeBillingSelectionValue(afipResponsibilityTypes, e.target.value); onChange({ ...value, afip_responsibility_type_id: String(e.target.value || ""), afip_responsibility_type_name: selected?.name || "" }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", outline: "none", background: "var(--dg-card)" }}>
+            <select value={value.afip_responsibility_type_id} onChange={(e) => { const selected = normalizeBillingSelectionValue(afipResponsibilityTypes, e.target.value); onChange({ ...value, afip_responsibility_type_id: String(e.target.value || ""), afip_responsibility_type_name: selected?.name || "" }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", outline: "none", background: "var(--dg-card)" }}>
               <option value="">Seleccionar…</option>
               {afipResponsibilityTypes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
@@ -1330,7 +1330,7 @@ export default function QuoteDetailPage() {
       <div className="card">
         <h2 style={{ margin: 0 }}>{isRevision ? "Ajuste" : "Presupuesto"} #{displayQuoteNumber(quote, quoteId)}</h2>
         {q.isLoading ? <div className="muted">Cargando...</div> : null}
-        {q.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{q.error.message}</div> : null}
+        {q.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{q.error.message}</div> : null}
         {quote ? (
           <>
             <div className="spacer" />
@@ -1339,11 +1339,11 @@ export default function QuoteDetailPage() {
               <span>· Número: <b>{displayQuoteNumber(quote, quoteId)}</b></span>
               <span>· Creado por: <b>{quote.created_by_role}</b></span>
               <span>· Destino: <b>{quote.fulfillment_mode === "acopio" ? "Acopio" : "Producción"}</b></span>
-              {!isRevision && quote.status === "synced_odoo" ? <span style={pillStyle("#e7f7ed", "#bfe6c8", "#0f5132")}>En Odoo: {quote.odoo_sale_order_name || `SO#${quote.odoo_sale_order_id}`}</span> : null}
-              {isRevision && quote.final_sale_order_name ? <span style={pillStyle("#e7f7ed", "#bfe6c8", "#0f5132")}>Odoo final: {quote.final_sale_order_name}</span> : null}
-              {isRevision && quote.final_absorbed_by_company ? <span style={pillStyle("#fff7e6", "#ffd9a8", "#92400e")}>Diferencia absorbida por empresa</span> : null}
-              {quote.status === "syncing_odoo" ? <span style={pillStyle("#fff7e6", "#ffd9a8", "#92400e")}>Sincronizando a Odoo…</span> : null}
-              {quote.status === "pending_approvals" && !isRevision ? <span style={pillStyle("#eef4ff", "#c7dafc", "#075985")}>En aprobación</span> : null}
+              {!isRevision && quote.status === "synced_odoo" ? <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>En Odoo: {quote.odoo_sale_order_name || `SO#${quote.odoo_sale_order_id}`}</span> : null}
+              {isRevision && quote.final_sale_order_name ? <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>Odoo final: {quote.final_sale_order_name}</span> : null}
+              {isRevision && quote.final_absorbed_by_company ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>Diferencia absorbida por empresa</span> : null}
+              {quote.status === "syncing_odoo" ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>Sincronizando a Odoo…</span> : null}
+              {quote.status === "pending_approvals" && !isRevision ? <span style={pillStyle("var(--dg-info-bg)", "var(--dg-info-border)", "var(--dg-info-text)")}>En aprobación</span> : null}
             </div>
             {(user?.is_vendedor || user?.is_distribuidor || user?.is_enc_comercial || user?.is_rev_tecnica || user?.is_superuser) ? (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
@@ -1368,7 +1368,7 @@ export default function QuoteDetailPage() {
             {budgetObservation ? (
               <>
                 <div className="spacer" />
-                <div className="card" style={{ background: "#fff8e1", border: "1px solid #f2d08a" }}>
+                <div className="card" style={{ background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)" }}>
                   <div style={{ fontWeight: 900, marginBottom: 6 }}>Observación</div>
                   <div style={{ whiteSpace: "pre-wrap", fontWeight: 700 }}>{budgetObservation}</div>
                 </div>
@@ -1377,7 +1377,7 @@ export default function QuoteDetailPage() {
             {isPlegadosQuote(quote) ? (
               <>
                 <div className="spacer" />
-                <div className="card" style={{ background: "#f7fbff", border: "1px solid #d9e5f7" }}>
+                <div className="card" style={{ background: "var(--dg-info-bg)", border: "1px solid var(--dg-info-border)" }}>
                   <div style={{ fontWeight: 900, marginBottom: 6 }}>Datos del plegado</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
                     <div><div className="muted">Superficie</div><div style={{ fontWeight: 800 }}>{plegadoSurface || "—"}</div></div>
@@ -1390,7 +1390,7 @@ export default function QuoteDetailPage() {
             {!!rejectionBoxes.length ? (
               <>
                 <div className="spacer" />
-                {rejectionBoxes.map((b) => <div key={b.title} style={{ padding: 10, borderRadius: 10, border: "1px solid #f2c1be", background: "#fff5f5", marginBottom: 10 }}><div style={{ fontWeight: 900, marginBottom: 6 }}>{b.title}</div><div>{b.body}</div></div>)}
+                {rejectionBoxes.map((b) => <div key={b.title} style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)", marginBottom: 10 }}><div style={{ fontWeight: 900, marginBottom: 6 }}>{b.title}</div><div>{b.body}</div></div>)}
               </>
             ) : null}
             <div className="spacer" />
@@ -1449,10 +1449,10 @@ export default function QuoteDetailPage() {
             {showMeasurement && !isRevision ? <><div className="spacer" /><div className="card" style={{ background: "var(--dg-card)" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><div style={{ fontWeight: 900 }}>Planilla de medición</div><div className="muted">Estado: <b>{measurementStatusLabel(quote.measurement_status)}</b></div></div>{hasMeasurementForPdf(quote) ? <Button variant="secondary" onClick={() => downloadMedicionPdf(quote.id)}>Descargar PDF</Button> : null}</div><div className="spacer" />{quote.measurement_form ? <MeasurementReadOnlyView quote={quote} /> : null}</div></> : null}
             <h3 style={{ marginTop: 0 }}>Ítems</h3>
             {!lines.length ? <div className="muted">Sin ítems</div> : null}
-            {!!lines.length ? <table><thead><tr><th>Producto</th><th className="right">Cant.</th><th className="right">Precio base</th><th className="right">Total base</th><th className="right">Precio con coeficiente</th><th className="right">Total ítem</th></tr></thead><tbody>{approvalLineRows.map((l) => <tr key={l._approvalKey}><td><div style={{ fontWeight: 700 }}>{l.name || `Producto ${l.product_id}`}</div><div className="muted">ID: {l.product_id} {l.code ? `| ${l.code}` : ""}</div></td><td className="right">{l._approvalQty}</td><td className="right" style={{ color: "#1a6b5e" }}>{formatARS(l._approvalBasePrice)}</td><td className="right" style={{ color: "#1a6b5e" }}>{formatARS(l._approvalBaseTotal)}</td><td className="right">{formatARS(l._approvalFinalUnit)}</td><td className="right" style={{ fontWeight: 800 }}>{formatARS(l._approvalTotal)}</td></tr>)}</tbody></table> : null}
+            {!!lines.length ? <table><thead><tr><th>Producto</th><th className="right">Cant.</th><th className="right">Precio base</th><th className="right">Total base</th><th className="right">Precio con coeficiente</th><th className="right">Total ítem</th></tr></thead><tbody>{approvalLineRows.map((l) => <tr key={l._approvalKey}><td><div style={{ fontWeight: 700 }}>{l.name || `Producto ${l.product_id}`}</div><div className="muted">ID: {l.product_id} {l.code ? `| ${l.code}` : ""}</div></td><td className="right">{l._approvalQty}</td><td className="right" style={{ color: "var(--dg-accent-text)" }}>{formatARS(l._approvalBasePrice)}</td><td className="right" style={{ color: "var(--dg-accent-text)" }}>{formatARS(l._approvalBaseTotal)}</td><td className="right">{formatARS(l._approvalFinalUnit)}</td><td className="right" style={{ fontWeight: 800 }}>{formatARS(l._approvalTotal)}</td></tr>)}</tbody></table> : null}
             {!!lines.length ? <ProformaTotalsCard quote={quote} conditionMode={conditionMode} financingPercent={quote?.created_by_role === "distribuidor" ? approvalFinancingPercent : 0} /> : null}
             {!!lines.length ? <ApprovalTotalsBottomCard quote={quote} conditionMode={conditionMode} financingPercent={approvalFinancingPercent} /> : null}
-            {(canCommercial || canTech) ? <><div className="spacer" /><div className="card" style={{ background: "var(--dg-card)" }}><div style={{ fontWeight: 900 }}>Acciones de revisión</div><div className="muted">Solo si está en <b>pending_approvals</b> y tu decisión está en <b>pending</b>.</div><div className="spacer" /><div className="muted">Observaciones del revisor</div><textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Motivo si rechaza / si aprueba, este comentario queda en la nota de la NP en Odoo…" style={{ width: "100%", minHeight: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", outline: "none", resize: "vertical" }} /><div className="spacer" /><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{canCommercial ? <><Button disabled={!canCommercialAct || commercialM.isPending} onClick={handleCommercialApproveClick}>{commercialM.isPending ? "Procesando..." : "Aprobar Comercial"}</Button><Button variant="danger" disabled={!canCommercialAct || commercialM.isPending} onClick={() => commercialM.mutate({ action: "reject", billingCustomer: null })}>Rechazar Comercial</Button></> : null}{canTech ? <><Button disabled={!canTechAct || techM.isPending} onClick={() => techM.mutate({ action: "approve" })}>{techM.isPending ? "Procesando..." : "Aprobar Técnica"}</Button><Button variant="danger" disabled={!canTechAct || techM.isPending} onClick={() => techM.mutate({ action: "reject" })}>Rechazar Técnica</Button></> : null}</div>{commercialM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 10 }}>{commercialM.error.message}</div> : null}{techM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 10 }}>{techM.error.message}</div> : null}</div></> : null}
+            {(canCommercial || canTech) ? <><div className="spacer" /><div className="card" style={{ background: "var(--dg-card)" }}><div style={{ fontWeight: 900 }}>Acciones de revisión</div><div className="muted">Solo si está en <b>pending_approvals</b> y tu decisión está en <b>pending</b>.</div><div className="spacer" /><div className="muted">Observaciones del revisor</div><textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Motivo si rechaza / si aprueba, este comentario queda en la nota de la NP en Odoo…" style={{ width: "100%", minHeight: 60, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--dg-border)", outline: "none", resize: "vertical" }} /><div className="spacer" /><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{canCommercial ? <><Button disabled={!canCommercialAct || commercialM.isPending} onClick={handleCommercialApproveClick}>{commercialM.isPending ? "Procesando..." : "Aprobar Comercial"}</Button><Button variant="danger" disabled={!canCommercialAct || commercialM.isPending} onClick={() => commercialM.mutate({ action: "reject", billingCustomer: null })}>Rechazar Comercial</Button></> : null}{canTech ? <><Button disabled={!canTechAct || techM.isPending} onClick={() => techM.mutate({ action: "approve" })}>{techM.isPending ? "Procesando..." : "Aprobar Técnica"}</Button><Button variant="danger" disabled={!canTechAct || techM.isPending} onClick={() => techM.mutate({ action: "reject" })}>Rechazar Técnica</Button></> : null}</div>{commercialM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>{commercialM.error.message}</div> : null}{techM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>{techM.error.message}</div> : null}</div></> : null}
           </>
         ) : null}
       </div>

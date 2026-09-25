@@ -77,9 +77,9 @@ function daysSince(dateStr) {
 
 function daysBadgeColor(days) {
   if (days === null) return { color: "var(--dg-muted)", background: "var(--dg-tint)", border: "var(--dg-border)" };
-  if (days >= 7) return { color: "#a12626", background: "#fdecec", border: "#f3b9b9" };
-  if (days >= 3) return { color: "#a66300", background: "#fff3e0", border: "#f3d19a" };
-  return { color: "#1f7a45", background: "#eaf8ef", border: "#bfe6c8" };
+  if (days >= 7) return { color: "var(--dg-danger-text)", background: "var(--dg-danger-bg)", border: "var(--dg-danger-border)" };
+  if (days >= 3) return { color: "var(--dg-warning-text)", background: "var(--dg-warning-bg)", border: "var(--dg-warning-border)" };
+  return { color: "var(--dg-success-text)", background: "var(--dg-success-bg)", border: "var(--dg-success-border)" };
 }
 
 function DaysPendingBadge({ dateStr }) {
@@ -206,7 +206,7 @@ export default function PendingClientAcceptanceModal() {
         <div style={{ fontSize: 15, marginTop: 6 }}>
           Estas notas de venta ya tienen el link de aceptación enviado, pero el cliente todavía no firmó.
         </div>
-        <div style={{ marginTop: 10, border: "1px solid #f3b9b9", background: "#fdecec", color: "#a12626", borderRadius: 10, padding: "10px 12px", fontWeight: 800, fontSize: 14 }}>
+        <div style={{ marginTop: 10, border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", borderRadius: 10, padding: "10px 12px", fontWeight: 800, fontSize: 14 }}>
           ⚠️ El producto no ingresa a producción hasta que el cliente complete la aceptación.
         </div>
 

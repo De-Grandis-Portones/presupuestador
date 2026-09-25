@@ -96,8 +96,8 @@ function CatalogFlowDebugPanel({ data }) {
           zIndex: 2147483647,
           border: "2px solid #f59e0b",
           borderRadius: 14,
-          background: "#fffbeb",
-          color: "#78350f",
+          background: "var(--dg-warning-bg)",
+          color: "var(--dg-warning-text)",
           padding: "10px 12px",
           boxShadow: "0 12px 36px rgba(15,23,42,.18)",
           maxWidth: 360,
@@ -116,8 +116,8 @@ function CatalogFlowDebugPanel({ data }) {
             marginTop: 8,
             border: "1px solid #f59e0b",
             borderRadius: 10,
-            background: "#fff7ed",
-            color: "#78350f",
+            background: "var(--dg-warning-bg)",
+            color: "var(--dg-warning-text)",
             padding: "7px 10px",
             fontWeight: 900,
             cursor: "pointer",
@@ -126,8 +126,8 @@ function CatalogFlowDebugPanel({ data }) {
           Copiar debug
         </button>
       </div>
-      <div style={{ margin: "12px 0", border: "2px solid #f59e0b", borderRadius: 12, background: "#fffbeb", padding: 12 }}>
-        <div style={{ fontWeight: 900, color: "#92400e", marginBottom: 8 }}>Debug flujo de secciones</div>
+      <div style={{ margin: "12px 0", border: "2px solid #f59e0b", borderRadius: 12, background: "var(--dg-warning-bg)", padding: 12 }}>
+        <div style={{ fontWeight: 900, color: "var(--dg-warning-text)", marginBottom: 8 }}>Debug flujo de secciones</div>
         <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.35, maxHeight: 320, overflow: "auto" }}>
           {text}
         </pre>
@@ -155,9 +155,9 @@ function ExteriorHelpButton({ open, onToggle }) {
         width: 22,
         height: 22,
         borderRadius: 999,
-        border: "1px solid #c7d2fe",
-        background: open ? "#eef2ff" : "var(--dg-card)",
-        color: "#3730a3",
+        border: "1px solid var(--dg-purple-border)",
+        background: open ? "var(--dg-purple-bg)" : "var(--dg-card)",
+        color: "var(--dg-purple-text)",
         fontWeight: 900,
         lineHeight: 1,
         cursor: "pointer",
@@ -172,7 +172,7 @@ function ExteriorHelpButton({ open, onToggle }) {
 function ExteriorHelpBox() {
   return (
     <div style={{ padding: "0 14px 12px" }}>
-      <div style={{ border: "1px solid #dbeafe", background: "#eff6ff", color: "#1e3a8a", borderRadius: 10, padding: "10px 12px", fontWeight: 800 }}>
+      <div style={{ border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", color: "var(--dg-info-text)", borderRadius: 10, padding: "10px 12px", fontWeight: 800 }}>
         {EXTERIOR_HELP_TEXT}
       </div>
     </div>
@@ -1419,7 +1419,7 @@ export default function SectionCatalog({ kind = "porton", onDownloadPresupuesto 
                               disabledForUser
                                 ? { opacity: 0.55, background: "var(--dg-tint)" }
                                 : isSelected
-                                  ? { border: "1px solid #60a5fa", background: "#eff6ff" }
+                                  ? { border: "1px solid #60a5fa", background: "var(--dg-info-bg)" }
                                   : undefined
                             }
                           >
@@ -1431,8 +1431,8 @@ export default function SectionCatalog({ kind = "porton", onDownloadPresupuesto 
                                     style={{
                                       fontSize: 10,
                                       fontWeight: 800,
-                                      color: "#92400e",
-                                      background: "#fef3c7",
+                                      color: "var(--dg-warning-text)",
+                                      background: "var(--dg-warning-bg)",
                                       border: "1px solid #f59e0b",
                                       borderRadius: 999,
                                       padding: "2px 8px",

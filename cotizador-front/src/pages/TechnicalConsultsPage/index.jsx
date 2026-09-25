@@ -48,18 +48,18 @@ function statusLabel(status) {
 
 function statusTone(status) {
   const s = String(status || "pending").trim().toLowerCase();
-  if (s === "closed") return { border: "#7a7a7a", background: "#f4f4f4", color: "#444" };
-  if (s === "in_progress") return { border: "#1f7a45", background: "#eaf8ef", color: "#1f7a45" };
-  return { border: "#a66300", background: "#fff3e0", color: "#a66300" };
+  if (s === "closed") return { border: "var(--dg-muted)", background: "var(--dg-neutral-bg)", color: "var(--dg-neutral-text)" };
+  if (s === "in_progress") return { border: "var(--dg-success-text)", background: "var(--dg-success-bg)", color: "var(--dg-success-text)" };
+  return { border: "var(--dg-warning-text)", background: "var(--dg-warning-bg)", color: "var(--dg-warning-text)" };
 }
 
 function messageBubbleStyle(isOwn, isResolution = false) {
   if (isResolution) {
     return {
       alignSelf: "stretch",
-      border: "1px solid #1f7a45",
-      background: "#eefaf2",
-      color: "#0f5d31",
+      border: "1px solid var(--dg-success-text)",
+      background: "var(--dg-success-bg)",
+      color: "var(--dg-success-text)",
       borderRadius: 14,
       padding: 14,
     };
@@ -107,7 +107,7 @@ function AttachmentField({ attachment, error, attaching, onSelectFile, onRemove 
           </button>
         </div>
       )}
-      {error ? <div style={{ color: "#d93025", fontSize: 12, marginTop: 6, fontWeight: 700 }}>{error}</div> : null}
+      {error ? <div style={{ color: "var(--dg-danger-text)", fontSize: 12, marginTop: 6, fontWeight: 700 }}>{error}</div> : null}
     </div>
   );
 }
@@ -138,7 +138,7 @@ function MessageAttachment({ attachment }) {
       <button
         type="button"
         onClick={() => openTicketAttachment(attachment)}
-        style={{ border: "1px solid #ddd", borderRadius: 8, background: "var(--dg-card)", padding: "5px 10px", cursor: "pointer", fontSize: 12 }}
+        style={{ border: "1px solid var(--dg-border)", borderRadius: 8, background: "var(--dg-card)", padding: "5px 10px", cursor: "pointer", fontSize: 12 }}
       >
         {formatTicketAttachmentMeta(attachment)}
       </button>
@@ -194,7 +194,7 @@ function RequesterPickerModal({ open, role, onRoleChange, requesters, isLoading,
       onClick={onClose}
     >
       <div
-        style={{ width: "min(480px, 96vw)", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "var(--dg-card)", borderRadius: 18, padding: 18, boxShadow: "0 22px 70px rgba(15,23,42,0.35)", border: "1px solid #e5e7eb" }}
+        style={{ width: "min(480px, 96vw)", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "var(--dg-card)", borderRadius: 18, padding: 18, boxShadow: "0 22px 70px rgba(15,23,42,0.35)", border: "1px solid var(--dg-border)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 10 }}>Elegir destinatarios</div>
@@ -208,9 +208,9 @@ function RequesterPickerModal({ open, role, onRoleChange, requesters, isLoading,
         </div>
         <Input value={search} onChange={setSearch} placeholder="Buscar por nombre o usuario" style={{ width: "100%" }} autoFocus />
         <div style={{ height: 8 }} />
-        <div style={{ flex: 1, minHeight: 120, overflowY: "auto", border: "1px solid #eee", borderRadius: 10 }}>
+        <div style={{ flex: 1, minHeight: 120, overflowY: "auto", border: "1px solid var(--dg-border-soft)", borderRadius: 10 }}>
           {isLoading ? <div className="muted" style={{ padding: 12 }}>Cargando…</div> : null}
-          {error ? <div style={{ color: "#d93025", fontSize: 13, padding: 12 }}>{error}</div> : null}
+          {error ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, padding: 12 }}>{error}</div> : null}
           {!isLoading && !error && !filtered.length ? <div className="muted" style={{ padding: 12 }}>Sin resultados.</div> : null}
           {!isLoading && !error && filtered.map((r) => {
             const checked = checkedIds.has(r.id);
@@ -219,7 +219,7 @@ function RequesterPickerModal({ open, role, onRoleChange, requesters, isLoading,
                 key={r.id}
                 style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
-                  borderBottom: "1px solid #f0f0f0", cursor: "pointer",
+                  borderBottom: "1px solid var(--dg-border-soft)", cursor: "pointer",
                   background: checked ? "rgba(1,163,159,0.06)" : "transparent",
                 }}
               >
@@ -583,7 +583,7 @@ export default function TechnicalConsultsPage() {
           {isTechnical && showNewForm ? (
             <>
               <div className="spacer" />
-              <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 12 }}>
+              <div style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 14, padding: 12 }}>
                 <div className="muted" style={{ marginBottom: 6 }}>Nuevo ticket</div>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
@@ -657,7 +657,7 @@ export default function TechnicalConsultsPage() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Describí la consulta técnica"
-                      style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid #ddd", resize: "vertical" }}
+                      style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", resize: "vertical" }}
                     />
                     <AttachmentField
                       attachment={newAttachment}
@@ -676,7 +676,7 @@ export default function TechnicalConsultsPage() {
                     >
                       {createM.isPending ? "Enviando…" : `Enviar a ${selectedMultiTargets.length || ""} destinatario(s)`}
                     </Button>
-                    {createM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
+                    {createM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
                   </>
                 ) : audienceMode === "target" ? (
                   !selectedTarget ? (
@@ -706,7 +706,7 @@ export default function TechnicalConsultsPage() {
                               }}
                               style={{
                                 textAlign: "left",
-                                border: "1px solid #e6e6e6",
+                                border: "1px solid var(--dg-border)",
                                 background: "var(--dg-card)",
                                 borderRadius: 10,
                                 padding: "8px 10px",
@@ -753,7 +753,7 @@ export default function TechnicalConsultsPage() {
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Describí la consulta técnica"
-                        style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid #ddd", resize: "vertical" }}
+                        style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", resize: "vertical" }}
                       />
                       <AttachmentField
                         attachment={newAttachment}
@@ -772,7 +772,7 @@ export default function TechnicalConsultsPage() {
                       >
                         {createM.isPending ? "Creando…" : "Crear ticket"}
                       </Button>
-                      {createM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
+                      {createM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
                     </>
                   )
                 ) : (
@@ -790,7 +790,7 @@ export default function TechnicalConsultsPage() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Describí la consulta técnica"
-                      style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid #ddd", resize: "vertical" }}
+                      style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", resize: "vertical" }}
                     />
                     <AttachmentField
                       attachment={newAttachment}
@@ -813,7 +813,7 @@ export default function TechnicalConsultsPage() {
                         ? "Enviar a todos los vendedores"
                         : "Enviar a todos los distribuidores"}
                     </Button>
-                    {createM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
+                    {createM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
                   </>
                 )}
               </div>
@@ -829,9 +829,9 @@ export default function TechnicalConsultsPage() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   gap: 8,
-                  border: "1px solid #1f7a45",
-                  background: "#eaf8ef",
-                  color: "#1f7a45",
+                  border: "1px solid var(--dg-success-text)",
+                  background: "var(--dg-success-bg)",
+                  color: "var(--dg-success-text)",
                   borderRadius: 10,
                   padding: "8px 12px",
                   fontSize: 13,
@@ -841,7 +841,7 @@ export default function TechnicalConsultsPage() {
                 <button
                   type="button"
                   onClick={() => setBulkNotice("")}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#1f7a45", fontWeight: 800 }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--dg-success-text)", fontWeight: 800 }}
                 >
                   ×
                 </button>
@@ -852,7 +852,7 @@ export default function TechnicalConsultsPage() {
           {isRequester ? (
             <>
               <div className="spacer" />
-              <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 12 }}>
+              <div style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 14, padding: 12 }}>
                 <div className="muted" style={{ marginBottom: 6 }}>Nueva consulta</div>
                 <Input value={subject} onChange={setSubject} placeholder="Asunto" style={{ width: "100%" }} />
                 <div style={{ height: 8 }} />
@@ -862,7 +862,7 @@ export default function TechnicalConsultsPage() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Describí la consulta técnica"
-                  style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid #ddd", resize: "vertical" }}
+                  style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", resize: "vertical" }}
                 />
                 <AttachmentField
                   attachment={newAttachment}
@@ -881,7 +881,7 @@ export default function TechnicalConsultsPage() {
                 >
                   {createM.isPending ? "Creando…" : "Crear ticket"}
                 </Button>
-                {createM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
+                {createM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{createM.error.message}</div> : null}
               </div>
             </>
           ) : null}
@@ -889,7 +889,7 @@ export default function TechnicalConsultsPage() {
           <div className="spacer" />
 
           {ticketsQ.isLoading ? <div className="muted">Cargando…</div> : null}
-          {ticketsQ.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{ticketsQ.error.message}</div> : null}
+          {ticketsQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{ticketsQ.error.message}</div> : null}
           {!ticketsQ.isLoading && !tickets.length ? <div className="muted">Sin consultas para mostrar.</div> : null}
 
           {!!tickets.length ? (
@@ -909,8 +909,8 @@ export default function TechnicalConsultsPage() {
                     }}
                     style={{
                       textAlign: "left",
-                      border: isSelected ? "2px solid #01a39f" : isLogistica ? "2px solid #38bdf8" : "1px solid #e6e6e6",
-                      background: isSelected ? "rgba(1,163,159,0.06)" : isLogistica ? "#eff8ff" : "var(--dg-card)",
+                      border: isSelected ? "2px solid #01a39f" : isLogistica ? "2px solid #38bdf8" : "1px solid var(--dg-border)",
+                      background: isSelected ? "rgba(1,163,159,0.06)" : isLogistica ? "var(--dg-info-bg)" : "var(--dg-card)",
                       borderRadius: 14,
                       padding: 12,
                       cursor: "pointer",
@@ -993,7 +993,7 @@ export default function TechnicalConsultsPage() {
           ) : null}
 
           {detailQ.isLoading ? <div className="muted">Cargando conversación…</div> : null}
-          {detailQ.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{detailQ.error.message}</div> : null}
+          {detailQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{detailQ.error.message}</div> : null}
 
           {selectedTicket ? (
             <>
@@ -1001,7 +1001,7 @@ export default function TechnicalConsultsPage() {
                 <div>
                   <h3 style={{ marginTop: 0, marginBottom: 4 }}>#{selectedTicket.id} · {selectedTicket.subject}</h3>
                   {selectedTicket.created_by_role === "logistica" ? (
-                    <div style={{ display: "inline-block", marginBottom: 6, marginRight: 6, padding: "2px 10px", borderRadius: 999, border: "1px solid #38bdf8", background: "#eff8ff", color: "#0369a1", fontSize: 12, fontWeight: 800 }}>
+                    <div style={{ display: "inline-block", marginBottom: 6, marginRight: 6, padding: "2px 10px", borderRadius: 999, border: "1px solid #38bdf8", background: "var(--dg-info-bg)", color: "var(--dg-info-text)", fontSize: 12, fontWeight: 800 }}>
                       De Logística
                     </div>
                   ) : null}
@@ -1070,13 +1070,13 @@ export default function TechnicalConsultsPage() {
               {selectedTicket.can_reply ? (
                 <>
                   <div className="spacer" />
-                  <div style={{ borderTop: "1px solid #eee", paddingTop: 16 }}>
+                  <div style={{ borderTop: "1px solid var(--dg-border-soft)", paddingTop: 16 }}>
                     <div className="muted" style={{ marginBottom: 8 }}>{isTechnical ? "Responder consulta" : "Enviar respuesta"}</div>
                     <textarea
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
                       placeholder={isTechnical ? "Escribí la respuesta técnica" : "Escribí tu mensaje"}
-                      style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid #ddd", resize: "vertical" }}
+                      style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", resize: "vertical" }}
                     />
                     <AttachmentField
                       attachment={replyAttachment}
@@ -1094,7 +1094,7 @@ export default function TechnicalConsultsPage() {
                         {replyM.isPending ? "Enviando…" : "Enviar mensaje"}
                       </Button>
                     </div>
-                    {replyM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{replyM.error.message}</div> : null}
+                    {replyM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{replyM.error.message}</div> : null}
                   </div>
                 </>
               ) : (
@@ -1107,7 +1107,7 @@ export default function TechnicalConsultsPage() {
               {isTechnical && selectedTicket.status !== "closed" ? (
                 <>
                   <div className="spacer" />
-                  <div style={{ borderTop: "1px solid #eee", paddingTop: 16 }}>
+                  <div style={{ borderTop: "1px solid var(--dg-border-soft)", paddingTop: 16 }}>
                     <div style={{ fontWeight: 800, marginBottom: 6 }}>Cerrar consulta</div>
                     <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
                       Para cerrar, la resolución final se guarda como último mensaje y bloquea nuevas respuestas del vendedor/distribuidor.
@@ -1116,7 +1116,7 @@ export default function TechnicalConsultsPage() {
                       value={resolutionText}
                       onChange={(e) => setResolutionText(e.target.value)}
                       placeholder="Detalle de la resolución final"
-                      style={{ width: "100%", minHeight: 110, padding: 10, borderRadius: 10, border: "1px solid #ddd", resize: "vertical" }}
+                      style={{ width: "100%", minHeight: 110, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", resize: "vertical" }}
                     />
                     <AttachmentField
                       attachment={resolutionAttachment}
@@ -1134,7 +1134,7 @@ export default function TechnicalConsultsPage() {
                         {closeM.isPending ? "Cerrando…" : "Cerrar con resolución"}
                       </Button>
                     </div>
-                    {closeM.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{closeM.error.message}</div> : null}
+                    {closeM.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{closeM.error.message}</div> : null}
                   </div>
                 </>
               ) : null}
