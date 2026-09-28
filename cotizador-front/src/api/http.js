@@ -20,9 +20,17 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (r) => r,
   (err) => {
-    // si el back responde 401, limpiamos token
+    // si el back responde 401, limpiamos token - salvo que ya haya uno mas nuevo que el que
+    // se mando (ej. un polling que salio con el token viejo justo mientras "Mi cuenta"
+    // cambiaba la contraseña y guardaba el token nuevo: no hay que borrar el nuevo).
     if (err?.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
+      const headers = err?.config?.headers;
+      const sentAuth = String(headers?.get?.("Authorization") || headers?.Authorization || "");
+      const sentToken = sentAuth.replace(/^Bearer\s+/i, "");
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      if (!sentToken || !storedToken || storedToken === sentToken) {
+        localStorage.removeItem(TOKEN_KEY);
+      }
     }
 
     const msg =

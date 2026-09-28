@@ -134,7 +134,7 @@ export default function LoginPage() {
             </button>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-            <Link to="/recuperar-contrasena" style={{ fontSize: 13 }}>¿Olvidaste tu contraseña?</Link>
+            <Link to="/recuperar-contrasena" style={{ color: "var(--dg-accent-text)", fontSize: 13 }}>¿Olvidaste tu contraseña?</Link>
           </div>
 
           <div className="spacer" />

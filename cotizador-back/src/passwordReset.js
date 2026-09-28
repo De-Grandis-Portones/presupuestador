@@ -13,10 +13,23 @@ const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 200;
 const DEFAULT_APP_URL = "https://presupuestador-degrandisportones.vercel.app";
 
-let ensured = false;
+// Promesa compartida (no un flag): "create table if not exists" no es seguro con dos
+// pedidos a la vez en Postgres (el segundo choca con pg_type_typname_nsp_index), y los
+// primeros pedidos despues de un deploy pueden llegar juntos. Si falla, se reintenta en
+// el proximo pedido.
+let ensurePromise = null;
 
-export async function ensurePasswordResetSchema() {
-  if (ensured) return;
+export function ensurePasswordResetSchema() {
+  if (!ensurePromise) {
+    ensurePromise = createPasswordResetSchema().catch((e) => {
+      ensurePromise = null;
+      throw e;
+    });
+  }
+  return ensurePromise;
+}
+
+async function createPasswordResetSchema() {
   await ensureUsersAdminColumns();
   await dbQuery(`
     create table if not exists public.presupuestador_password_resets (
@@ -31,7 +44,6 @@ export async function ensurePasswordResetSchema() {
     );
   `);
   await dbQuery(`create index if not exists presupuestador_password_resets_user_idx on public.presupuestador_password_resets(user_id, created_at desc);`);
-  ensured = true;
 }
 
 function hashToken(token) {

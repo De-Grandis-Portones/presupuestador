@@ -35,6 +35,8 @@ export async function ensureUsersAdminColumns() {
   // recoveryEmailSql). password_changed_at invalida los JWT emitidos antes del cambio
   // (ver requireAuth), y password_self_changed marca que la puso el propio usuario, asi
   // Mis distribuidores / Gestor de usuarios no muestran una visible_password vieja.
+  // updated_at ya existe en produccion (lo usa updateUser); se asegura por si una base nueva no la tiene.
+  await dbQuery(`alter table public.presupuestador_users add column if not exists updated_at timestamptz null default now();`);
   await dbQuery(`alter table public.presupuestador_users add column if not exists email text null;`);
   await dbQuery(`alter table public.presupuestador_users add column if not exists password_changed_at timestamptz null;`);
   await dbQuery(`alter table public.presupuestador_users add column if not exists password_self_changed boolean not null default false;`);

@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
         </div>
         <div className="spacer" />
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <Link to="/login" style={{ fontSize: 14, fontWeight: 700 }}>Volver a iniciar sesión</Link>
+          <Link to="/login" style={{ color: "var(--dg-accent-text)", fontSize: 14, fontWeight: 700 }}>Volver a iniciar sesión</Link>
         </div>
       </PublicAuthCard>
     );
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
         </div>
         <div className="spacer" />
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <Link to="/login" style={{ fontSize: 13 }}>Volver a iniciar sesión</Link>
+          <Link to="/login" style={{ color: "var(--dg-accent-text)", fontSize: 13 }}>Volver a iniciar sesión</Link>
         </div>
       </form>
     </PublicAuthCard>

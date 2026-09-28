@@ -66,8 +66,8 @@ export default function ResetPasswordPage() {
         </div>
         <div className="spacer" />
         <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
-          <Link to="/recuperar-contrasena" style={{ fontSize: 14, fontWeight: 700 }}>Pedir un link nuevo</Link>
-          <Link to="/login" style={{ fontSize: 14 }}>Iniciar sesión</Link>
+          <Link to="/recuperar-contrasena" style={{ color: "var(--dg-accent-text)", fontSize: 14, fontWeight: 700 }}>Pedir un link nuevo</Link>
+          <Link to="/login" style={{ color: "var(--dg-accent-text)", fontSize: 14 }}>Iniciar sesión</Link>
         </div>
       </PublicAuthCard>
     );
