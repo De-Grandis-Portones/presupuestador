@@ -14,8 +14,8 @@ function getDoorSectionTone(sectionId) {
   if (DOOR_SECTION_GREEN_IDS.has(id)) {
     return {
       itemStyle: {
-        background: "#ecfdf3",
-        borderColor: "#bbf7d0",
+        background: "var(--dg-success-bg)",
+        borderColor: "var(--dg-success-border)",
         boxShadow: "inset 4px 0 0 #22c55e",
       },
       headerStyle: { background: "transparent" },
@@ -25,8 +25,8 @@ function getDoorSectionTone(sectionId) {
   if (DOOR_SECTION_BLUE_IDS.has(id)) {
     return {
       itemStyle: {
-        background: "#eff6ff",
-        borderColor: "#bfdbfe",
+        background: "var(--dg-info-bg)",
+        borderColor: "var(--dg-info-border)",
         boxShadow: "inset 4px 0 0 #38bdf8",
       },
       headerStyle: { background: "transparent" },
@@ -397,16 +397,16 @@ export default function PuertaCatalog() {
   }
 
   if (q.isLoading) return <div className="muted">Cargando catálogo de puertas...</div>;
-  if (q.isError) return <div style={{ color: "#d93025" }}>{q.error.message}</div>;
-  if (rulesQ.isError) return <div style={{ color: "#d93025" }}>{rulesQ.error.message}</div>;
-  if (pricingError) return <div style={{ color: "#d93025" }}>{pricingError}</div>;
+  if (q.isError) return <div style={{ color: "var(--dg-danger-text)" }}>{q.error.message}</div>;
+  if (rulesQ.isError) return <div style={{ color: "var(--dg-danger-text)" }}>{rulesQ.error.message}</div>;
+  if (pricingError) return <div style={{ color: "var(--dg-danger-text)" }}>{pricingError}</div>;
   if (!boot) return <div className="muted">Esperando lista de precios del usuario antes de mostrar el catálogo...</div>;
   if (rulesQ.isLoading) return <div className="muted">Cargando dependencias del catálogo de puertas...</div>;
 
   return (
     <div>
       {debugCatalogEnabled() ? (
-        <div style={{ position: "sticky", top: 0, zIndex: 20, border: "1px solid #f59e0b", background: "#fffbeb", color: "#92400e", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 20, border: "1px solid #f59e0b", background: "var(--dg-warning-bg)", color: "var(--dg-warning-text)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ fontWeight: 900 }}>DEBUG CATÁLOGO PUERTAS ACTIVO</div>
             <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(JSON.stringify(debugPayload, null, 2))}>Copiar debug</Button>
@@ -456,7 +456,7 @@ export default function PuertaCatalog() {
                         const disabledForUser = isDisabledForUser(product, user);
                         const isSelected = selectedInSection.has(Number(product.id));
                         return (
-                          <div key={product.id} className="dg-product-card" style={disabledForUser ? { opacity: 0.55, background: "var(--dg-tint)" } : isSelected ? { border: "1px solid #60a5fa", background: "#eff6ff" } : undefined}>
+                          <div key={product.id} className="dg-product-card" style={disabledForUser ? { opacity: 0.55, background: "var(--dg-tint)" } : isSelected ? { border: "1px solid #60a5fa", background: "var(--dg-info-bg)" } : undefined}>
                             <div className="dg-product-info">
                               <div className="dg-product-name" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                 {getProductLabel(product)}
@@ -465,8 +465,8 @@ export default function PuertaCatalog() {
                                     style={{
                                       fontSize: 10,
                                       fontWeight: 800,
-                                      color: "#92400e",
-                                      background: "#fef3c7",
+                                      color: "var(--dg-warning-text)",
+                                      background: "var(--dg-warning-bg)",
                                       border: "1px solid #f59e0b",
                                       borderRadius: 999,
                                       padding: "2px 8px",

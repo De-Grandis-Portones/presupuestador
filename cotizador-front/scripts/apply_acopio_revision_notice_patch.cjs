@@ -18,17 +18,17 @@ const nextBlock = `      {isAcopioRevision ? (
           <div
             className="card"
             style={{
-              background: "#fff8f3",
-              border: "2px solid #f2d3bf",
+              background: "var(--dg-warning-bg)",
+              border: "2px solid var(--dg-warning-border)",
               borderRadius: 16,
               padding: 22,
               boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
             }}
           >
-            <div style={{ fontWeight: 900, marginBottom: 10, fontSize: 24, lineHeight: 1.2, color: "#111827" }}>
+            <div style={{ fontWeight: 900, marginBottom: 10, fontSize: 24, lineHeight: 1.2, color: "var(--dg-text)" }}>
               Ajuste de presupuesto en Acopio
             </div>
-            <div style={{ fontSize: 17, lineHeight: 1.55, color: "#374151" }}>
+            <div style={{ fontSize: 17, lineHeight: 1.55, color: "var(--dg-text-soft)" }}>
               Guardá los cambios y luego usá <b>Solicitar paso a Producción</b> desde <b>Mis presupuestos</b>. Cuando Comercial y Técnica aprueben ese paso, el sistema lo tratará como un portón en producción.
             </div>
           </div>

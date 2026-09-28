@@ -185,7 +185,7 @@ export default function SuperuserPuertasCatalogPage() {
       </div>
 
       <div className="spacer" />
-      <div className="card" style={{ background: "#f8fafc", border: "1px solid #dbeafe" }}>
+      <div className="card" style={{ background: "var(--dg-surface-2)", border: "1px solid var(--dg-info-border)" }}>
         <div style={{ fontWeight: 900, marginBottom: 6 }}>Cómo se arma el catálogo de puertas</div>
         <div className="muted">
           Primero creá secciones. Después asigná las etiquetas de Odoo a esas secciones. Todo producto que tenga una etiqueta asignada queda disponible en el Presupuestador Puertas. Si la sección tiene <b>Cantidad = superficie</b>, el producto se calcula por ancho × alto de la puerta.
@@ -202,7 +202,7 @@ export default function SuperuserPuertasCatalogPage() {
 
       <div className="spacer" />
       {catalogQ.isLoading ? <div className="card"><div className="muted">Cargando catálogo...</div></div> : null}
-      {catalogQ.isError ? <div className="card"><div style={{ color: "#d93025" }}>{catalogQ.error.message}</div></div> : null}
+      {catalogQ.isError ? <div className="card"><div style={{ color: "var(--dg-danger-text)" }}>{catalogQ.error.message}</div></div> : null}
 
       {!catalogQ.isLoading && !catalogQ.isError && tab === "tags" ? (
         <div className="row">
@@ -233,7 +233,7 @@ export default function SuperuserPuertasCatalogPage() {
             <div className="spacer" />
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {sortedTags.map((tag) => (
-                <div key={tag.id} style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 10, alignItems: "center", border: "1px solid #eee", borderRadius: 10, padding: 10 }}>
+                <div key={tag.id} style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 10, alignItems: "center", border: "1px solid var(--dg-border-soft)", borderRadius: 10, padding: 10 }}>
                   <div>
                     <div style={{ fontWeight: 800 }}>{tag.name}</div>
                     <div className="muted" style={{ fontSize: 12 }}>ID etiqueta Odoo: {tag.id}</div>
@@ -251,7 +251,7 @@ export default function SuperuserPuertasCatalogPage() {
                         toast.error(err?.message || "No se pudo asignar la etiqueta");
                       }
                     }}
-                    style={{ padding: 9, borderRadius: 10, border: "1px solid #ddd", width: "100%" }}
+                    style={{ padding: 9, borderRadius: 10, border: "1px solid var(--dg-border)", width: "100%" }}
                   >
                     <option value="">(no usar en puertas)</option>
                     {sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
@@ -303,7 +303,7 @@ export default function SuperuserPuertasCatalogPage() {
           <Input value={pdfQuery} onChange={setPdfQuery} placeholder="Buscar por ID, nombre Odoo, alias o nombre PDF..." style={{ width: "100%" }} />
           <div className="spacer" />
           {pdfNamesQ.isLoading ? <div className="muted">Cargando nombres PDF...</div> : null}
-          {pdfNamesQ.isError ? <div style={{ color: "#d93025" }}>{pdfNamesQ.error.message}</div> : null}
+          {pdfNamesQ.isError ? <div style={{ color: "var(--dg-danger-text)" }}>{pdfNamesQ.error.message}</div> : null}
           {!pdfNamesQ.isLoading && !pdfNamesQ.isError ? (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1000 }}>
@@ -353,12 +353,12 @@ export default function SuperuserPuertasCatalogPage() {
           {sections.map((section) => {
             const sectionProducts = products.filter((product) => Array.isArray(product.section_ids) && product.section_ids.map(Number).includes(Number(section.id)));
             return (
-              <div key={`preview-${section.id}`} style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, marginBottom: 10 }}>
+              <div key={`preview-${section.id}`} style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 12, padding: 12, marginBottom: 10 }}>
                 <div style={{ fontWeight: 900 }}>{section.name}</div>
                 <div className="muted" style={{ marginBottom: 8 }}>{section.use_surface_qty ? "Cantidad = superficie de puerta" : "Cantidad fija/manual"} · {sectionProducts.length} producto(s)</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 8 }}>
                   {sectionProducts.map((product) => (
-                    <div key={`${section.id}-${product.id}`} style={{ border: "1px solid #f1f5f9", borderRadius: 10, padding: 10 }}>
+                    <div key={`${section.id}-${product.id}`} style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 10, padding: 10 }}>
                       <div style={{ fontWeight: 800 }}>{productLabel(product)}</div>
                       <div className="muted" style={{ fontSize: 12 }}>{odooLabel(product)}</div>
                     </div>
@@ -374,8 +374,8 @@ export default function SuperuserPuertasCatalogPage() {
   );
 }
 
-const thStyle = { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee", verticalAlign: "top" };
-const tdStyle = { padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" };
+const thStyle = { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" };
+const tdStyle = { padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" };
 
 function EditableSectionRow({ section, qc }) {
   const [name, setName] = useState(section.name || "");
@@ -397,7 +397,7 @@ function EditableSectionRow({ section, qc }) {
   }
 
   return (
-    <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 10 }}>
+    <div style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 10, padding: 10 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>Sección ID {section.id}</div>
@@ -471,7 +471,7 @@ function ProductConfigRow({ product, qc }) {
         <div className="muted" style={{ fontSize: 12 }}>{Array.isArray(product.tags) && product.tags.length ? product.tags.join(", ") : "Sin tags"}</div>
       </td>
       <td style={tdStyle}>
-        <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={{ padding: 8, borderRadius: 10, border: "1px solid #ddd", minWidth: 180 }}>
+        <select value={visibility} onChange={(e) => setVisibility(e.target.value)} style={{ padding: 8, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 180 }}>
           <option value="none">Visible para todos</option>
           <option value="vendedor">Ocultar vendedor</option>
           <option value="distribuidor">Ocultar distribuidor</option>

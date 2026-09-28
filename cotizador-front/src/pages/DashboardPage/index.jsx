@@ -467,7 +467,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="spacer" />
-      <div className="card" style={{ background: "#fafafa" }}>
+      <div className="card" style={{ background: "var(--dg-surface-2)" }}>
         <h3 style={{ marginTop: 0 }}>Tolerancia comercial para cotización final</h3>
         <div className="muted" style={{ marginBottom: 10 }}>La tolerancia se mide en <b>m²</b>.</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
@@ -493,12 +493,12 @@ export default function DashboardPage() {
 
       <div className="spacer" />
       {catalogQ.isLoading ? <div className="muted">Cargando catálogo...</div> : null}
-      {catalogQ.isError ? <div style={{ color: "#d93025" }}>{catalogQ.error.message}</div> : null}
+      {catalogQ.isError ? <div style={{ color: "var(--dg-danger-text)" }}>{catalogQ.error.message}</div> : null}
 
       {!catalogQ.isLoading && !catalogQ.isError ? (
         <>
           {catalogKind === "puerta" ? (
-            <div className="card" style={{ background: "#f7fbff", border: "1px solid #d9e5f7" }}>
+            <div className="card" style={{ background: "var(--dg-info-bg)", border: "1px solid var(--dg-info-border)" }}>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>Catálogo de Puertas</div>
               <div className="muted">
                 Configurá acá las secciones, etiquetas, alias, visibilidad y nombres PDF de Puertas. El cotizador de puertas usa este catálogo con <b>catalog_kind=&quot;puerta&quot;</b>.
@@ -622,7 +622,7 @@ function TagsTab({ catalogKind, sections, tags, newSectionName, setNewSectionNam
           <select
             value={newSectionBudgetSector}
             onChange={(event) => setNewSectionBudgetSector(event.target.value)}
-            style={{ padding: 8, borderRadius: 10, border: "1px solid #ddd", minWidth: 200 }}
+            style={{ padding: 8, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 200 }}
           >
             <option value="">Sector del presupuesto (sin asignar)</option>
             <option value="producto">Sector Producto</option>
@@ -650,7 +650,7 @@ function TagsTab({ catalogKind, sections, tags, newSectionName, setNewSectionNam
         <div className="spacer" />
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {sortedTags.map((tag) => (
-            <div key={tag.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, border: "1px solid #eee", padding: 10, borderRadius: 10, alignItems: "center" }}>
+            <div key={tag.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, border: "1px solid var(--dg-border-soft)", padding: 10, borderRadius: 10, alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 800 }}>{tag.name}</div>
                 <div className="muted" style={{ fontSize: 12 }}>ID etiqueta: {tag.id}</div>
@@ -663,7 +663,7 @@ function TagsTab({ catalogKind, sections, tags, newSectionName, setNewSectionNam
                   invalidateCatalog();
                   alert("Etiqueta actualizada.");
                 }}
-                style={{ padding: 8, borderRadius: 10, border: "1px solid #ddd", minWidth: 220 }}
+                style={{ padding: 8, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 220 }}
               >
                 <option value="">(sin sección)</option>
                 {sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
@@ -686,7 +686,7 @@ function EditableSectionRow({ catalogKind, section, invalidateCatalog }) {
   const changed = String(name || "").trim() && String(name || "").trim() !== String(section.name || "").trim();
 
   return (
-    <div style={{ border: "1px solid #eee", padding: 10, borderRadius: 10 }}>
+    <div style={{ border: "1px solid var(--dg-border-soft)", padding: 10, borderRadius: 10 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>Nombre de la sección · ID {section.id}</div>
@@ -743,7 +743,7 @@ function EditableSectionRow({ catalogKind, section, invalidateCatalog }) {
             await adminUpdateSection(catalogKind, section.id, { budget_sector: event.target.value || null });
             invalidateCatalog();
           }}
-          style={{ padding: 8, borderRadius: 10, border: "1px solid #ddd", minWidth: 220 }}
+          style={{ padding: 8, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 220 }}
         >
           <option value="">(sin asignar)</option>
           <option value="producto">Sector Producto</option>
@@ -774,13 +774,13 @@ function CatalogFilters({ sections, tags, productQuery, setProductQuery, section
         value={productQuery}
         onChange={(event) => setProductQuery(event.target.value)}
         placeholder="Buscar producto por nombre, ID, código o alias..."
-        style={{ flex: 1, minWidth: 260, padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+        style={{ flex: 1, minWidth: 260, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
       />
-      <select value={sectionFilter} onChange={(event) => setSectionFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", minWidth: 200 }}>
+      <select value={sectionFilter} onChange={(event) => setSectionFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 200 }}>
         <option value="all">Todas las secciones</option>
         {sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
       </select>
-      <select value={tagFilter} onChange={(event) => setTagFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", minWidth: 200 }}>
+      <select value={tagFilter} onChange={(event) => setTagFilter(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 200 }}>
         <option value="all">Todas las etiquetas</option>
         {tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
       </select>
@@ -837,10 +837,10 @@ function AliasRow({ catalogKind, product, invalidateCatalog }) {
         <div className="muted" style={{ fontSize: 12 }}>{product.name || product.raw_name || product.client_display_name || ""}</div>
       </td>
       <td style={tdStyle}>
-        <input value={alias} onChange={(event) => setAlias(event.target.value)} placeholder="Alias para el presupuestador" style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
+        <input value={alias} onChange={(event) => setAlias(event.target.value)} placeholder="Alias para el presupuestador" style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }} />
       </td>
       <td style={tdStyle}>
-        <select value={visibility} onChange={(event) => setVisibility(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", minWidth: 190 }}>
+        <select value={visibility} onChange={(event) => setVisibility(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 190 }}>
           <option value="none">Visible para todos</option>
           <option value="vendedor">Ocultar vendedor</option>
           <option value="distribuidor">Ocultar distribuidor</option>
@@ -891,7 +891,7 @@ function DependenciesTab({ catalogKind, sections, productsBySectionId, initialSe
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div style={{ minWidth: 260 }}>
           <div className="muted">Sección inicial</div>
-          <select value={initialSectionId || ""} onChange={(event) => setInitialSectionId(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", minWidth: 260 }}>
+          <select value={initialSectionId || ""} onChange={(event) => setInitialSectionId(event.target.value)} style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", minWidth: 260 }}>
             <option value="">Sin sección inicial</option>
             {sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
           </select>
@@ -909,7 +909,7 @@ function DependenciesTab({ catalogKind, sections, productsBySectionId, initialSe
           const parentSectionId = Number(rule.parent_section_id || 0);
           const parentProducts = productsBySectionId.get(parentSectionId) || [];
           return (
-            <div key={rule.id || index} style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+            <div key={rule.id || index} style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 12, padding: 12 }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
                 <div>
                   <div className="muted">Nombre</div>
@@ -944,7 +944,7 @@ function DependenciesTab({ catalogKind, sections, productsBySectionId, initialSe
                     value={stringifyIdList(rule.child_section_ids)}
                     onChange={(event) => updateRule(index, { child_section_ids: parseIdList(event.target.value) })}
                     placeholder="IDs separados por coma"
-                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                    style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
                   />
                   <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
                     IDs disponibles: {sections.map((section) => `${section.id}=${section.name}`).join(" · ") || "sin secciones"}
@@ -996,7 +996,7 @@ function SystemsTab({ products, systemRules, setSystemRules, savingSystems, onSa
       <div className="spacer" />
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {(Array.isArray(systemRules) ? systemRules : []).map((rule, index) => (
-          <div key={rule.id || index} style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, background: "#fafafa" }}>
+          <div key={rule.id || index} style={{ border: "1px solid var(--dg-border-soft)", borderRadius: 12, padding: 12, background: "var(--dg-surface-2)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
               <div>
                 <div className="muted">Nombre</div>
@@ -1008,7 +1008,7 @@ function SystemsTab({ products, systemRules, setSystemRules, savingSystems, onSa
                   value={rule.required_product_ids_text || ""}
                   onChange={(event) => updateSystemRule(index, { required_product_ids_text: event.target.value })}
                   placeholder="Ej: 3006, 2815"
-                  style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                  style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
                 />
                 <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Separá IDs con coma, espacio o punto y coma.</div>
               </div>
@@ -1069,10 +1069,10 @@ function PdfNamesTab({ catalogKind, items, isLoading, isError, error, drafts, se
       <h3 style={{ marginTop: 0 }}>Nombres PDF</h3>
       <div className="muted">Definí el nombre exacto que querés que salga en los PDF para este catálogo.</div>
       <div className="spacer" />
-      <input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Buscar por ID, nombre Odoo, alias o nombre PDF..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
+      <input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Buscar por ID, nombre Odoo, alias o nombre PDF..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }} />
       <div className="spacer" />
       {isLoading ? <div className="muted">Cargando...</div> : null}
-      {isError ? <div style={{ color: "#d93025" }}>{error?.message || "No se pudo cargar"}</div> : null}
+      {isError ? <div style={{ color: "var(--dg-danger-text)" }}>{error?.message || "No se pudo cargar"}</div> : null}
       {!!filtered.length ? (
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 980 }}>
           <thead>
@@ -1095,7 +1095,7 @@ function PdfNamesTab({ catalogKind, items, isLoading, isError, error, drafts, se
                     <div className="muted" style={{ fontSize: 12 }}>Odoo: {item.odoo_id || item.odoo_template_id || "-"}</div>
                   </td>
                   <td style={tdStyle}>
-                    <input value={draft} onChange={(event) => setDrafts((prev) => ({ ...prev, [productId]: event.target.value }))} placeholder={item.odoo_name || "Nombre PDF"} style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
+                    <input value={draft} onChange={(event) => setDrafts((prev) => ({ ...prev, [productId]: event.target.value }))} placeholder={item.odoo_name || "Nombre PDF"} style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }} />
                   </td>
                   <td style={tdStyle}>
                     <Button
@@ -1161,8 +1161,8 @@ function OdooProductDebugPanel() {
   const variantsTotal = result?.variants?.length ?? 0;
 
   return (
-    <div className="card" style={{ background: "#fffbf0", border: "1px solid #ffe082" }}>
-      <h3 style={{ marginTop: 0, color: "#7a5a00" }}>Debug: tags de Odoo para un producto</h3>
+    <div className="card" style={{ background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)" }}>
+      <h3 style={{ marginTop: 0, color: "var(--dg-warning-text)" }}>Debug: tags de Odoo para un producto</h3>
       <div className="muted" style={{ marginBottom: 10 }}>Ingresá el ID del template de Odoo (ej: 3503) o el nombre del producto.</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input
@@ -1170,7 +1170,7 @@ function OdooProductDebugPanel() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleDebug()}
           placeholder="Template ID o nombre..."
-          style={{ flex: 1, minWidth: 200, padding: "8px 12px", borderRadius: 6, border: "1px solid #ccc" }}
+          style={{ flex: 1, minWidth: 200, padding: "8px 12px", borderRadius: 6, border: "1px solid var(--dg-border)" }}
         />
         <button
           onClick={handleDebug}
@@ -1180,12 +1180,12 @@ function OdooProductDebugPanel() {
           {loading ? "Consultando..." : "Consultar Odoo"}
         </button>
       </div>
-      {error && <div style={{ color: "red", marginTop: 8 }}>{error}</div>}
+      {error && <div style={{ color: "var(--dg-danger-text)", marginTop: 8 }}>{error}</div>}
       {result && (
         <div style={{ marginTop: 16 }}>
           {isTemplateIdSearch ? (
             <div className="muted" style={{ marginBottom: 8, fontSize: 13 }}>
-              Variantes del template: <b>{variantsTotal}</b> total, <b style={{ color: variantsSaleOkCount === 0 ? "#b71c1c" : "#1b5e20" }}>{variantsSaleOkCount} con sale_ok=true</b>
+              Variantes del template: <b>{variantsTotal}</b> total, <b style={{ color: variantsSaleOkCount === 0 ? "var(--dg-danger-text)" : "var(--dg-success-text)" }}>{variantsSaleOkCount} con sale_ok=true</b>
               {variantsTotal > 0 && ` → ${(result.variants || []).map((v) => `${v.name} (sale_ok=${v.raw?.sale_ok})`).join(", ")}`}
             </div>
           ) : (
@@ -1193,7 +1193,7 @@ function OdooProductDebugPanel() {
               Variantes encontradas (sale_ok=true): <b>{variantsTotal}</b>
               {variantsTotal > 0 && ` → ${result.variants.map((v) => v.name).join(", ")}`}
               {(result.templates || []).length > 0 && (
-                <span style={{ marginLeft: 12, color: "#888" }}>
+                <span style={{ marginLeft: 12, color: "var(--dg-muted)" }}>
                   Templates: {result.templates.map((t) => `ID ${t.id} "${t.name}"`).join(", ")}
                 </span>
               )}
@@ -1210,7 +1210,7 @@ function OdooProductDebugPanel() {
           ) : (
             <table style={{ borderCollapse: "collapse", width: "100%" }}>
               <thead>
-                <tr style={{ background: "#fff8e1" }}>
+                <tr style={{ background: "var(--dg-warning-bg)" }}>
                   <th style={thStyle}>Nombre</th>
                   <th style={thStyle}>Stable ID</th>
                   <th style={thStyle}>Raw ID</th>
@@ -1282,7 +1282,7 @@ function DataTab({ sections, tags, products, quotes, productQuery, setProductQue
       <div className="spacer" />
       <div className="card" style={{ overflowX: "auto" }}>
         <h3 style={{ marginTop: 0 }}>Presupuestos recientes</h3>
-        <input value={quoteQuery} onChange={(event) => setQuoteQuery(event.target.value)} placeholder="Buscar presupuesto por cliente, estado o referencia..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
+        <input value={quoteQuery} onChange={(event) => setQuoteQuery(event.target.value)} placeholder="Buscar presupuesto por cliente, estado o referencia..." style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }} />
         <div className="spacer" />
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
           <thead>
@@ -1318,6 +1318,6 @@ function DataTab({ sections, tags, products, quotes, productQuery, setProductQue
   );
 }
 
-const thStyle = { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" };
-const tdStyle = { padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" };
-const selectFullStyle = { width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" };
+const thStyle = { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" };
+const tdStyle = { padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" };
+const selectFullStyle = { width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" };

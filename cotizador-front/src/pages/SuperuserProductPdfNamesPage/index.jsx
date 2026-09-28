@@ -99,7 +99,7 @@ export default function SuperuserProductPdfNamesPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por ID, nombre Odoo, alias o nombre PDF..."
-            style={{ flex: 1, minWidth: 260, padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+            style={{ flex: 1, minWidth: 260, padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
           />
           <div className="muted">{filtered.length} producto(s)</div>
         </div>
@@ -109,19 +109,19 @@ export default function SuperuserProductPdfNamesPage() {
 
       <div className="card" style={{ overflowX: "auto" }}>
         {itemsQ.isLoading ? <div className="muted">Cargando...</div> : null}
-        {itemsQ.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{itemsQ.error.message}</div> : null}
+        {itemsQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{itemsQ.error.message}</div> : null}
         {!itemsQ.isLoading && !itemsQ.isError && !filtered.length ? <div className="muted">Sin productos para mostrar.</div> : null}
 
         {!!filtered.length && (
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>ID Pres.</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>ID Odoo</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Nombre Odoo</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Nombre presupuestador</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Nombre PDF</th>
-                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #eee" }}>Acción</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>ID Pres.</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>ID Odoo</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Nombre Odoo</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Nombre presupuestador</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Nombre PDF</th>
+                <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)" }}>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -132,33 +132,33 @@ export default function SuperuserProductPdfNamesPage() {
 
                 return (
                   <tr key={`${kind}-${productId}`}>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 700 }}>{item.product_id}</div>
                       <div className="muted" style={{ fontSize: 12 }}>Variante: {item.odoo_variant_id || "—"}</div>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 700 }}>{item.odoo_id || item.odoo_template_id || "—"}</div>
                       <div className="muted" style={{ fontSize: 12 }}>Template</div>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       <div>{item.odoo_name || "—"}</div>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top" }}>
                       <div>{item.presupuestador_name || "—"}</div>
                       {item.alias ? <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Alias: {item.alias}</div> : null}
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top", minWidth: 300 }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top", minWidth: 300 }}>
                       <input
                         value={draft}
                         onChange={(e) => setDrafts((prev) => ({ ...prev, [productId]: e.target.value }))}
                         placeholder={item.odoo_name || "Nombre PDF"}
-                        style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd" }}
+                        style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)" }}
                       />
                       <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                         Efectivo: {effectiveName || "—"}
                       </div>
                     </td>
-                    <td style={{ padding: "10px 8px", borderBottom: "1px solid #f3f3f3", verticalAlign: "top", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--dg-border-soft)", verticalAlign: "top", whiteSpace: "nowrap" }}>
                       <Button
                         variant="primary"
                         onClick={() => saveM.mutate({ productId: item.product_id, pdfName: draft })}

@@ -101,7 +101,7 @@ export default function PlanificacionPage() {
         </div>
 
         {planningQ.isLoading && <div className="muted">Cargando planificación...</div>}
-        {planningQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{planningQ.error.message}</div>}
+        {planningQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{planningQ.error.message}</div>}
         {!planningQ.isLoading && !planningDraft.length && <div className="muted">Sin semanas cargadas para este año.</div>}
 
         {!planningQ.isLoading && !!planningDraft.length && (

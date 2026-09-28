@@ -20,6 +20,46 @@
   --dg-tint: rgba(81, 88, 89, 0.03);
   --dg-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
 
+  /* Superficies y texto secundario. Reemplazan los grises fijos (#fafafa,
+     #f3f4f6, #eee, #444, #666...) que en dark mode quedaban como bloques
+     claros con texto claro encima (ilegible). */
+  --dg-surface-2: #f7f8f9;      /* panel apenas destacado sobre --dg-card */
+  --dg-surface-3: #eceef0;      /* chip / fila / fondo neutro más marcado */
+  --dg-text-soft: #4b5563;      /* texto secundario legible (no tan tenue como --dg-muted) */
+  --dg-danger-solid: #d93025;   /* fondo de botón/badge rojo con texto blanco */
+
+  /* Paletas semánticas: fondo / borde / texto. En claro son los pasteles que
+     ya usaba la app; en oscuro pasan a fondos oscuros tintados con texto
+     claro, así el texto (y cualquier hijo que use --dg-text/--dg-muted/
+     --dg-petrol) sigue siendo legible. */
+  --dg-success-bg: #eaf8ef;
+  --dg-success-border: #bfe6c8;
+  --dg-success-text: #1f7a45;
+  --dg-warning-bg: #fff8e1;
+  --dg-warning-border: #f2d08a;
+  --dg-warning-text: #92400e;
+  --dg-danger-bg: #fdecec;
+  --dg-danger-border: #f2c1be;
+  --dg-danger-text: #b42318;
+  --dg-info-bg: #eff6ff;
+  --dg-info-border: #bfdbfe;
+  --dg-info-text: #1e40af;
+  --dg-purple-bg: #eef2ff;
+  --dg-purple-border: #c7d2fe;
+  --dg-purple-text: #3730a3;
+  --dg-orange-bg: #fff3e0;
+  --dg-orange-border: #ffcc80;
+  --dg-orange-text: #bf360c;
+  --dg-pink-bg: #fce4ec;
+  --dg-pink-border: #f48fb1;
+  --dg-pink-text: #ad1457;
+  --dg-neutral-bg: #f4f4f5;
+  --dg-neutral-border: #d4d4d8;
+  --dg-neutral-text: #3f3f46;
+  --dg-accent-bg: rgba(1, 163, 159, 0.08);
+  --dg-accent-border: rgba(1, 163, 159, 0.35);
+  --dg-accent-text: #007c78;
+
   font-family: "Mont", "Montserrat", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color-scheme: light;
 }
@@ -46,6 +86,39 @@
   --dg-card: #1c232c;
   --dg-tint: rgba(1, 163, 159, 0.06);
   --dg-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 16px 38px rgba(0, 0, 0, 0.6);
+
+  --dg-surface-2: #232b35;
+  --dg-surface-3: #2c3641;
+  --dg-text-soft: #c3cbd1;
+  --dg-danger-solid: #d93025;
+
+  --dg-success-bg: #13301f;
+  --dg-success-border: #2f6b47;
+  --dg-success-text: #86efac;
+  --dg-warning-bg: #33270b;
+  --dg-warning-border: #7a5a14;
+  --dg-warning-text: #fcd34d;
+  --dg-danger-bg: #3a1719;
+  --dg-danger-border: #843033;
+  --dg-danger-text: #fca5a5;
+  --dg-info-bg: #13243a;
+  --dg-info-border: #2d5282;
+  --dg-info-text: #93c5fd;
+  --dg-purple-bg: #221f42;
+  --dg-purple-border: #4c47a8;
+  --dg-purple-text: #c7d2fe;
+  --dg-orange-bg: #3a2010;
+  --dg-orange-border: #94491c;
+  --dg-orange-text: #fdba74;
+  --dg-pink-bg: #3a1529;
+  --dg-pink-border: #983a68;
+  --dg-pink-text: #f9a8d4;
+  --dg-neutral-bg: #2a3139;
+  --dg-neutral-border: #4a535d;
+  --dg-neutral-text: #d4d8dd;
+  --dg-accent-bg: rgba(1, 163, 159, 0.16);
+  --dg-accent-border: rgba(45, 212, 191, 0.45);
+  --dg-accent-text: #5eead4;
   color-scheme: dark;
 }
 
@@ -60,6 +133,41 @@
   background: rgba(255, 255, 255, 0.94);
   border-radius: 8px;
   padding: 4px 10px;
+}
+
+/* ===== Ajustes de dark mode sobre componentes globales ===== */
+
+/* El header también es --dg-card, así que el botón activo del toggle (mismo
+   color) no se distinguía: en oscuro va un escalón más claro. */
+:root[data-theme="dark"] .theme-toggle-btn.active {
+  background: var(--dg-surface-3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="dark"] .dg-acc-header:hover {
+  background: rgba(1, 163, 159, 0.08);
+}
+
+/* Brillo interno pensado para fondo claro: en oscuro quedaba una línea blanca. */
+:root[data-theme="dark"] .menu-card-icon {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .menu-card:hover {
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.5);
+}
+
+/* Controles nativos sin estilo propio (muchos textarea/select solo definen el
+   borde): en oscuro el navegador les pone su gris genérico (#3b3b3b), que no
+   combina con la paleta. :where() deja especificidad 0, así cualquier clase
+   (.input) o estilo inline sigue ganando. */
+:where(:root[data-theme="dark"]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), select, textarea) {
+  background-color: var(--dg-surface-2);
+  color: var(--dg-text);
+}
+:where(:root[data-theme="dark"]) ::placeholder {
+  color: rgba(238, 242, 244, 0.5);
+  opacity: 1;
 }
 
 * { box-sizing: border-box; }
