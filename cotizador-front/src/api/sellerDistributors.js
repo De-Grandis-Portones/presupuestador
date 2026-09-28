@@ -19,6 +19,12 @@ export async function updateMyDistributorPhone(id, phone = "") {
   return data.distributor || null;
 }
 
+export async function updateMyDistributorEmail(id, email = "") {
+  const { data } = await http.put(`/api/seller-distributors/${encodeURIComponent(String(id))}/email`, { email });
+  if (!data?.ok) throw new Error(data?.error || "No se pudo guardar el email");
+  return data.distributor || null;
+}
+
 export async function getMyDistributorLogo(id) {
   const { data } = await http.get(`/api/seller-distributors/${encodeURIComponent(String(id))}/logo`);
   if (!data?.ok) throw new Error(data?.error || "No se pudo cargar el logo");

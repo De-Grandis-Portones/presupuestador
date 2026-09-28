@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { dbQuery } from "./db.js";
-import { ensureUsersAdminColumns } from "./usersDb.js";
+import { ensureUsersAdminColumns, recoveryEmailSql } from "./usersDb.js";
 import { getGlobalForceLogoutBeforeMs } from "./settingsDb.js";
 
 // Cache en memoria del umbral de deslogueo global (ver setGlobalForceLogoutBeforeMs): se
@@ -111,7 +111,9 @@ export async function requireAuth(req, res, next) {
                coalesce(is_active, true) as is_active,
                coalesce(see_all_distributors, false) as see_all_distributors,
                coalesce(unlimited_dimensions, false) as unlimited_dimensions,
-               logo_data_url
+               logo_data_url,
+               ${recoveryEmailSql("presupuestador_users")} as recovery_email,
+               password_changed_at
         from public.presupuestador_users
         where id = $1
         limit 1
@@ -121,6 +123,16 @@ export async function requireAuth(req, res, next) {
       fresh = r.rows?.[0] || null;
     } catch {
       fresh = null;
+    }
+
+    // Cambio de contraseña (olvido o "Mi cuenta"): cierra las sesiones abiertas antes de
+    // ese momento. Se compara en segundos (resolucion de iat) para que el token nuevo
+    // que se emite en el mismo segundo del cambio siga siendo valido.
+    if (fresh?.password_changed_at) {
+      const changedAtSec = Math.floor(new Date(fresh.password_changed_at).getTime() / 1000);
+      if (Number(decoded.iat || 0) < changedAtSec) {
+        return res.status(401).json({ ok: false, error: "Tu contraseña cambió, iniciá sesión nuevamente." });
+      }
     }
 
     const u = fresh
@@ -148,6 +160,7 @@ export async function requireAuth(req, res, next) {
           // y se mandaria en cada request); solo se cuelga de req.user en esta
           // relectura fresca de la DB, que ya se hace en cada request autenticado.
           logo_data_url: fresh.logo_data_url ?? null,
+          recovery_email: fresh.recovery_email ?? null,
         })
       : sanitizeUserForPricing({ ...decoded, is_active: decoded.is_active ?? true });
 

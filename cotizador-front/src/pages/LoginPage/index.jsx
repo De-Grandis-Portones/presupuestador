@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 
 import Input from "../../ui/Input.jsx";
 import Button from "../../ui/Button.jsx";
@@ -132,6 +132,9 @@ export default function LoginPage() {
             >
               <EyeIcon open={showPassword} />
             </button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <Link to="/recuperar-contrasena" style={{ fontSize: 13 }}>¿Olvidaste tu contraseña?</Link>
           </div>
 
           <div className="spacer" />

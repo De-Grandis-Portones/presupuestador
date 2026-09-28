@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 import path from "path";
 import { requireAuth } from "../auth.js";
 import { dbQuery } from "../db.js";
-import { ensureUsersAdminColumns } from "../usersDb.js";
+import { ensureUsersAdminColumns, recoveryEmailSql, normalizeEmail } from "../usersDb.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -103,6 +103,9 @@ export function buildSellerDistributorsRouter() {
                d.default_maps_url,
                d.phone,
                d.visible_password,
+               coalesce(d.password_self_changed, false) as password_self_changed,
+               d.email,
+               ${recoveryEmailSql("d")} as recovery_email,
                (d.logo_data_url is not null) as has_logo,
                d.created_at,
                d.updated_at,
@@ -194,6 +197,44 @@ export function buildSellerDistributorsRouter() {
           returning d.id, d.username, d.full_name, d.is_active, d.odoo_partner_id,
                     d.odoo_pricelist_id, d.default_maps_url, d.phone,
                     d.visible_password, d.created_at, d.updated_at, d.assigned_seller_user_id`,
+        params
+      );
+      const distributor = q.rows?.[0] || null;
+      if (!distributor) return res.status(404).json({ ok: false, error: "Distribuidor no encontrado o no asignado a tu usuario" });
+      res.json({ ok: true, distributor });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // Email al que le llega el link de "¿Olvidaste tu contraseña?". Vacio = se usa el
+  // usuario si ya es un email (ver recoveryEmailSql).
+  router.put("/:id/email", requireAuth, requireSellerOrCommercial, async (req, res, next) => {
+    try {
+      await ensureUsersAdminColumns();
+      const distributorId = Number(req.params.id || 0);
+      const sellerId = Number(req.user?.user_id || req.user?.id || 0);
+      const seeAll = canSeeAllDistributors(req.user);
+      if (!distributorId) return res.status(400).json({ ok: false, error: "Distribuidor invalido" });
+      if (!sellerId && !seeAll) return res.status(400).json({ ok: false, error: "Usuario invalido" });
+
+      let email;
+      try {
+        email = normalizeEmail(req.body?.email);
+      } catch (e) {
+        return res.status(400).json({ ok: false, error: e.message });
+      }
+      const params = seeAll ? [distributorId, email] : [distributorId, email, sellerId];
+      const ownerWhere = seeAll ? "" : "and d.assigned_seller_user_id = $3";
+
+      const q = await dbQuery(
+        `update public.presupuestador_users d
+            set email = $2,
+                updated_at = now()
+          where d.id = $1
+            and coalesce(d.is_distribuidor,false) = true
+            ${ownerWhere}
+          returning d.id, d.username, d.email, ${recoveryEmailSql("d")} as recovery_email`,
         params
       );
       const distributor = q.rows?.[0] || null;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, useNavigate, NavLink } from "react-router-dom";
+import { Outlet, useNavigate, useLocation, NavLink } from "react-router-dom";
 import Button from "../ui/Button.jsx";
 import { useAuthStore } from "../domain/auth/store.js";
 import { getTechnicalConsultUnreadSummary } from "../api/technicalConsults.js";
@@ -295,6 +295,55 @@ function CommercialConsultHeaderButton() {
   );
 }
 
+const EMAIL_BANNER_DISMISS_KEY = "presupuestador_email_banner_dismissed_until";
+const EMAIL_BANNER_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function readEmailBannerDismissed() {
+  try {
+    return Number(localStorage.getItem(EMAIL_BANNER_DISMISS_KEY) || 0) > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+// Sin email no se puede usar "¿Olvidaste tu contraseña?": se le pide que lo cargue en Mi
+// cuenta. "Ahora no" lo esconde una semana en este navegador.
+function MissingEmailBanner() {
+  const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [dismissed, setDismissed] = useState(readEmailBannerDismissed);
+
+  if (!user || user.recovery_email || dismissed || location.pathname === "/mi-cuenta") return null;
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(EMAIL_BANNER_DISMISS_KEY, String(Date.now() + EMAIL_BANNER_DISMISS_MS));
+    } catch {
+      // ignore
+    }
+    setDismissed(true);
+  };
+
+  return (
+    <div className="container" style={{ paddingBottom: 0 }}>
+      <div
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+          padding: "10px 14px", borderRadius: 12, fontSize: 14,
+          background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)", color: "var(--dg-warning-text)",
+        }}
+      >
+        <span>Cargá tu email para poder recuperar tu contraseña si te la olvidás.</span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button variant="secondary" onClick={() => navigate("/mi-cuenta")}>Cargar email</Button>
+          <Button variant="ghost" onClick={dismiss}>Ahora no</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AppLayout() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -386,6 +435,9 @@ export default function AppLayout() {
             <CommercialConsultHeaderButton />
             <OdooStatusBadge />
             <ThemeToggle />
+            <Button variant="ghost" onClick={() => navigate("/mi-cuenta")} title="Email de recuperación y cambio de contraseña">
+              Mi cuenta
+            </Button>
             <Button
               variant="ghost"
               onClick={() => {
@@ -420,6 +472,7 @@ export default function AppLayout() {
         </div>
       </div>
 
+      <MissingEmailBanner />
       <AptoKgProductSectionFilterPatch />
       <PendingClientAcceptanceModal />
       {isSuperuser || user?.is_rev_tecnica ? <MeetMeetingReminderWatcher /> : null}

@@ -30,6 +30,15 @@ export async function ensureUsersAdminColumns() {
   await dbQuery(`alter table public.presupuestador_users add column if not exists logo_data_url text null;`);
   await dbQuery(`create index if not exists presupuestador_users_assigned_seller_idx on public.presupuestador_users(assigned_seller_user_id);`);
 
+  // Recuperacion de contraseña (ver passwordReset.js): email al que se manda el link.
+  // Si queda vacio y el username ya es un email, se usa el username (ver
+  // recoveryEmailSql). password_changed_at invalida los JWT emitidos antes del cambio
+  // (ver requireAuth), y password_self_changed marca que la puso el propio usuario, asi
+  // Mis distribuidores / Gestor de usuarios no muestran una visible_password vieja.
+  await dbQuery(`alter table public.presupuestador_users add column if not exists email text null;`);
+  await dbQuery(`alter table public.presupuestador_users add column if not exists password_changed_at timestamptz null;`);
+  await dbQuery(`alter table public.presupuestador_users add column if not exists password_self_changed boolean not null default false;`);
+
   // API key para integraciones de partner (ver src/partnerAuth.js): permite que el
   // sistema de un distribuidor pida precios sin loguearse como usuario. Solo se
   // guarda el hash (nunca la key en texto plano) - prefix es solo para mostrar en
@@ -64,6 +73,24 @@ export async function ensureUsersAdminColumns() {
   }
 
   ensured = true;
+}
+
+// Sin backslashes a proposito (van dentro de un template literal de JS y de un string SQL).
+const EMAIL_SQL_REGEX = "^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$";
+const EMAIL_JS_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+// Email efectivo para recuperar la contraseña: el cargado a mano, o el username si ya
+// es un email (muchos distribuidores importados usan el email como usuario).
+export function recoveryEmailSql(alias = "u") {
+  return `coalesce(nullif(trim(${alias}.email), ''), case when ${alias}.username ~* '${EMAIL_SQL_REGEX}' then trim(${alias}.username) end)`;
+}
+
+// "" / null => null (vuelve a usar el username si es un email). Tira error si no es un email.
+export function normalizeEmail(value) {
+  const email = String(value ?? "").trim().toLowerCase();
+  if (!email) return null;
+  if (email.length > 254 || !EMAIL_JS_REGEX.test(email)) throw new Error("Email inválido");
+  return email;
 }
 
 function normRole(role) {
@@ -182,7 +209,7 @@ export async function listUsers({ role = "all", q = "", active = "all" } = {}) {
   if (query) {
     params.push(`%${query}%`);
     params.push(`%${query}%`);
-    where.push(`(u.username ilike $${params.length - 1} or coalesce(u.full_name,'') ilike $${params.length})`);
+    where.push(`(u.username ilike $${params.length - 1} or coalesce(u.full_name,'') ilike $${params.length} or coalesce(u.email,'') ilike $${params.length})`);
   }
 
   const sql = `
@@ -195,6 +222,9 @@ export async function listUsers({ role = "all", q = "", active = "all" } = {}) {
            u.default_maps_url,
            u.assigned_seller_user_id,
            u.visible_password,
+           u.email,
+           ${recoveryEmailSql("u")} as recovery_email,
+           coalesce(u.password_self_changed, false) as password_self_changed,
            coalesce(u.see_all_distributors, false) as see_all_distributors,
            coalesce(u.unlimited_dimensions, false) as unlimited_dimensions,
            s.username as assigned_seller_username,
@@ -227,6 +257,7 @@ export async function createUser({
   assigned_seller_user_id = null,
   is_active = true,
   unlimited_dimensions = false,
+  email = null,
 } = {}) {
   await ensureUsersAdminColumns();
 
@@ -253,6 +284,7 @@ export async function createUser({
   if (dist && !sellerUserId) throw new Error("Falta vendedor asignado para el distribuidor");
 
   const unlimitedDims = !!unlimited_dimensions;
+  const emailN = normalizeEmail(email);
 
   const r = await dbQuery(
     `
@@ -261,17 +293,17 @@ export async function createUser({
        is_distribuidor, is_vendedor, is_medidor, is_logistica, is_superuser, is_administracion,
        is_enc_comercial, is_rev_tecnica,
        odoo_partner_id, odoo_pricelist_id, default_maps_url, assigned_seller_user_id,
-       unlimited_dimensions)
+       unlimited_dimensions, email)
     values
       ($1, crypt($2, gen_salt('bf')), $3, $4, $5,
        $6, $7, $8, $9, $10, $11,
        false, false,
-       $12, $13, $14, $15, $16)
+       $12, $13, $14, $15, $16, $17)
     returning id, username, full_name,
               is_distribuidor, is_vendedor, is_medidor, is_logistica, is_superuser, is_administracion,
               is_enc_comercial, is_rev_tecnica,
               is_active, odoo_partner_id, odoo_pricelist_id, default_maps_url,
-              assigned_seller_user_id, visible_password, unlimited_dimensions, created_at, updated_at
+              assigned_seller_user_id, visible_password, unlimited_dimensions, email, created_at, updated_at
     `,
     [
       u,
@@ -290,6 +322,7 @@ export async function createUser({
       (default_maps_url ? String(default_maps_url).trim() : null),
       sellerUserId,
       unlimitedDims,
+      emailN,
     ]
   );
 
@@ -312,6 +345,7 @@ export async function updateUser(id, {
   is_active,
   see_all_distributors,
   unlimited_dimensions,
+  email,
 } = {}) {
   await ensureUsersAdminColumns();
 
@@ -319,7 +353,7 @@ export async function updateUser(id, {
   if (!userId) throw new Error("id inválido");
 
   const cur = await dbQuery(
-    `select id, is_distribuidor, is_vendedor, is_medidor, is_logistica, is_superuser, is_administracion, is_active, full_name, odoo_partner_id, odoo_pricelist_id, default_maps_url, assigned_seller_user_id, visible_password, coalesce(see_all_distributors,false) as see_all_distributors, coalesce(unlimited_dimensions,false) as unlimited_dimensions
+    `select id, is_distribuidor, is_vendedor, is_medidor, is_logistica, is_superuser, is_administracion, is_active, full_name, odoo_partner_id, odoo_pricelist_id, default_maps_url, assigned_seller_user_id, visible_password, email, coalesce(see_all_distributors,false) as see_all_distributors, coalesce(unlimited_dimensions,false) as unlimited_dimensions
        from public.presupuestador_users where id=$1 limit 1`,
     [userId]
   );
@@ -358,6 +392,7 @@ export async function updateUser(id, {
   const visiblePassword = pass ? pass : "";
   const seeAll = see_all_distributors !== undefined ? !!see_all_distributors : !!current.see_all_distributors;
   const unlimitedDims = unlimited_dimensions !== undefined ? !!unlimited_dimensions : !!current.unlimited_dimensions;
+  const emailN = email !== undefined ? normalizeEmail(email) : (current.email ?? null);
 
   const r = await dbQuery(
     `
@@ -375,21 +410,25 @@ export async function updateUser(id, {
         default_maps_url = $12,
         password_hash = case when $13::text is null or $13::text = '' then password_hash else crypt($13::text, gen_salt('bf')) end,
         visible_password = case when $14::text is null or $14::text = '' then visible_password else $14::text end,
+        -- Si la contraseña la vuelve a poner un admin, deja de contar como "la cambio el usuario".
+        password_self_changed = case when $13::text is null or $13::text = '' then password_self_changed else false end,
         assigned_seller_user_id = $15,
         see_all_distributors = $16,
         unlimited_dimensions = $17,
+        email = $18,
         updated_at = now()
     where id = $1
     returning id, username, full_name,
               is_distribuidor, is_vendedor, is_medidor, is_logistica, is_superuser, is_administracion,
               is_enc_comercial, is_rev_tecnica,
               is_active, odoo_partner_id, odoo_pricelist_id, default_maps_url,
-              assigned_seller_user_id, visible_password,
+              assigned_seller_user_id, visible_password, email,
+              coalesce(password_self_changed, false) as password_self_changed,
               coalesce(see_all_distributors, false) as see_all_distributors,
               coalesce(unlimited_dimensions, false) as unlimited_dimensions,
               created_at, updated_at
     `,
-    [userId, name, active, dist, vend, med, log, sup, adm, pid, pricelistId, mapsUrl, pass, visiblePassword, sellerUserId, seeAll, unlimitedDims]
+    [userId, name, active, dist, vend, med, log, sup, adm, pid, pricelistId, mapsUrl, pass, visiblePassword, sellerUserId, seeAll, unlimitedDims, emailN]
   );
 
   return r.rows?.[0] || null;
