@@ -10,6 +10,7 @@ import {
   changeOwnPassword,
   updateOwnEmail,
 } from "../passwordReset.js";
+import { getMailStatus } from "../mailer.js";
 
 // Rutas sin auth de recuperacion de contraseña: limite por IP para que no se puedan usar
 // para mandar mails en masa ni para probar tokens a lo bruto (ademas del limite por
@@ -101,15 +102,27 @@ export function buildAuthRouter() {
     res.json({ ok: true, user: sanitizeUserForPricing(req.user) });
   });
 
+  // El front muestra "¿Olvidaste tu contraseña?" solo si el envio de emails funciona de
+  // verdad (ver getMailStatus). Asi el codigo se puede publicar antes de cargar las
+  // variables del email, y el link aparece solo cuando se cargan.
+  router.get("/password-reset/status", async (_req, res) => {
+    res.json({ ok: true, enabled: await getMailStatus() });
+  });
+
   // Responde siempre igual (exista o no el usuario, tenga o no email) y manda el email
   // despues de responder, asi ni el mensaje ni el tiempo de respuesta revelan nada.
   router.post("/forgot-password", forgotPasswordLimiter, (req, res) => {
     const identifier = String(req.body?.identifier || "").trim();
     res.json({ ok: true });
     if (!identifier) return;
-    requestPasswordReset({ identifier, ip: req.ip }).catch((e) => {
-      console.error("[password-reset] no se pudo procesar el pedido:", e?.message || e);
-    });
+    getMailStatus()
+      .then((enabled) => {
+        if (!enabled) return console.warn("[password-reset] pedido ignorado: el envio de emails no esta configurado");
+        return requestPasswordReset({ identifier, ip: req.ip });
+      })
+      .catch((e) => {
+        console.error("[password-reset] no se pudo procesar el pedido:", e?.message || e);
+      });
   });
 
   router.post("/reset-password/check", resetPasswordLimiter, async (req, res, next) => {

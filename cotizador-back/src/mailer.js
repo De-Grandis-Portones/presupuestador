@@ -25,6 +25,43 @@ export function isMailConfigured() {
   return !!relayConfig() || !!String(process.env.RESEND_API_KEY || "").trim();
 }
 
+// ¿Se pueden mandar emails de verdad? Con el relay le pregunta a la funcion de Vercel, que
+// prueba el login SMTP (asi cubre que falte o este mal la contraseña de la casilla, o que
+// la funcion todavia no este publicada). Se cachea 10 min: cada consulta hace un login
+// SMTP, y muchos logins fallidos seguidos pueden hacer que el servidor de correo bloquee.
+const MAIL_STATUS_TTL_MS = 10 * 60 * 1000;
+let mailStatus = { value: null, at: 0, pending: null };
+
+async function checkMailWorks() {
+  const relay = relayConfig();
+  if (relay) {
+    try {
+      const { data } = await axios.post(
+        relay.url,
+        { ping: true },
+        { headers: { "x-mail-relay-secret": relay.secret }, timeout: 20000 }
+      );
+      return data?.ok === true;
+    } catch {
+      return false;
+    }
+  }
+  return !!String(process.env.RESEND_API_KEY || "").trim();
+}
+
+export function getMailStatus() {
+  if (mailStatus.value !== null && Date.now() - mailStatus.at < MAIL_STATUS_TTL_MS) {
+    return Promise.resolve(mailStatus.value);
+  }
+  if (!mailStatus.pending) {
+    mailStatus.pending = checkMailWorks().then((value) => {
+      mailStatus = { value, at: Date.now(), pending: null };
+      return value;
+    });
+  }
+  return mailStatus.pending;
+}
+
 async function sendViaRelay({ url, secret }, { to, subject, html, text }) {
   try {
     const { data } = await axios.post(

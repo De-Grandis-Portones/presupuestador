@@ -1,16 +1,42 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import Input from "../../ui/Input.jsx";
 import Button from "../../ui/Button.jsx";
 import PublicAuthCard from "../../components/PublicAuthCard.jsx";
-import { forgotPassword } from "../../api/auth.js";
+import { forgotPassword, getPasswordResetEnabled } from "../../api/auth.js";
 
 export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState("");
 
   const m = useMutation({ mutationFn: () => forgotPassword(identifier.trim()) });
+  const enabledQ = useQuery({
+    queryKey: ["passwordResetEnabled"],
+    queryFn: getPasswordResetEnabled,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  // Todavia no se configuro el envio de emails (o no funciona): no tiene sentido pedir el link.
+  if (enabledQ.data === false) {
+    return (
+      <PublicAuthCard title="Recuperar contraseña">
+        <div className="spacer" />
+        <div style={{ fontSize: 14, lineHeight: 1.5, textAlign: "center" }}>
+          La recuperación por email todavía no está disponible.
+        </div>
+        <div className="spacer" />
+        <div className="muted" style={{ fontSize: 13, lineHeight: 1.5, textAlign: "center" }}>
+          Pedile a tu vendedor que te resetee la contraseña.
+        </div>
+        <div className="spacer" />
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <Link to="/login" style={{ color: "var(--dg-accent-text)", fontSize: 14, fontWeight: 700 }}>Volver a iniciar sesión</Link>
+        </div>
+      </PublicAuthCard>
+    );
+  }
 
   if (m.isSuccess) {
     return (

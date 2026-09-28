@@ -12,6 +12,17 @@ export async function getMe() {
   return data.user;
 }
 
+// true solo si el envio de emails funciona de verdad (si no, no se muestra "¿Olvidaste tu
+// contraseña?"). Ante cualquier error, false.
+export async function getPasswordResetEnabled() {
+  try {
+    const { data } = await http.get("/api/auth/password-reset/status");
+    return data?.ok === true && data?.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function forgotPassword(identifier) {
   const { data } = await http.post("/api/auth/forgot-password", { identifier });
   if (!data?.ok) throw new Error(data?.error || "No se pudo enviar el pedido");
