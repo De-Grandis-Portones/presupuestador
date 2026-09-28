@@ -674,9 +674,15 @@ export function computeParantesSchemeProps({ dimensions = {}, lines = [], params
     ? getParantesCount(dimensions?.cantidad_parantes)
     : autoParantesCount;
   const tubeDiscountMm = getParantesTubeDiscountMm(params);
+  // La hoja guardada en dimensions (hoja_ancho_mm/hoja_alto_mm) es la misma que ya muestra
+  // "Medidas de Hoja (calculada)" en el detalle del presupuesto - puede venir del recalculo
+  // oficial del backend tras la medicion final (portonVanoMeasurements.js) y no coincidir
+  // con lo que recalcularia de nuevo el preview local a partir del ancho/alto del vano.
+  const storedHojaAnchoMm = Number(dimensions?.hoja_ancho_mm || 0);
+  const storedHojaAltoMm = Number(dimensions?.hoja_alto_mm || 0);
   const baseParantesDimensionMm = effectiveParantesOrientation === "horizontal"
-    ? Math.max(0, Number(preview?.altoHojaMm || preview?.altoPasoMm || 0))
-    : Math.max(0, Number(preview?.anchoHojaMm || preview?.anchoPasoMm || 0));
+    ? Math.max(0, storedHojaAltoMm || Number(preview?.altoHojaMm || preview?.altoPasoMm || 0))
+    : Math.max(0, storedHojaAnchoMm || Number(preview?.anchoHojaMm || preview?.anchoPasoMm || 0));
   const rawParantesDistances = dimensions?.distancias_parantes_mm ?? dimensions?.distancias_parantes ?? [];
   const distributeUniformly = dimensions?.distribuir_parantes_uniformemente === true || String(dimensions?.distribuir_parantes_uniformemente || "").trim().toLowerCase() === "true";
   const showSpecialParantesDistances = aptoParaRevestir && distribution === "especial";
@@ -754,8 +760,8 @@ export function computeParantesSchemeProps({ dimensions = {}, lines = [], params
     distances: sketchParantesDistances,
     distributeUniformly: false,
     tubeDiscountMm,
-    portonWidthMm: Math.max(0, Number(preview?.anchoHojaMm || preview?.anchoPasoMm || 0)),
-    portonHeightMm: Math.max(0, Number(preview?.altoHojaMm || preview?.altoPasoMm || 0)),
+    portonWidthMm: Math.max(0, storedHojaAnchoMm || Number(preview?.anchoHojaMm || preview?.anchoPasoMm || 0)),
+    portonHeightMm: Math.max(0, storedHojaAltoMm || Number(preview?.altoHojaMm || preview?.altoPasoMm || 0)),
     hasFixedVerticalReference: effectiveFixedReference,
     fixedReferenceSide: effectiveFixedReferenceSide,
     fixedReferenceDistanceMm: effectiveFixedReferenceDistanceMm,
