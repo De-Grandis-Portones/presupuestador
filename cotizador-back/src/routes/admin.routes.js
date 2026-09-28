@@ -3,6 +3,7 @@ import { requireAuth } from "../auth.js";
 import { loadCatalogBootstrap, clearCatalogBootstrapCache } from "../catalogBootstrap.js";
 import { normKind, createSection, updateSection, deleteSection, setTagSection, setProductAlias, setProductVisibility, setTypeVisibility, getProductPdfNameMap, setProductPdfName } from "../catalogDb.js";
 import { dbQuery } from "../db.js";
+import { isLegacyImport, upsertLegacyPreproduccionValores } from "../legacyImport.js";
 import { listUsers, createUser, updateUser, ensureUsersAdminColumns } from "../usersDb.js";
 import { triggerPreproductionForClientAcceptance, formatPortonTypeLabel, resyncPortonMeasurements } from "../measurementFinalization.js";
 import { ensureQuotesMeasurementColumns } from "../quotesSchema.js";
@@ -880,6 +881,8 @@ export function buildAdminRouter(odoo) {
       );
       const originalQuote = origR.rows?.[0];
       if (!originalQuote) return res.status(404).json({ ok: false, error: `No se encontró quote original para ${nvStr}` });
+      // Portón migrado del sistema anterior: su fila sale de la ficha vieja (nunca se pisa con el payload).
+      if (isLegacyImport(originalQuote)) return res.json({ ok: true, nv, nv_tipo: nvTipo, method: "legacy", result: await upsertLegacyPreproduccionValores(originalQuote) });
 
       // Intentar primero por la función normal (requiere copy quote con NV)
       const normalResult = await triggerPreproductionForClientAcceptance(null, originalQuote);

@@ -13,6 +13,8 @@ import { useAuthStore } from "../../domain/auth/store.js";
 import { formatARS, calcTotals, calcLineTotal, resolveLineFinalUnitPrice } from "../../domain/quote/pricing.js";
 import { computeCommercialLinesDiff } from "../../domain/quote/commercialDiff.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
+import LegacyFichaCard from "../../components/LegacyFichaCard.jsx";
+import { isLegacyImport, legacyImportLabel } from "../../utils/legacyImport.js";
 import MeasurementReadOnlyView from "../../components/MeasurementReadOnlyView.jsx";
 import { ParantesDistributionButton } from "../../components/ParantesDistributionScheme.jsx";
 
@@ -1290,6 +1292,8 @@ export default function QuoteDetailPage() {
   const approvalCommercialRows = useMemo(() => buildApprovalCommercialRows(quote, conditionMode, approvalFinancingPercent), [quote, conditionMode, approvalFinancingPercent]);
   const approvalTechnicalRows = useMemo(() => buildApprovalContextRows(quote, conditionMode), [quote, conditionMode]);
   const budgetObservation = useMemo(() => extractBudgetObservation(quote), [quote]);
+  // Portón migrado del sistema anterior: solo ficha técnica, sin ítems/Odoo/medición.
+  const isLegacy = isLegacyImport(quote);
   const plegadoDescription = useMemo(() => extractPlegadoDescription(quote), [quote]);
   const plegadoSurface = useMemo(() => formatPlegadoSurface(quote), [quote]);
   const plegadoAttachment = useMemo(() => getPlegadoAttachment(quote || {}), [quote]);
@@ -1339,7 +1343,8 @@ export default function QuoteDetailPage() {
               <span>· Número: <b>{displayQuoteNumber(quote, quoteId)}</b></span>
               <span>· Creado por: <b>{quote.created_by_role}</b></span>
               <span>· Destino: <b>{quote.fulfillment_mode === "acopio" ? "Acopio" : "Producción"}</b></span>
-              {!isRevision && quote.status === "synced_odoo" ? <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>En Odoo: {quote.odoo_sale_order_name || `SO#${quote.odoo_sale_order_id}`}</span> : null}
+              {isLegacy ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>{legacyImportLabel(quote)}</span> : null}
+              {!isLegacy && !isRevision && quote.status === "synced_odoo" ? <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>En Odoo: {quote.odoo_sale_order_name || `SO#${quote.odoo_sale_order_id}`}</span> : null}
               {isRevision && quote.final_sale_order_name ? <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>Odoo final: {quote.final_sale_order_name}</span> : null}
               {isRevision && quote.final_absorbed_by_company ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>Diferencia absorbida por empresa</span> : null}
               {quote.status === "syncing_odoo" ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>Sincronizando a Odoo…</span> : null}
@@ -1372,6 +1377,12 @@ export default function QuoteDetailPage() {
                   <div style={{ fontWeight: 900, marginBottom: 6 }}>Observación</div>
                   <div style={{ whiteSpace: "pre-wrap", fontWeight: 700 }}>{budgetObservation}</div>
                 </div>
+              </>
+            ) : null}
+            {isLegacy ? (
+              <>
+                <div className="spacer" />
+                <LegacyFichaCard quote={quote} />
               </>
             ) : null}
             {isPlegadosQuote(quote) ? (
@@ -1415,7 +1426,7 @@ export default function QuoteDetailPage() {
               <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", justifyContent: "flex-end" }}>
                 {((!isRevision && quote.status === "draft") || (isRevision && !["syncing_odoo", "synced_odoo"].includes(quote.final_status || ""))) ? <Button onClick={() => navigate(quoteEditorPath(quote))}>{isRevision ? (quote.parent_requires_measurement ? "Edición postmedición" : "Edición acopio") : "Editar"}</Button> : null}
                 {!isRevision && quote.final_copy_id ? <Button variant="ghost" onClick={() => navigate(`/presupuestos/${quote.final_copy_id}`)}>Ver final</Button> : null}
-                {((user?.is_vendedor || user?.is_distribuidor) && String(quote.created_by_user_id) === String(user.user_id) && !isRevision && quote.status === "synced_odoo" && hasMeasurementForPdf(quote) && !quote.final_copy_id) ? <Button variant="ghost" disabled={revisionM.isPending} onClick={() => revisionM.mutate()}>{revisionM.isPending ? "Creando…" : "Crear ajuste"}</Button> : null}
+                {(!isLegacy && (user?.is_vendedor || user?.is_distribuidor) && String(quote.created_by_user_id) === String(user.user_id) && !isRevision && quote.status === "synced_odoo" && hasMeasurementForPdf(quote) && !quote.final_copy_id) ? <Button variant="ghost" disabled={revisionM.isPending} onClick={() => revisionM.mutate()}>{revisionM.isPending ? "Creando…" : "Crear ajuste"}</Button> : null}
                 {isRevision && quote.parent_quote_id ? <Button variant="ghost" onClick={() => navigate(`/presupuestos/${quote.parent_quote_id}`)}>Ver original</Button> : null}
                 <Button variant="ghost" onClick={() => navigate(approvalReturnPath)}>Volver</Button>
               </div>
@@ -1429,7 +1440,7 @@ export default function QuoteDetailPage() {
             ) : null}
             <div className="spacer" />
             {!isRevision ? <div className="card" style={{ background: "var(--dg-card)" }}><div style={{ fontWeight: 900, marginBottom: 6 }}>Aprobaciones</div><div className="muted" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}><span>Comercial: <b>{decisionLabel(quote.commercial_decision)}</b>{quote.commercial_decision === "rejected" && quote.commercial_notes ? ` · ${quote.commercial_notes}` : ""}</span><span>Técnica: <b>{decisionLabel(quote.technical_decision)}</b>{quote.technical_decision === "rejected" && quote.technical_notes ? ` · ${quote.technical_notes}` : ""}</span></div></div> : null}
-            {(!!approvalCommercialRows.length || !!approvalTechnicalRows.length) ? <><div className="spacer" /><ApprovalContextCard quote={quote} commercialRows={approvalCommercialRows} technicalRows={approvalTechnicalRows} /></> : null}
+            {!isLegacy && (!!approvalCommercialRows.length || !!approvalTechnicalRows.length) ? <><div className="spacer" /><ApprovalContextCard quote={quote} commercialRows={approvalCommercialRows} technicalRows={approvalTechnicalRows} /></> : null}
             {showCommercialDiffPanel ? (
               <>
                 <div className="spacer" />
@@ -1446,9 +1457,9 @@ export default function QuoteDetailPage() {
                 />
               </>
             ) : null}
-            {showMeasurement && !isRevision ? <><div className="spacer" /><div className="card" style={{ background: "var(--dg-card)" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><div style={{ fontWeight: 900 }}>Planilla de medición</div><div className="muted">Estado: <b>{measurementStatusLabel(quote.measurement_status)}</b></div></div>{hasMeasurementForPdf(quote) ? <Button variant="secondary" onClick={() => downloadMedicionPdf(quote.id)}>Descargar PDF</Button> : null}</div><div className="spacer" />{quote.measurement_form ? <MeasurementReadOnlyView quote={quote} /> : null}</div></> : null}
-            <h3 style={{ marginTop: 0 }}>Ítems</h3>
-            {!lines.length ? <div className="muted">Sin ítems</div> : null}
+            {!isLegacy && showMeasurement && !isRevision ? <><div className="spacer" /><div className="card" style={{ background: "var(--dg-card)" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><div style={{ fontWeight: 900 }}>Planilla de medición</div><div className="muted">Estado: <b>{measurementStatusLabel(quote.measurement_status)}</b></div></div>{hasMeasurementForPdf(quote) ? <Button variant="secondary" onClick={() => downloadMedicionPdf(quote.id)}>Descargar PDF</Button> : null}</div><div className="spacer" />{quote.measurement_form ? <MeasurementReadOnlyView quote={quote} /> : null}</div></> : null}
+            {!isLegacy ? <h3 style={{ marginTop: 0 }}>Ítems</h3> : null}
+            {!isLegacy && !lines.length ? <div className="muted">Sin ítems</div> : null}
             {!!lines.length ? <table><thead><tr><th>Producto</th><th className="right">Cant.</th><th className="right">Precio base</th><th className="right">Total base</th><th className="right">Precio con coeficiente</th><th className="right">Total ítem</th></tr></thead><tbody>{approvalLineRows.map((l) => <tr key={l._approvalKey}><td><div style={{ fontWeight: 700 }}>{l.name || `Producto ${l.product_id}`}</div><div className="muted">ID: {l.product_id} {l.code ? `| ${l.code}` : ""}</div></td><td className="right">{l._approvalQty}</td><td className="right" style={{ color: "var(--dg-accent-text)" }}>{formatARS(l._approvalBasePrice)}</td><td className="right" style={{ color: "var(--dg-accent-text)" }}>{formatARS(l._approvalBaseTotal)}</td><td className="right">{formatARS(l._approvalFinalUnit)}</td><td className="right" style={{ fontWeight: 800 }}>{formatARS(l._approvalTotal)}</td></tr>)}</tbody></table> : null}
             {!!lines.length ? <ProformaTotalsCard quote={quote} conditionMode={conditionMode} financingPercent={quote?.created_by_role === "distribuidor" ? approvalFinancingPercent : 0} /> : null}
             {!!lines.length ? <ApprovalTotalsBottomCard quote={quote} conditionMode={conditionMode} financingPercent={approvalFinancingPercent} /> : null}

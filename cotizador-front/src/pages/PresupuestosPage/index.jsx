@@ -11,6 +11,8 @@ import { listQuotes, requestProductionFromAcopio } from "../../api/quotes.js";
 import { downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
 import { dateOnlyIso } from "../../utils/dateOnly.js";
+import { isLegacyImport, legacyImportLabel } from "../../utils/legacyImport.js";
+import LegacyMigratedNote from "../../components/LegacyMigratedNote.jsx";
 
 const PAGE_SIZE = 25;
 
@@ -48,6 +50,7 @@ function quoteWaitingMeasurement(q) {
   return q?.status === "pending_approvals" && q?.commercial_decision === "approved" && q?.technical_decision === "approved" && q?.requires_measurement === true && String(q?.measurement_status || "none").toLowerCase() !== "approved";
 }
 function labelQuoteStatus(q) {
+  if (isLegacyImport(q)) return q?.fulfillment_mode === "produccion" ? "En producción (sistema anterior)" : "En acopio (sistema anterior)";
   if (isReturnedFromMeasurement(q)) return "Pendiente por hacer cambios postmedición";
   if (isPendingCommercialReviewAfterReturn(q)) return "Reenviado, esperando aprobación comercial";
   const s = q?.status;
@@ -148,9 +151,10 @@ function doorOdooReference(d) {
     d?.record?.odoo_purchase_order_name,
   ]).join(" / ");
 }
-function OdooReferenceCell({ value }) {
+function OdooReferenceCell({ value, legacy = false }) {
   const text = String(value || "").trim();
   if (!text) return <span className="muted">—</span>;
+  if (legacy) return <span title="Vendido en el sistema anterior: no tiene NP/NV en Odoo" style={{ fontWeight: 900, color: "var(--dg-warning-text)", background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
   return <span style={{ fontWeight: 900, color: "var(--dg-success-text)", background: "var(--dg-success-bg)", border: "1px solid var(--dg-success-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
 }
 
@@ -531,7 +535,7 @@ export default function PresupuestosPage() {
                       <td>{fmtDateTime(r.created_at)}</td>
                       <td><TypeBadge label={item.typeLabel} /></td>
                       <td>
-                        {r.end_customer?.name || <span className="muted">(sin nombre)</span>}
+                        {r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} />
                         {r.payload?.distribuidor_vendedor_nombre ? (
                           <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Vend. dist.: {r.payload.distribuidor_vendedor_nombre}</div>
                         ) : null}
@@ -545,7 +549,7 @@ export default function PresupuestosPage() {
                           />
                         ) : item.statusLabel}
                       </td>
-                      <td><OdooReferenceCell value={item.odooReference} /></td>
+                      <td><OdooReferenceCell value={isLegacyImport(r) ? legacyImportLabel(r) : item.odooReference} legacy={isLegacyImport(r)} /></td>
                       <td>{item.destinationLabel}</td>
                       {filter === "mediciones" ? <td>{item.measurementDate}</td> : null}
                       {filter === "mediciones" ? <td>{item.measurementStatus}</td> : null}
@@ -587,8 +591,9 @@ export default function PresupuestosPage() {
                           </span>
                         ) : (
                           <>
-                            <Button variant="ghost" disabled={downloadingPdfKey === originalPdfKey} onClick={() => handleDownloadQuotePdf(r.id)}>Ver original</Button>
-                            {canDownloadQuoteProforma ? <Button variant="ghost" disabled={downloadingPdfKey === originalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.id)}>Proforma</Button> : null}
+                            {isLegacyImport(r) ? <Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`)}>Ver ficha</Button> : null}
+                            {!isLegacyImport(r) ? <Button variant="ghost" disabled={downloadingPdfKey === originalPdfKey} onClick={() => handleDownloadQuotePdf(r.id)}>Ver original</Button> : null}
+                            {canDownloadQuoteProforma && !isLegacyImport(r) ? <Button variant="ghost" disabled={downloadingPdfKey === originalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.id)}>Proforma</Button> : null}
                             {hasFinal ? <Button variant="ghost" disabled={downloadingPdfKey === finalPdfKey} onClick={() => handleDownloadQuotePdf(r.final_copy_id)}>Ver final</Button> : null}
                             {canDownloadQuoteProforma && hasFinal ? <Button variant="ghost" disabled={downloadingPdfKey === finalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.final_copy_id)}>Proforma final</Button> : null}
                             {hasMeasurementDetail ? (() => { const canViewMeasurement = isMeasurementApproved || isReturnedFromMeasurement(r); return <Button variant="ghost" disabled={!canViewMeasurement} title={canViewMeasurement ? "" : "Disponible cuando Técnica apruebe la medición / detalle técnico"} onClick={() => { if (!canViewMeasurement) return; navigate(`/mediciones/${r.id}`, isReturnedFromMeasurement(r) && !isMeasurementApproved ? { state: { readOnlyMeasurement: true } } : undefined); }}>{measurementLabel}</Button>; })() : null}

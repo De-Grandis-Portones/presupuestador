@@ -1,6 +1,7 @@
 import express from "express";
 import { requireAuth } from "../auth.js";
 import { dbQuery } from "../db.js";
+import { assertNotLegacyImport } from "../legacyImport.js";
 import { ensureDoorsSchema } from "../doorsSchema.js";
 import { ensureQuotesMeasurementColumns } from "../quotesSchema.js";
 import { createOdooClient } from "../odoo.js";
@@ -610,6 +611,7 @@ export function buildDoorsRouter(odooArg) {
       const quote = await getQuoteOwnedBySeller(linkedQuoteId, req.user.user_id);
       if (!quote) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado o no sos dueno" });
       if (String(quote.catalog_kind || "porton").toLowerCase() !== "porton") return res.status(400).json({ ok: false, error: "La puerta solo puede vincularse a un presupuesto de porton" });
+      assertNotLegacyImport(quote, "vincularle una puerta");
       const record = buildInitialDoorRecord({ quote, user: req.user });
       const doorCode = buildDoorCodeFromQuote(quote) || buildFallbackDoorCode(linkedQuoteId);
       const ins = await dbQuery(`insert into public.presupuestador_doors (created_by_user_id, linked_quote_id, door_code, status, commercial_decision, technical_decision, record, updated_at) values ($1, $2, $3, 'draft', 'pending', 'pending', $4::jsonb, now()) returning id`, [Number(req.user.user_id), linkedQuoteId, doorCode, JSON.stringify(record)]);

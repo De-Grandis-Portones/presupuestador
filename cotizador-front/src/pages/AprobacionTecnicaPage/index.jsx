@@ -12,6 +12,8 @@ import { useAuthStore } from "../../domain/auth/store.js";
 import { downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
 import { dateOnlyIso, parseDateOnly } from "../../utils/dateOnly.js";
+import { isLegacyImport, legacyImportLabel } from "../../utils/legacyImport.js";
+import LegacyMigratedNote from "../../components/LegacyMigratedNote.jsx";
 
 const PAGE_SIZE = 25;
 const TECHNICAL_TAB_LABELS = {
@@ -88,6 +90,7 @@ function acopioReqLabel(r) {
   return `C:${cL} · T:${tL}`;
 }
 function rowLabel(r) {
+  if (isLegacyImport(r)) return r.fulfillment_mode === "produccion" ? "En producción (sistema anterior)" : "En acopio (sistema anterior)";
   if (r.status === "pending_approvals") {
     if (r.technical_decision === "pending") return "Pendiente tu decisión";
     if (r.technical_decision === "approved" && r.commercial_decision === "pending") return "Aprobado por Técnica · Pendiente Comercial";
@@ -289,7 +292,8 @@ function doorOdooReference(d) {
     d?.record?.odoo_purchase_order_name,
   ]).join(" / ");
 }
-function OdooReferenceCell({ value }) {
+function OdooReferenceCell({ value, row = null }) {
+  if (row && isLegacyImport(row)) return <span title="Vendido en el sistema anterior: no tiene NP/NV en Odoo" style={{ fontWeight: 900, color: "var(--dg-warning-text)", background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{legacyImportLabel(row)}</span>;
   const text = String(value || "").trim();
   if (!text) return <span className="muted">—</span>;
   return <span style={{ fontWeight: 900, color: "var(--dg-success-text)", background: "var(--dg-success-bg)", border: "1px solid var(--dg-success-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
@@ -593,7 +597,7 @@ export default function AprobacionTecnicaPage() {
       {!!totalItems && (
         <>
           <table><thead><tr><th>Fecha</th>{showType ? <th>Tipo</th> : null}<th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th>{showPlegadoInfo ? <th>Datos plegado</th> : null}<th>Obs. presupuesto</th><th></th></tr></thead><tbody>
-            {items.map((r) => <tr key={r.id}><td>{fmtDate(r.created_at)}</td>{showType ? <td>{catalogKindLabel(r)}</td> : null}<td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td><td>{r.end_customer?.address || "—"}</td><td>{rowLabel(r)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} /></td>{showPlegadoInfo ? <td><PlegadoInfoCell row={r} /></td> : null}<td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button></div></td></tr>)}
+            {items.map((r) => <tr key={r.id}><td>{fmtDate(r.created_at)}</td>{showType ? <td>{catalogKindLabel(r)}</td> : null}<td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td><td>{r.end_customer?.address || "—"}</td><td>{rowLabel(r)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>{showPlegadoInfo ? <td><PlegadoInfoCell row={r} /></td> : null}<td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button></div></td></tr>)}
           </tbody></table>
           <PaginationControls page={page} totalItems={totalItems} pageSize={PAGE_SIZE} onPageChange={onPageChange} />
         </>
@@ -609,7 +613,7 @@ export default function AprobacionTecnicaPage() {
       {!!totalItems && (
         <>
           <table><thead><tr><th>Fecha envío</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>NP/NV Odoo</th><th>Semana producción</th><th>Obs. presupuesto</th><th></th></tr></thead><tbody>
-            {items.map((r) => <tr key={r.id}><td>{fmtDate(productionSentAt(r))}</td><td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td><td>{r.end_customer?.address || "—"}</td><td>{productionReference(r) || "—"}</td><td>{r.production_delivery_year && r.production_delivery_week ? `${r.production_delivery_year} · Semana ${r.production_delivery_week} - ${Number(r.production_delivery_week) + 1}` : "—"}</td><td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button></div></td></tr>)}
+            {items.map((r) => <tr key={r.id}><td>{fmtDate(productionSentAt(r))}</td><td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td><td>{r.end_customer?.address || "—"}</td><td>{productionReference(r) || "—"}</td><td>{r.production_delivery_year && r.production_delivery_week ? `${r.production_delivery_year} · Semana ${r.production_delivery_week} - ${Number(r.production_delivery_week) + 1}` : "—"}</td><td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button></div></td></tr>)}
           </tbody></table>
           <PaginationControls page={page} totalItems={totalItems} pageSize={PAGE_SIZE} onPageChange={onPageChange} />
         </>
@@ -687,7 +691,7 @@ export default function AprobacionTecnicaPage() {
                   {visibleIpanelDetails.map((r) => {
                     const isSubmitted = String(r?.measurement_status || "").toLowerCase().trim() === "submitted";
                     const isPendingComercial = String(r?.measurement_commercial_review_status || "") === "pending";
-                    return <tr key={r.id}><td style={{ fontWeight: 800 }}>{r.end_customer?.name || "(sin nombre)"}</td><td>{localityLabel(r)}</td><td>{r.end_customer?.address || "—"}</td><td>{measurementStatusLabel(r.measurement_status, r)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} /></td><td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>{isPendingComercial ? <Button variant="ghost" disabled title="Pendiente de aprobación comercial post-medición">Bloqueado</Button> : <Button variant={isSubmitted ? "primary" : "ghost"} onClick={() => navigate(`/mediciones/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>{isSubmitted ? "Aprobar detalle" : "Completar detalle técnico"}</Button>}</div></td></tr>;
+                    return <tr key={r.id}><td style={{ fontWeight: 800 }}>{r.end_customer?.name || "(sin nombre)"}<LegacyMigratedNote row={r} /></td><td>{localityLabel(r)}</td><td>{r.end_customer?.address || "—"}</td><td>{measurementStatusLabel(r.measurement_status, r)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td><td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>{isPendingComercial ? <Button variant="ghost" disabled title="Pendiente de aprobación comercial post-medición">Bloqueado</Button> : <Button variant={isSubmitted ? "primary" : "ghost"} onClick={() => navigate(`/mediciones/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>{isSubmitted ? "Aprobar detalle" : "Completar detalle técnico"}</Button>}</div></td></tr>;
                   })}
                 </tbody></table>
                 <PaginationControls page={pageIpanelDetalles} totalItems={ipanelDetailRows.length} pageSize={PAGE_SIZE} onPageChange={setPageIpanelDetalles} />
@@ -712,7 +716,7 @@ export default function AprobacionTecnicaPage() {
                   {visiblePlegadoDetails.map((r) => {
                     const isSubmitted = String(r?.measurement_status || "").toLowerCase().trim() === "submitted";
                     const isPendingComercial = String(r?.measurement_commercial_review_status || "") === "pending";
-                    return <tr key={r.id}><td style={{ fontWeight: 800 }}>{r.end_customer?.name || "(sin nombre)"}</td><td>{localityLabel(r)}</td><td>{r.end_customer?.address || "—"}</td><td>{measurementStatusLabel(r.measurement_status, r)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} /></td><td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>{isPendingComercial ? <Button variant="ghost" disabled title="Pendiente de aprobación comercial post-medición">Bloqueado</Button> : <Button variant={isSubmitted ? "primary" : "ghost"} onClick={() => navigate(`/mediciones/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>{isSubmitted ? "Aprobar detalle" : "Completar detalle técnico"}</Button>}</div></td></tr>;
+                    return <tr key={r.id}><td style={{ fontWeight: 800 }}>{r.end_customer?.name || "(sin nombre)"}<LegacyMigratedNote row={r} /></td><td>{localityLabel(r)}</td><td>{r.end_customer?.address || "—"}</td><td>{measurementStatusLabel(r.measurement_status, r)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td><td><BudgetObservationCell row={r} /></td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>{isPendingComercial ? <Button variant="ghost" disabled title="Pendiente de aprobación comercial post-medición">Bloqueado</Button> : <Button variant={isSubmitted ? "primary" : "ghost"} onClick={() => navigate(`/mediciones/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>{isSubmitted ? "Aprobar detalle" : "Completar detalle técnico"}</Button>}</div></td></tr>;
                   })}
                 </tbody></table>
                 <PaginationControls page={pagePlegadoDetalles} totalItems={plegadoDetailRows.length} pageSize={PAGE_SIZE} onPageChange={setPagePlegadoDetalles} />
@@ -740,12 +744,12 @@ export default function AprobacionTecnicaPage() {
                       const isPendingComercial = String(r?.measurement_commercial_review_status || "") === "pending";
                       return (
                         <tr key={r.id}>
-                          <td style={{ fontWeight: 800 }}>{r.end_customer?.name || "(sin nombre)"}</td>
+                          <td style={{ fontWeight: 800 }}>{r.end_customer?.name || "(sin nombre)"}<LegacyMigratedNote row={r} /></td>
                           <td>{measurementSubtypeLabel(r)}</td>
                           <td>{localityLabel(r)}</td>
                           <td>{r.end_customer?.address || "—"}</td>
                           <td>{measurementStatusLabel(r.measurement_status, r)}</td>
-                          <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
+                          <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                           {!hideScheduleColumns ? <td>{fmtDate(parseDateOnly(r.measurement_scheduled_for))}</td> : null}
                           {!hideScheduleColumns ? <td style={{ minWidth: 220 }}><div style={{ display: "flex", gap: 8, alignItems: "center" }}><Input type="date" value={dateValue} disabled={isPendingComercial} onChange={(v) => setMeasurementDates((prev) => ({ ...prev, [r.id]: v }))} style={{ width: "100%" }} /><Button disabled={isPendingComercial || scheduleM.isPending || !dateValue} onClick={() => scheduleM.mutate({ id: r.id, scheduledFor: dateValue })}>Guardar</Button></div></td> : null}
                           <td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>{isPendingComercial ? <Button variant="ghost" disabled title="Pendiente de aprobación comercial post-medición">Bloqueado</Button> : <Button variant={(isSubmitted || needsFinal) ? "primary" : "ghost"} onClick={() => navigate(`/mediciones/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>{isSinMedicion ? "Completar detalle técnico" : ((isSubmitted || needsFinal) ? "Aprobar final" : "Abrir")}</Button>}</div></td>
@@ -770,7 +774,7 @@ export default function AprobacionTecnicaPage() {
                 <table><thead><tr><th>Fecha</th><th>NP/NV Odoo</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Solicitud</th><th>Datos plegado</th><th>Obs. presupuesto</th><th>Decisiones</th><th></th></tr></thead><tbody>
                   {visibleAcopio.map((r) => {
                     const canAct = (r.acopio_to_produccion_technical_decision || "pending") === "pending";
-                    return <tr key={r.id}><td>{fmtDate(r.acopio_to_produccion_requested_at || r.created_at)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} /></td><td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td><td>{r.end_customer?.address || "—"}</td><td>{r.acopio_to_produccion_notes || <span className="muted">(sin nota)</span>}</td><td><PlegadoInfoCell row={r} /></td><td><BudgetObservationCell row={r} /></td><td>{acopioReqLabel(r)}</td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button>{canAct ? <><Button disabled={acopioM.isPending} onClick={() => acopioM.mutate({ id: r.id, action: "approve", notes: null })}>OK</Button><Button variant="ghost" disabled={acopioM.isPending} onClick={() => { const msg = window.prompt("Motivo del rechazo:", ""); if (msg !== null) acopioM.mutate({ id: r.id, action: "reject", notes: msg }); }}>Rechazar</Button></> : <span className="muted">Ya decidiste</span>}</div></td></tr>;
+                    return <tr key={r.id}><td>{fmtDate(r.acopio_to_produccion_requested_at || r.created_at)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td><td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td><td>{r.end_customer?.address || "—"}</td><td>{r.acopio_to_produccion_notes || <span className="muted">(sin nota)</span>}</td><td><PlegadoInfoCell row={r} /></td><td><BudgetObservationCell row={r} /></td><td>{acopioReqLabel(r)}</td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button>{canAct ? <><Button disabled={acopioM.isPending} onClick={() => acopioM.mutate({ id: r.id, action: "approve", notes: null })}>OK</Button><Button variant="ghost" disabled={acopioM.isPending} onClick={() => { const msg = window.prompt("Motivo del rechazo:", ""); if (msg !== null) acopioM.mutate({ id: r.id, action: "reject", notes: msg }); }}>Rechazar</Button></> : <span className="muted">Ya decidiste</span>}</div></td></tr>;
                   })}
                 </tbody></table>
                 <PaginationControls page={pageAcopio} totalItems={acopioRows.length} pageSize={PAGE_SIZE} onPageChange={setPageAcopio} />
@@ -787,7 +791,7 @@ export default function AprobacionTecnicaPage() {
             {!!acopioListadoRows.length && (
               <>
                 <table><thead><tr><th>Fecha</th><th>NP/NV Odoo</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>Datos plegado</th><th>Obs. presupuesto</th><th>Solicitud Prod.</th><th></th></tr></thead><tbody>
-                  {visibleAcopioListado.map((r) => <tr key={r.id}><td>{fmtDate(r.confirmed_at || r.created_at)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} /></td><td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td><td>{r.end_customer?.address || "—"}</td><td>{rowLabel(r)}</td><td><PlegadoInfoCell row={r} /></td><td><BudgetObservationCell row={r} /></td><td>{r.acopio_to_produccion_status ? acopioReqLabel(r) : "—"}</td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button></div></td></tr>)}
+                  {visibleAcopioListado.map((r) => <tr key={r.id}><td>{fmtDate(r.confirmed_at || r.created_at)}</td><td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td><td>{createdByLabel(r)}</td><td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td><td>{r.end_customer?.address || "—"}</td><td>{rowLabel(r)}</td><td><PlegadoInfoCell row={r} /></td><td><BudgetObservationCell row={r} /></td><td>{r.acopio_to_produccion_status ? acopioReqLabel(r) : "—"}</td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/tecnica" } })}>Abrir</Button></div></td></tr>)}
                 </tbody></table>
                 <PaginationControls page={pageAcopioListado} totalItems={acopioListadoRows.length} pageSize={PAGE_SIZE} onPageChange={setPageAcopioListado} />
               </>
@@ -818,15 +822,15 @@ export default function AprobacionTecnicaPage() {
                           <td>{fmtDate(r.technical_at || r.created_at)}</td>
                           <td>{catalogKindLabel(r)}</td>
                           <td>{createdByLabel(r)}</td>
-                          <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td>
+                          <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
                           <td>{r.end_customer?.address || "—"}</td>
                           <td>{rowLabel(r)}</td>
-                          <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
+                          <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                           <td><BudgetObservationCell row={r} /></td>
                           <td className="right">
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                              <Button variant="ghost" disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} title="Descargar PDF">📄</Button>
-                              {isDistribuidor && (
+                              {!isLegacyImport(r) ? <Button variant="ghost" disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} title="Descargar PDF">📄</Button> : null}
+                              {isDistribuidor && !isLegacyImport(r) && (
                                 <Button variant="ghost" disabled={downloadingPdfKey === proformaKey} onClick={() => handleDownloadProformaPdf(r.id)} title="Descargar proforma">
                                   <span style={{ position: "relative", display: "inline-flex" }}>📄<span style={{ position: "absolute", bottom: 0, right: -2, fontSize: 9, fontWeight: 900, lineHeight: 1 }}>P</span></span>
                                 </Button>

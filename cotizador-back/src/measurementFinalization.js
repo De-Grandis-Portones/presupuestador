@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { dbQuery } from "./db.js";
+import { isLegacyImport, assertNotLegacyImport, upsertLegacyPreproduccionValores } from "./legacyImport.js";
 import {
   getCommercialFinalToleranceAreaM2,
   getMeasurementProductMappings,
@@ -1307,6 +1308,9 @@ async function applySellerToSaleOrderLocal(odoo, orderId, sellerName) {
 }
 
 async function syncFinalQuoteToOdoo({ odoo, revisionQuote, originalQuote, sourceQuote, precomputedMetrics }) {
+  assertNotLegacyImport(originalQuote, "generar la NV en Odoo");
+  assertNotLegacyImport(sourceQuote, "generar la NV en Odoo");
+  assertNotLegacyImport(revisionQuote, "generar la NV en Odoo");
   // Reutiliza el mismo partner que ya se uso para la NP inicial. Antes, si no habia
   // ninguno guardado (pasaba con presupuestos de vendedor, que resuelven el cliente
   // recien al crear la NP) caia en el partner_id=1 hardcodeado, que en este Odoo es la
@@ -1491,6 +1495,7 @@ export async function forceCreateIpanelAdjustmentNv({ odoo, quoteId, partnerId, 
   const r = await dbQuery(`select * from public.presupuestador_quotes where id=$1`, [quoteId]);
   const originalQuote = r.rows?.[0];
   if (!originalQuote) throw new Error(`Quote ${quoteId} no encontrado`);
+  assertNotLegacyImport(originalQuote, "generar una NV de ajuste en Odoo");
   if (String(originalQuote.catalog_kind || "").toLowerCase().trim() !== "ipanel") {
     throw new Error(`Quote ${quoteId} no es catalog_kind=ipanel (es "${originalQuote.catalog_kind}")`);
   }
@@ -1668,6 +1673,7 @@ async function sendWhatsAppRaw({ to, message, acceptanceUrl, token, phoneNumberI
 }
 
 export async function maybeSendMeasurementApprovedWhatsApp({ odoo, quote }) {
+  if (isLegacyImport(quote)) return { ok: false, skipped: true, reason: "legacy_import" };
   const recipients = await resolveAllMeasurementRecipients({ odoo, quote });
   const mainRecipient = recipients[0];
   const to = mainRecipient?.to || "";
@@ -1945,6 +1951,7 @@ async function saveShareTokenToOriginalQuote(originalQuoteId, existingToken) {
 // si lo unico que fallo es la generacion del link. saveShareTokenToOriginalQuote
 // es idempotente (coalesce), asi que un reintento posterior no duplica nada.
 async function saveTokenAndNotify(odoo, originalQuote) {
+  assertNotLegacyImport(originalQuote, "enviar el link de aceptación al cliente");
   try {
     const savedToken = await saveShareTokenToOriginalQuote(originalQuote.id, originalQuote.measurement_share_token);
     const quoteWithToken = { ...originalQuote, measurement_share_token: savedToken };
@@ -1998,6 +2005,7 @@ async function persistDimensionsPatch(quoteId, dimensionsPatch) {
 }
 
 export async function finalizeMeasurementToRevisionQuote({ odoo, originalQuote, measurementForm }) {
+  assertNotLegacyImport(originalQuote, "finalizar una medición (no pasa por medición)");
   const base = await buildMeasurementFinalizationBase({ odoo, originalQuote, measurementForm });
   const finalLines = base.generated_lines || [];
   // WhatsApp y generación de token se hacen DESPUÉS de crear la NV para garantizar que
@@ -2154,6 +2162,7 @@ export async function finalizeMeasurementToRevisionQuote({ odoo, originalQuote, 
 // Llama upsertPreproduccionValoresForNv usando la NV ya existente en la revision quote.
 // Se invoca desde clientAcceptance cuando el cliente acepta, no al generar la NV.
 export async function triggerPreproductionForClientAcceptance(odoo, originalQuote) {
+  if (isLegacyImport(originalQuote)) return await upsertLegacyPreproduccionValores(originalQuote);
   const r = await dbQuery(
     `select * from public.presupuestador_quotes
      where quote_kind = 'copy' and parent_quote_id = $1
@@ -2202,6 +2211,7 @@ export async function resyncPortonMeasurements({ odoo, originalQuoteId, force = 
   );
   const originalQuote = r.rows?.[0];
   if (!originalQuote) return { ok: false, error: "Presupuesto original no encontrado" };
+  if (isLegacyImport(originalQuote)) return { ok: false, error: "Portón migrado del sistema anterior: no tiene medición" };
   if (String(originalQuote.catalog_kind || "porton").toLowerCase().trim() !== "porton") {
     return { ok: false, error: "El resync de medidas de paso solo aplica a portones" };
   }

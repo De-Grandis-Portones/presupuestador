@@ -5,6 +5,7 @@ import { ensureQuotesMeasurementColumns, QUOTE_LIST_COLUMNS_SQL } from "../quote
 import { getCommercialFinalTolerancePercent } from "../settingsDb.js";
 import { commitQuoteProductionWeek, captureQuotedProductionEstimate } from "../productionPlanning.js";
 import { triggerPreproductionForClientAcceptance } from "../measurementFinalization.js";
+import { isLegacyImport, assertNotLegacyImport, finalizeLegacyAcopioToProduccion, completeLegacyAcopioToProduccion } from "../legacyImport.js";
 import { getPriceFromPricelist } from "./odoo.routes.js";
 
 // Un presupuesto que requiere medición reserva su semana de producción recién cuando el
@@ -1439,6 +1440,7 @@ function mergeLinkedPortonPayload(payload = {}, linkedPorton = null) {
 }
 
 async function syncQuoteToOdoo({ odoo, quote, approverUser }) {
+  assertNotLegacyImport(quote, "sincronizar con Odoo");
   // Salvaguarda anti-duplicados (mismo patrón que ya usa syncFinalQuoteToOdoo
   // en measurementFinalization.js): si esta función se llama dos veces para
   // el mismo quote -el create en Odoo salió bien pero un paso posterior
@@ -1551,6 +1553,8 @@ async function syncQuoteToOdoo({ odoo, quote, approverUser }) {
 }
 
 async function syncFinalQuoteToOdoo({ odoo, revisionQuote, originalQuote, approverUser }) {
+  assertNotLegacyImport(originalQuote, "generar la NV en Odoo");
+  assertNotLegacyImport(revisionQuote, "generar la NV en Odoo");
   const pricelistId = resolveQuotePricelistId(originalQuote, revisionQuote?.pricelist_id, originalQuote?.pricelist_id);
   const sellerName = await resolveSellerDisplayNameForOdoo(originalQuote, approverUser);
   // Se reutiliza el mismo partner que ya se uso para la NP inicial (guardado en
@@ -1736,6 +1740,7 @@ async function syncFinalQuoteToOdoo({ odoo, revisionQuote, originalQuote, approv
 }
 
 async function syncDirectProductionFinalToOdoo({ odoo, quote, approverUser }) {
+  assertNotLegacyImport(quote, "generar la NV en Odoo");
   const pricelistId = resolveQuotePricelistId(quote, quote?.pricelist_id);
   const sellerName = await resolveSellerDisplayNameForOdoo(quote, approverUser);
   // Se reutiliza el mismo partner que ya se uso para la NP inicial (guardado en
@@ -1861,6 +1866,7 @@ async function markSyncingIfReady(id) {
   const cur = await dbQuery(`select * from public.presupuestador_quotes where id=$1 limit 1`, [id]);
   const quote = cur.rows?.[0];
   if (!quote) return null;
+  if (isLegacyImport(quote)) return null;
   if (shouldDeferSyncUntilMeasurement(quote)) return null;
 
   const r = await dbQuery(
@@ -1875,6 +1881,8 @@ async function normalizeIfSyncingButHasOrder(id) {
 }
 
 async function createEditCopyFromQuote(parentId) {
+  const legacyParent = (await dbQuery(`select payload from public.presupuestador_quotes where id=$1 limit 1`, [parentId])).rows?.[0];
+  assertNotLegacyImport(legacyParent, "crear una copia o edición");
   const ins = await dbQuery(
     `
     insert into public.presupuestador_quotes
@@ -1904,12 +1912,14 @@ async function getFinalCopyByParentId(parentId) {
   return r.rows?.[0] || null;
 }
 async function ensureFinalCopyForAcopioToProduction(quote) {
+  assertNotLegacyImport(quote, "crear la copia final");
   if (!quote || quote.fulfillment_mode !== "produccion" || quoteNeedsMeasurement(quote)) return null;
   const existing = await getFinalCopyByParentId(quote.id);
   if (existing) return existing;
   return await createEditCopyFromQuote(quote.id);
 }
 async function syncLatestFinalCopyForApprovedAcopio({ originalQuote, approverUser, odoo }) {
+  assertNotLegacyImport(originalQuote, "generar la NV en Odoo");
   if (!originalQuote?.id) return null;
   const existing = await getFinalCopyByParentId(originalQuote.id);
   if (!existing) return null;
@@ -1981,6 +1991,7 @@ export async function createOriginalQuote({ odoo, body, userId, isDistribuidorUs
       throw err;
     }
     if (String(linkedPortonQuote.catalog_kind || "porton").toLowerCase() !== "porton") throw new Error("El presupuesto vinculado debe ser de porton");
+    assertNotLegacyImport(linkedPortonQuote, "vincularle otro presupuesto");
   }
   const end_customer = body.end_customer || linkedPortonQuote?.end_customer || {};
   const custErr = validateEndCustomerDraft(end_customer);
@@ -2533,6 +2544,7 @@ export function buildQuotesRouter(odoo) {
       const quote = r.rows?.[0];
       if (!quote) throw new Error("Quote no encontrado");
       if (String(quote.created_by_user_id) !== String(u.user_id)) throw new Error("No sos dueño");
+      assertNotLegacyImport(quote, "crear un ajuste");
       if ((quote.quote_kind || "original") !== "original") return res.status(400).json({ ok: false, error: "Solo se puede crear ajuste desde un presupuesto original" });
       const existing = await getFinalCopyByParentId(id);
       if (existing) return res.json({ ok: true, quote: existing });
@@ -2551,6 +2563,7 @@ export function buildQuotesRouter(odoo) {
       const quote = r.rows?.[0];
       if (!quote) throw new Error("Quote no encontrado");
       if (String(quote.created_by_user_id) !== String(u.user_id)) throw new Error("No sos dueño");
+      assertNotLegacyImport(quote, "editar");
       const catalog_kind_locked = quote.catalog_kind || "porton";
       if (body.catalog_kind && normCatalogKind(body.catalog_kind) !== normCatalogKind(catalog_kind_locked)) return res.status(400).json({ ok: false, error: "No podes cambiar el tipo de cotizador (porton/ipanel/plegados/otros/puerta)" });
       const catalog_kind = normCatalogKind(body.catalog_kind || catalog_kind_locked);
@@ -2653,6 +2666,7 @@ export function buildQuotesRouter(odoo) {
       const r = await dbQuery(`select * from public.presupuestador_quotes where id=$1`, [id]);
       const quote = r.rows?.[0];
       if (!quote) throw new Error("Quote no encontrado");
+      assertNotLegacyImport(quote, "reenviar a aprobación");
       if (String(quote.created_by_user_id) !== String(u.user_id)) throw new Error("No sos dueño");
       const custErr = validateEndCustomerRequired(quote.end_customer);
       if (custErr) return res.status(400).json({ ok: false, error: custErr });
@@ -2737,6 +2751,7 @@ export function buildQuotesRouter(odoo) {
   });
 
   async function handleReadyQuoteSync({ qSync, approverUser }) {
+    assertNotLegacyImport(qSync, "sincronizar con Odoo");
     // Re-read from DB right before calling Odoo to prevent race-condition duplicates
     const freshRow = (await dbQuery(`select odoo_sale_order_id, final_sale_order_id, status from public.presupuestador_quotes where id=$1`, [qSync.id])).rows?.[0];
     if (freshRow?.odoo_sale_order_id || freshRow?.final_sale_order_id) {
@@ -2981,6 +2996,8 @@ export function buildQuotesRouter(odoo) {
     if (quote.fulfillment_mode !== "acopio") return null;
     if (quote.acopio_to_produccion_status !== "pending") return null;
     if (quote.acopio_to_produccion_commercial_decision !== "approved" || quote.acopio_to_produccion_technical_decision !== "approved") return null;
+    // Portón migrado del sistema anterior: directo a producción, sin medición ni Odoo.
+    if (isLegacyImport(quote)) return await finalizeLegacyAcopioToProduccion(id);
 
     const measurementFlow = getMeasurementFlowForQuote({
       catalog_kind: quote.catalog_kind || "porton",
@@ -3039,6 +3056,10 @@ export function buildQuotesRouter(odoo) {
       const upd1 = await dbQuery(`update public.presupuestador_quotes set acopio_to_produccion_commercial_decision='approved', acopio_to_produccion_commercial_by_user_id=$2, acopio_to_produccion_commercial_at=now(), acopio_to_produccion_commercial_notes=$3 where id=$1 and fulfillment_mode='acopio' and acopio_to_produccion_status='pending' and acopio_to_produccion_commercial_decision='pending' returning *`, [id, Number(u.user_id), notes ? String(notes) : null]);
       const q1 = upd1.rows?.[0] || quote;
       let qFinal = await finalizeAcopioToProduccionIfReady(id);
+      if (qFinal && isLegacyImport(qFinal)) {
+        // Sin copia final ni NV en Odoo: reserva de semana + fila de preproducción para Planta.
+        return res.json({ ok: true, quote: (await completeLegacyAcopioToProduccion(id)) || qFinal });
+      }
       if (qFinal) {
         // Recién acá (pasa de acopio a producción) tiene sentido una estimación de
         // producción por primera vez: snapshot inmutable de "lo que dijimos al principio".
@@ -3080,6 +3101,10 @@ export function buildQuotesRouter(odoo) {
       const upd1 = await dbQuery(`update public.presupuestador_quotes set acopio_to_produccion_technical_decision='approved', acopio_to_produccion_technical_by_user_id=$2, acopio_to_produccion_technical_at=now(), acopio_to_produccion_technical_notes=$3 where id=$1 and fulfillment_mode='acopio' and acopio_to_produccion_status='pending' and acopio_to_produccion_technical_decision='pending' returning *`, [id, Number(u.user_id), notes ? String(notes) : null]);
       const q1 = upd1.rows?.[0] || quote;
       let qFinal = await finalizeAcopioToProduccionIfReady(id);
+      if (qFinal && isLegacyImport(qFinal)) {
+        // Sin copia final ni NV en Odoo: reserva de semana + fila de preproducción para Planta.
+        return res.json({ ok: true, quote: (await completeLegacyAcopioToProduccion(id)) || qFinal });
+      }
       if (qFinal) {
         try { await captureQuotedProductionEstimate(id); } catch (e) { console.error("QUOTED ESTIMATE CAPTURE ERROR:", e?.message || e); }
       }
@@ -3107,6 +3132,7 @@ export function buildQuotesRouter(odoo) {
       if (!quote) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
       if (String(quote.created_by_user_id) !== String(u.user_id)) return res.status(403).json({ ok: false, error: "No sos dueño" });
       if (quote.fulfillment_mode !== "acopio") return res.status(400).json({ ok: false, error: "Solo aplica a portones en acopio" });
+      assertNotLegacyImport(quote, "pasar a producción sin aprobación (usá 'Solicitar paso a Producción')");
 
       const measurementFlow = getMeasurementFlowForQuote({
         catalog_kind: quote.catalog_kind || "porton",
@@ -3161,6 +3187,7 @@ export function buildQuotesRouter(odoo) {
       const pr = await dbQuery(`select * from public.presupuestador_quotes where id=$1 limit 1`, [parentId]);
       const orig = pr.rows?.[0];
       if (!orig) return res.status(400).json({ ok: false, error: "No se encontro el original" });
+      assertNotLegacyImport(orig, "generar la NV en Odoo");
       if (!orig.odoo_sale_order_id) return res.status(409).json({ ok: false, error: "El original todavía no fue enviado a Odoo" });
       if (quoteNeedsMeasurement(orig) && orig.measurement_status !== "approved") return res.status(409).json({ ok: false, error: "Primero debe estar aprobada la medición" });
 

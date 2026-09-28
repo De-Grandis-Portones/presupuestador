@@ -2,6 +2,7 @@ import crypto from "crypto";
 import express from "express";
 import { requireAuth } from "../auth.js";
 import { dbQuery } from "../db.js";
+import { assertNotLegacyImport } from "../legacyImport.js";
 import { ensureQuotesMeasurementColumns, QUOTE_LIST_COLUMNS_SQL } from "../quotesSchema.js";
 import {
   finalizeMeasurementToRevisionQuote,
@@ -926,6 +927,7 @@ export function buildMeasurementsRouter(odoo = null) {
       const cur = await dbQuery(`select * from public.presupuestador_quotes where id=$1 limit 1`, [id]);
       const quote = cur.rows?.[0];
       if (!quote) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
+      assertNotLegacyImport(quote, "revisar una medición (no pasa por medición)");
       if (!quoteAllowsMeasurementWorkflow(quote)) {
         return res.status(400).json({ ok: false, error: "Este presupuesto no requiere medición" });
       }

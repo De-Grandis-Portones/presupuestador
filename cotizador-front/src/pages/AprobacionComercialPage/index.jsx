@@ -12,6 +12,8 @@ import { useAuthStore } from "../../domain/auth/store.js";
 import { downloadListingDoorPdf, downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
 import { computeCommercialLinesDiff } from "../../domain/quote/commercialDiff.js";
+import { isLegacyImport, legacyImportLabel } from "../../utils/legacyImport.js";
+import LegacyMigratedNote from "../../components/LegacyMigratedNote.jsx";
 
 const PAGE_SIZE = 25;
 const COMMERCIAL_TAB_LABELS = {
@@ -86,6 +88,7 @@ function acopioReqLabel(r) {
   return `C:${cL} · T:${tL}`;
 }
 function rowLabel(r) {
+  if (isLegacyImport(r)) return r.fulfillment_mode === "produccion" ? "En producción (sistema anterior)" : "En acopio (sistema anterior)";
   // Ya estaba aprobado (comercial y tecnica) pero la medicion salio con una
   // superficie mayor a la presupuestada, asi que volvio al vendedor para que
   // lo revise - mismo status='draft' que un borrador nunca confirmado, pero
@@ -316,7 +319,8 @@ function doorOdooReference(d) {
     d?.record?.odoo_purchase_order_name,
   ]).join(" / ");
 }
-function OdooReferenceCell({ value }) {
+function OdooReferenceCell({ value, row = null }) {
+  if (row && isLegacyImport(row)) return <span title="Vendido en el sistema anterior: no tiene NP/NV en Odoo" style={{ fontWeight: 900, color: "var(--dg-warning-text)", background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{legacyImportLabel(row)}</span>;
   const text = String(value || "").trim();
   if (!text) return <span className="muted">—</span>;
   return <span style={{ fontWeight: 900, color: "var(--dg-success-text)", background: "var(--dg-success-bg)", border: "1px solid var(--dg-success-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
@@ -564,15 +568,15 @@ export default function AprobacionComercialPage() {
                     <td>{fmtDate(r.created_at)}</td>
                     {showType ? <td>{catalogKindLabel(r)}</td> : null}
                     <td>{createdByLabel(r)}</td>
-                    <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td>
+                    <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
                     <td>{r.end_customer?.address || "—"}</td>
                     <td>{rowLabel(r)}</td>
-                    <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
+                    <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                     {showPlegadoInfo ? <td><PlegadoInfoCell row={r} /></td> : null}
                     <td><BudgetObservationCell row={r} /></td>
                     <td className="right">
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                        <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} />
+                        {!isLegacyImport(r) ? <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} /> : null}
                         <Button onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/comercial" } })}>Abrir</Button>
                       </div>
                     </td>
@@ -603,14 +607,14 @@ export default function AprobacionComercialPage() {
                   <tr key={r.id}>
                     <td>{fmtDate(productionSentAt(r))}</td>
                     <td>{createdByLabel(r)}</td>
-                    <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td>
+                    <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
                     <td>{r.end_customer?.address || "—"}</td>
                     <td>{productionReference(r) || "—"}</td>
                     <td>{r.production_delivery_year && r.production_delivery_week ? `${r.production_delivery_year} · Semana ${r.production_delivery_week} - ${Number(r.production_delivery_week) + 1}` : "—"}</td>
                     <td><BudgetObservationCell row={r} /></td>
                     <td className="right">
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                        <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} />
+                        {!isLegacyImport(r) ? <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} /> : null}
                         <Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/comercial" } })}>Abrir</Button>
                       </div>
                     </td>
@@ -680,10 +684,10 @@ export default function AprobacionComercialPage() {
                       <tr key={r.id}>
                         <td>{fmtDate(r.measurement_at || r.created_at)}</td>
                         <td>{createdByLabel(r)}</td>
-                        <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td>
+                        <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
                         <td>{r.end_customer?.address || "—"}</td>
                         <td>{measurementRowLabel(r)}</td>
-                        <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
+                        <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                         <td>{measurementQuickDiffLabel(r)}</td>
                         <td className="right" style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
                           {/* La aprobacion/devolucion se hace desde el detalle del presupuesto
@@ -720,17 +724,17 @@ export default function AprobacionComercialPage() {
                           <tr key={r.id}>
                             <td>{fmtDate(r.acopio_to_produccion_requested_at || r.created_at)}</td>
                             <td>{createdByLabel(r)}</td>
-                            <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td>
+                            <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
                             <td>{r.end_customer?.address || "—"}</td>
                             <td>{r.acopio_to_produccion_notes || <span className="muted">(sin nota)</span>}</td>
-                            <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
+                            <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                             {hasPlegado && <td><PlegadoInfoCell row={r} /></td>}
                             <td><BudgetObservationCell row={r} /></td>
                             <td>{acopioReqLabel(r)}</td>
                             <td className="right">
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                                 <Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/comercial" } })}>Abrir</Button>
-                                {canAct ? <><Button disabled={acopioM.isPending} onClick={() => { const msg = window.prompt("Comentario interno para Odoo (opcional):", ""); acopioM.mutate({ id: r.id, action: "approve", notes: msg && msg.trim() ? msg.trim() : null }); }}>OK</Button><Button variant="ghost" disabled={acopioM.isPending} onClick={() => { const msg = window.prompt("Motivo del rechazo:", ""); if (msg !== null) acopioM.mutate({ id: r.id, action: "reject", notes: msg }); }}>Rechazar</Button></> : <span className="muted">Ya decidiste</span>}
+                                {canAct ? <><Button disabled={acopioM.isPending} onClick={() => { const msg = window.prompt(isLegacyImport(r) ? "Comentario interno (opcional):" : "Comentario interno para Odoo (opcional):", ""); acopioM.mutate({ id: r.id, action: "approve", notes: msg && msg.trim() ? msg.trim() : null }); }}>OK</Button><Button variant="ghost" disabled={acopioM.isPending} onClick={() => { const msg = window.prompt("Motivo del rechazo:", ""); if (msg !== null) acopioM.mutate({ id: r.id, action: "reject", notes: msg }); }}>Rechazar</Button></> : <span className="muted">Ya decidiste</span>}
                               </div>
                             </td>
                           </tr>
@@ -763,16 +767,16 @@ export default function AprobacionComercialPage() {
                           <tr key={r.id}>
                             <td>{fmtDate(r.confirmed_at || r.created_at)}</td>
                             <td>{createdByLabel(r)}</td>
-                            <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td>
+                            <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
                             <td>{r.end_customer?.address || "—"}</td>
                             <td>{rowLabel(r)}</td>
-                            <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
+                            <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                             {hasPlegado && <td><PlegadoInfoCell row={r} /></td>}
                             <td><BudgetObservationCell row={r} /></td>
                             <td>{r.acopio_to_produccion_status ? acopioReqLabel(r) : "—"}</td>
                             <td className="right">
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                                <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} />
+                                {!isLegacyImport(r) ? <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} /> : null}
                                 <Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`, { state: { from: "/aprobacion/comercial" } })}>Abrir</Button>
                               </div>
                             </td>
@@ -811,15 +815,15 @@ export default function AprobacionComercialPage() {
                           <td>{fmtDate(r.commercial_at || r.created_at)}</td>
                           <td>{catalogKindLabel(r)}</td>
                           <td>{createdByLabel(r)}</td>
-                          <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}</td>
+                          <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
                           <td>{r.end_customer?.address || "—"}</td>
                           <td>{rowLabel(r)}</td>
-                          <td><OdooReferenceCell value={quoteOdooReference(r)} /></td>
+                          <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                           <td><BudgetObservationCell row={r} /></td>
                           <td className="right">
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                              <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} />
-                              {isDistribuidor && (
+                              {!isLegacyImport(r) ? <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadQuotePdf(r.id)} /> : null}
+                              {isDistribuidor && !isLegacyImport(r) && (
                                 <Button variant="ghost" disabled={downloadingPdfKey === proformaKey} onClick={() => handleDownloadProformaPdf(r.id)} title="Descargar proforma">
                                   <span style={{ position: "relative", display: "inline-flex" }}>📄<span style={{ position: "absolute", bottom: 0, right: -2, fontSize: 9, fontWeight: 900, lineHeight: 1 }}>P</span></span>
                                 </Button>
