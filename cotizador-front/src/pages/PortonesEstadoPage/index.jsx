@@ -532,9 +532,14 @@ export default function PortonesEstadoPage() {
         r.statusInfo.label.toLowerCase().includes(s)
       );
     }
-    // Orden por número de NV (o NP/# si todavía no tiene NV asignada), descendente
+    // Primero los que tienen link pero todavía no se confirmó el envío (la ✗ roja de
+    // "Link enviado"); al confirmarlo vuelven a su lugar. Dentro de cada grupo, orden
+    // por número de NV (o NP/# si todavía no tiene NV asignada), descendente
     // (los más nuevos arriba).
+    const linkPending = (r) => !r.cancelled_at && !!r.measurement_share_token && !r.measurement_link_sent_confirmed_at;
     return [...out].sort((a, b) => {
+      const pa = linkPending(a), pb = linkPending(b);
+      if (pa !== pb) return pa ? -1 : 1;
       const na = Number(String(a.displayRef).match(/\d+/)?.[0] ?? 0);
       const nb = Number(String(b.displayRef).match(/\d+/)?.[0] ?? 0);
       return nb - na;
