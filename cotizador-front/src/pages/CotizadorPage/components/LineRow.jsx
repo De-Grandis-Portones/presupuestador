@@ -161,7 +161,7 @@ export default function LineRow({ line, finalUnit, total, formatARS, hasSection3
             width: 90,
             padding: "6px 8px",
             borderRadius: 8,
-            border: "1px solid #ddd",
+            border: "1px solid var(--dg-border)",
             textAlign: "right",
             opacity: canEditQty ? 1 : 0.7,
           }}
@@ -170,11 +170,11 @@ export default function LineRow({ line, finalUnit, total, formatARS, hasSection3
 
       <td className="right">
         {!canEditPrice && hasSection37Mismatch ? (
-          <span style={{ color: "#b3261e", fontWeight: 700 }} title="El precio base no incluye la instalación sumada correctamente. Recargá la página (Shift+F5).">
+          <span style={{ color: "var(--dg-danger-text)", fontWeight: 700 }} title="El precio base no incluye la instalación sumada correctamente. Recargá la página (Shift+F5).">
             ⚠ {formatARS(line.basePrice)}
           </span>
         ) : !canEditPrice && line.price_error ? (
-          <span style={{ color: "#b3261e", fontWeight: 700, fontSize: 13 }} title="No se pudo obtener el precio de Odoo para este producto. Reintentá o revisá tu conexión.">
+          <span style={{ color: "var(--dg-danger-text)", fontWeight: 700, fontSize: 13 }} title="No se pudo obtener el precio de Odoo para este producto. Reintentá o revisá tu conexión.">
             ⚠ Precio no disponible
           </span>
         ) : !canEditPrice && line.price_pending ? (
@@ -191,7 +191,7 @@ export default function LineRow({ line, finalUnit, total, formatARS, hasSection3
               width: 120,
               padding: "6px 8px",
               borderRadius: 8,
-              border: "1px solid #ddd",
+              border: "1px solid var(--dg-border)",
               textAlign: "right",
             }}
           />

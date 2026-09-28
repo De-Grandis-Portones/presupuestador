@@ -157,7 +157,7 @@
 // por esto:
 // ============================================================
 
-          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "#ecfdf5", border: "1px solid #bbf7d0", color: "#166534", fontWeight: 800 }}>
+          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "var(--dg-success-bg)", border: "1px solid var(--dg-success-border)", color: "var(--dg-success-text)", fontWeight: 800 }}>
             Parante vertical de puerta fijo. Se toma a 825 mm por defecto y se usa como referencia para distribuir el resto.
           </div>
           <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>

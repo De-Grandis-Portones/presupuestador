@@ -899,7 +899,7 @@ function WhatsAppRecipientsModal({ recipients, message, onClose }) {
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{r.label}</div>
                   <div style={{ fontSize: 12, color: "var(--dg-muted)" }}>{r.name}</div>
                 </div>
-                <div style={{ fontSize: 12, color: "#16a34a", fontWeight: 600 }}>
+                <div style={{ fontSize: 12, color: "var(--dg-success-text)", fontWeight: 600 }}>
                   {url ? "Abrir →" : "Sin teléfono"}
                 </div>
               </a>
@@ -1346,7 +1346,7 @@ export default function MedicionDetailPage() {
     return (
       <div className="container">
         <div className="card">
-          <div style={{ color: "#d93025", fontSize: 13 }}>
+          <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>
             {q.error?.message || "No se pudo cargar la medición"}
           </div>
         </div>
@@ -1815,7 +1815,7 @@ export default function MedicionDetailPage() {
         {(saveMedicionM.isError || approveTechnicalM.isError || rejectTechnicalM.isError) ? (
           <>
             <div className="spacer" />
-            <div style={{ color: "#d93025", fontSize: 13 }}>
+            <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>
               {saveMedicionM.error?.message ||
                 approveTechnicalM.error?.message ||
                 rejectTechnicalM.error?.message ||

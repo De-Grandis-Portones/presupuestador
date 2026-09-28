@@ -184,7 +184,7 @@ export default function SuperuserQuotesAdminPage() {
             value={searchDraft}
             onChange={(e) => setSearchDraft(e.target.value)}
             placeholder="Buscar cliente, teléfono, mail, dirección, presupuesto, NP/NV/INP/INV..."
-            style={{ flex: "1 1 360px", padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", outline: "none" }}
+            style={{ flex: "1 1 360px", padding: "9px 11px", borderRadius: 8, border: "1px solid var(--dg-border)", outline: "none" }}
           />
           <Button type="submit">Buscar</Button>
           {search ? <Button type="button" variant="ghost" onClick={() => { setSearchDraft(""); setSearch(""); }}>Limpiar</Button> : null}
@@ -204,15 +204,15 @@ export default function SuperuserQuotesAdminPage() {
             value={resyncIdentifier}
             onChange={(e) => setResyncIdentifier(e.target.value)}
             placeholder="Número de NP o NV, ej: NV4307"
-            style={{ flex: "1 1 260px", padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", outline: "none" }}
+            style={{ flex: "1 1 260px", padding: "9px 11px", borderRadius: 8, border: "1px solid var(--dg-border)", outline: "none" }}
           />
           <Button type="submit" disabled={resyncM.isPending || !resyncIdentifier.trim()}>
             {resyncM.isPending ? "Resincronizando..." : "Resync"}
           </Button>
         </form>
         {resyncResult?.blocked ? (
-          <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "#fff8e1", border: "1px solid #f5c518" }}>
-            <div style={{ color: "#7a5b00", fontWeight: 700 }}>{resyncResult.error}</div>
+          <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)" }}>
+            <div style={{ color: "var(--dg-warning-text)", fontWeight: 700 }}>{resyncResult.error}</div>
             <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>
               Esta es la única vía habilitada para tocar medidas después de la aceptación del cliente. Se registra quién y cuándo lo fuerza.
             </div>
@@ -224,11 +224,11 @@ export default function SuperuserQuotesAdminPage() {
           </div>
         ) : null}
         {resyncResult?.ok === false ? (
-          <div style={{ color: "#d93025", marginTop: 10 }}>{resyncResult.error}</div>
+          <div style={{ color: "var(--dg-danger-text)", marginTop: 10 }}>{resyncResult.error}</div>
         ) : null}
         {resyncResult?.ok === true ? (
           <div style={{ marginTop: 10, fontSize: 13 }}>
-            <div style={{ color: "#188038", fontWeight: 700 }}>
+            <div style={{ color: "var(--dg-success-text)", fontWeight: 700 }}>
               Actualizado: presupuesto #{resyncResult.data.quote_number} ({resyncResult.data.odoo_sale_order_name || "—"} / {resyncResult.data.final_sale_order_name || "—"})
               {resyncResult.data.forced_after_client_acceptance ? " · forzado tras aceptación del cliente" : ""}
             </div>
@@ -250,7 +250,7 @@ export default function SuperuserQuotesAdminPage() {
         </div>
 
         {quotesQ.isLoading ? <div className="muted" style={{ marginTop: 12 }}>Cargando...</div> : null}
-        {quotesQ.isError ? <div style={{ color: "#d93025", marginTop: 12 }}>{quotesQ.error?.message || "No se pudo cargar"}</div> : null}
+        {quotesQ.isError ? <div style={{ color: "var(--dg-danger-text)", marginTop: 12 }}>{quotesQ.error?.message || "No se pudo cargar"}</div> : null}
         {!quotesQ.isLoading && !rows.length ? <div className="muted" style={{ marginTop: 12 }}>Sin registros.</div> : null}
 
         {!!rows.length ? (

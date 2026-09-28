@@ -88,7 +88,7 @@ export default function SalesActorActivityPage() {
           <select
             value={selectedUserId}
             onChange={(e) => setSelectedUserId(e.target.value)}
-            style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #ddd", background: "var(--dg-card)" }}
+            style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}
           >
             <option value="">Seleccionar…</option>
             {(usersQ.data || []).map((actor) => (
@@ -99,7 +99,7 @@ export default function SalesActorActivityPage() {
           </select>
         </div>
 
-        {usersQ.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 10 }}>{usersQ.error.message}</div> : null}
+        {usersQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>{usersQ.error.message}</div> : null}
       </div>
 
       {activityQ.isLoading ? (
@@ -125,7 +125,7 @@ export default function SalesActorActivityPage() {
             {actions.length ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {actions.map((event) => (
-                  <div key={event.key} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "var(--dg-card)" }}>
+                  <div key={event.key} style={{ border: "1px solid var(--dg-border)", borderRadius: 12, padding: 12, background: "var(--dg-card)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                       <div style={{ fontWeight: 800 }}>{event.title}</div>
                       <div className="muted">{formatDateTime(event.at)}</div>

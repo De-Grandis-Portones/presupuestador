@@ -39,8 +39,8 @@ function Select({ value, onChange, options, placeholder = "-", disabled = false,
 }
 function Section({ title, children }) { return <div className="card" style={{ background: "var(--dg-card)", marginBottom: 12 }}><div style={{ fontWeight: 900, marginBottom: 8 }}>{title}</div>{children}</div>; }
 function Row({ children }) { return <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{children}</div>; }
-function Field({ label, children, minWidth = 220, required = false, invalid = false }) { return <div style={{ flex: 1, minWidth }}><div className="muted" style={{ marginBottom: 6, color: invalid ? "#d93025" : undefined }}>{label}{required ? <span style={{ color: "#d93025" }}> *</span> : null}</div>{children}</div>; }
-function invalidFieldStyle(invalid) { return invalid ? { border: "1px solid #d93025", background: "#fff5f5" } : {}; }
+function Field({ label, children, minWidth = 220, required = false, invalid = false }) { return <div style={{ flex: 1, minWidth }}><div className="muted" style={{ marginBottom: 6, color: invalid ? "var(--dg-danger-text)" : undefined }}>{label}{required ? <span style={{ color: "var(--dg-danger-text)" }}> *</span> : null}</div>{children}</div>; }
+function invalidFieldStyle(invalid) { return invalid ? { border: "1px solid #d93025", background: "var(--dg-danger-bg)" } : {}; }
 function normalizeCustomer(c = {}) {
   const out = { ...(c || {}) };
   out.name = safe(out.name || [out.first_name, out.last_name].filter(Boolean).join(" "));
@@ -184,7 +184,7 @@ export default function PuertaChecklistPage() {
           </div>
         </div>
         {q.isLoading && <><div className="spacer" /><div className="muted">Cargando...</div></>}
-        {q.isError && <><div className="spacer" /><div style={{ color: "#d93025", fontSize: 13 }}>{q.error.message}</div></>}
+        {q.isError && <><div className="spacer" /><div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{q.error.message}</div></>}
       </div>
 
       {door && form && (
@@ -202,9 +202,9 @@ export default function PuertaChecklistPage() {
 
           {canSellerEdit && (!door.linked_quote_id || confirmMissing.length > 0) && (
             <Section title="Pendientes para confirmar">
-              <div style={{ padding: 10, borderRadius: 10, border: "1px solid #f2c1be", background: "#fff5f5" }}>
-                {!door.linked_quote_id ? <div style={{ color: "#b42318", marginBottom: 4 }}>• Porton vinculado</div> : null}
-                {confirmMissing.map((fieldKey) => <div key={fieldKey} style={{ color: "#b42318", marginBottom: 4 }}>• {labels[fieldKey] || fieldKey}</div>)}
+              <div style={{ padding: 10, borderRadius: 10, border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)" }}>
+                {!door.linked_quote_id ? <div style={{ color: "var(--dg-danger-text)", marginBottom: 4 }}>• Porton vinculado</div> : null}
+                {confirmMissing.map((fieldKey) => <div key={fieldKey} style={{ color: "var(--dg-danger-text)", marginBottom: 4 }}>• {labels[fieldKey] || fieldKey}</div>)}
               </div>
             </Section>
           )}

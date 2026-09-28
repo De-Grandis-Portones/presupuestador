@@ -224,7 +224,7 @@ function ExistingCustomerModal({ open, onClose, onApply }) {
         <Input value={query} onChange={setQuery} placeholder="Ej: Juan, 351..., NV4248, NP4248, localidad..." style={{ width: "100%" }} autoFocus />
         {!canSearch ? <div className="muted" style={{ marginTop: 8 }}>Escribí al menos 2 caracteres para buscar.</div> : null}
         {customersQ.isFetching ? <div className="muted" style={{ marginTop: 8 }}>Buscando clientes guardados…</div> : null}
-        {customersQ.isError ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{customersQ.error?.message || "No se pudo buscar clientes."}</div> : null}
+        {customersQ.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{customersQ.error?.message || "No se pudo buscar clientes."}</div> : null}
         {canSearch && !customersQ.isFetching && !customersQ.isError && !results.length ? <div className="muted" style={{ marginTop: 8 }}>No encontré clientes guardados con esa búsqueda.</div> : null}
 
         {!!results.length ? (
@@ -349,7 +349,7 @@ function MultiplePaymentModal({ open, onClose, paymentMethods, initialPaymentMet
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <Button variant="secondary" onClick={addRow}>Agregar forma</Button>
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ fontWeight: 900, color: isComplete ? "#0b7" : "#d93025" }}>Total declarado: {formatPercent(percentTotal)}%</div>
+            <div style={{ fontWeight: 900, color: isComplete ? "#0b7" : "var(--dg-danger-text)" }}>Total declarado: {formatPercent(percentTotal)}%</div>
             <Button variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button variant="primary" onClick={apply}>Aplicar pago múltiple</Button>
           </div>

@@ -190,8 +190,8 @@ function inputStateStyle(hasError) {
 function disabledComputedInputStyle() {
   return {
     width: "100%",
-    background: "#f3f4f6",
-    color: "#334155",
+    background: "var(--dg-surface-3)",
+    color: "var(--dg-text)",
     fontWeight: 800,
   };
 }
@@ -296,7 +296,7 @@ function FieldBox({ label, helper, helperColor, children }) {
 }
 function ComputedCard({ label, value }) {
   return (
-    <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 10, background: "var(--dg-card)" }}>
+    <div style={{ border: "1px solid var(--dg-border)", borderRadius: 12, padding: 10, background: "var(--dg-card)" }}>
       <div className="muted" style={{ fontSize: 12 }}>{label}</div>
       <div style={{ fontWeight: 900, marginTop: 2 }}>{value}</div>
     </div>
@@ -438,31 +438,31 @@ function PanelLamasSetupModal({
 
   return (
     <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.55)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ width: "min(860px, 96vw)", maxHeight: "92vh", overflow: "auto", background: "var(--dg-card)", borderRadius: 18, padding: 18, boxShadow: "0 22px 70px rgba(15,23,42,0.35)", border: "1px solid #e5e7eb" }}>
+      <div style={{ width: "min(860px, 96vw)", maxHeight: "92vh", overflow: "auto", background: "var(--dg-card)", borderRadius: 18, padding: 18, boxShadow: "0 22px 70px rgba(15,23,42,0.35)", border: "1px solid var(--dg-border)" }}>
         <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 6 }}>{config.setupTitle}</div>
         <div className="muted" style={{ marginBottom: 14 }}>{config.description} Después podés modificarlo desde la sección Medidas de la puerta.</div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, alignItems: "start" }}>
-          <FieldBox label="Ancho de la puerta (m)" helper={`Panel en lamas max ${DOOR_LAMAS_WIDTH_MAX_M.toFixed(2)} m.`} helperColor={widthInvalid ? "#b91c1c" : undefined}>
+          <FieldBox label="Ancho de la puerta (m)" helper={`Panel en lamas max ${DOOR_LAMAS_WIDTH_MAX_M.toFixed(2)} m.`} helperColor={widthInvalid ? "var(--dg-danger-text)" : undefined}>
             <Input type="text" inputMode="decimal" value={widthMeters} onChange={(value) => { setWidthMeters(normalizeDecimal(value)); setClassicMode(false); setError(""); }} onBlur={(e) => setWidthMeters(normalizeDecimal(e?.target?.value))} placeholder="Ej: 0.90" style={inputStateStyle(widthInvalid)} />
           </FieldBox>
-          <FieldBox label="Alto de la puerta (m)" helper={`Panel en lamas max ${DOOR_LAMAS_HEIGHT_MAX_M.toFixed(2)} m.`} helperColor={heightInvalid ? "#b91c1c" : undefined}>
+          <FieldBox label="Alto de la puerta (m)" helper={`Panel en lamas max ${DOOR_LAMAS_HEIGHT_MAX_M.toFixed(2)} m.`} helperColor={heightInvalid ? "var(--dg-danger-text)" : undefined}>
             <Input type="text" inputMode="decimal" value={heightMeters} onChange={(value) => { setHeightMeters(normalizeDecimal(value)); setClassicMode(false); setError(""); }} onBlur={(e) => setHeightMeters(normalizeDecimal(e?.target?.value))} placeholder="Ej: 2.10" style={inputStateStyle(heightInvalid)} />
           </FieldBox>
           <FieldBox label="Orientación de lamas">
-            <select value={orientation} onChange={(e) => { const nextOrientation = normalizePanelOrientation(e.target.value); const nextMax = getDivisionsMaxByOrientation(nextOrientation); const nextDivisions = clampDivisions(divisions, nextMax); setOrientation(nextOrientation); if (nextDivisions && nextDivisions !== divisions) { setDivisions(nextDivisions); setSectionSizes((current) => sanitizeSectionSizes(current, Number(nextDivisions || 0))); } setError(""); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: "var(--dg-card)" }}>
+            <select value={orientation} onChange={(e) => { const nextOrientation = normalizePanelOrientation(e.target.value); const nextMax = getDivisionsMaxByOrientation(nextOrientation); const nextDivisions = clampDivisions(divisions, nextMax); setOrientation(nextOrientation); if (nextDivisions && nextDivisions !== divisions) { setDivisions(nextDivisions); setSectionSizes((current) => sanitizeSectionSizes(current, Number(nextDivisions || 0))); } setError(""); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}>
               <option value="horizontal">Horizontal</option>
               <option value="vertical">Vertical</option>
             </select>
           </FieldBox>
-          <FieldBox label="Cantidad de divisiones" helper={`Entero entre 2 y ${maxDivisions}.`} helperColor={divisionsOutOfBounds ? "#b91c1c" : undefined}>
+          <FieldBox label="Cantidad de divisiones" helper={`Entero entre 2 y ${maxDivisions}.`} helperColor={divisionsOutOfBounds ? "var(--dg-danger-text)" : undefined}>
             <Input type="text" inputMode="numeric" value={divisions} onChange={(value) => { const next = normalizeDivisionsInput(value, maxDivisions); setDivisions(next); setSectionSizes((current) => sanitizeSectionSizes(current, Number(next || 0))); setClassicMode(false); setError(""); }} onBlur={(e) => { const next = clampDivisions(e?.target?.value, maxDivisions); setDivisions(next); setSectionSizes((current) => sanitizeSectionSizes(current, Number(next || 0))); }} placeholder="Ej: 4" style={inputStateStyle(divisionsOutOfBounds)} />
           </FieldBox>
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "8px 0 14px" }}>
-          <button type="button" onClick={applyClassicDistribution} style={{ border: "1px solid #c7d2fe", borderRadius: 10, background: "#eef2ff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Usar distribución clásica automática</button>
-          <button type="button" onClick={applyUniformDistribution} style={{ border: "1px solid #d1d5db", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Repartir uniforme</button>
+          <button type="button" onClick={applyClassicDistribution} style={{ border: "1px solid var(--dg-purple-border)", borderRadius: 10, background: "var(--dg-purple-bg)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Usar distribución clásica automática</button>
+          <button type="button" onClick={applyUniformDistribution} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Repartir uniforme</button>
         </div>
 
         {divisionsCount >= 2 ? (
@@ -483,7 +483,7 @@ function PanelLamasSetupModal({
           <ComputedCard label="Estado" value={metrics.exceeds ? `Excede ${formatMm(Math.abs(metrics.remainingMm))}` : (metrics.matchesExactly ? "Reparto completo" : `Restan ${formatMm(metrics.remainingMm)}`)} />
         </div>
 
-        {error ? <div style={{ color: "#b91c1c", fontWeight: 800, marginTop: 12 }}>{error}</div> : null}
+        {error ? <div style={{ color: "var(--dg-danger-text)", fontWeight: 800, marginTop: 12 }}>{error}</div> : null}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>
           <button type="button" onClick={handleSave} disabled={!canSave} style={{ border: "1px solid #00a99d", borderRadius: 10, background: canSave ? "#00a99d" : "#9ca3af", color: "#fff", padding: "10px 14px", fontWeight: 900, cursor: canSave ? "pointer" : "not-allowed" }}>Guardar datos y continuar</button>
@@ -545,9 +545,9 @@ export function PanelSketch({
 
   return (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 420px) minmax(240px, 1fr)", gap: 18, alignItems: "start" }}>
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, background: "#f8fafc" }}>
+          <div style={{ border: "1px solid var(--dg-border)", borderRadius: 16, padding: 14, background: "var(--dg-surface-2)" }}>
             <svg width="100%" viewBox={`-80 -50 ${panelWidthPx + (isVertical ? 160 : 290)} ${panelHeightPx + (isVertical ? 200 : 170)}`} role="img" aria-label="Esquema del panel con divisiones">
-              <rect x={panelX} y={panelY} width={panelWidthPx} height={panelHeightPx} rx="14" fill="#ffffff" stroke="#0f172a" strokeWidth="2.2" />
+              <rect x={panelX} y={panelY} width={panelWidthPx} height={panelHeightPx} rx="14" fill="var(--dg-card)" stroke="var(--dg-text)" strokeWidth="2.2" />
               {bands.map((band) => {
                 const startPx = (axisDimensionMm > 0 ? band.startMm / axisDimensionMm : 0) * mainAxisPx;
                 const sizePx = (axisDimensionMm > 0 ? band.sizeMm / axisDimensionMm : 0) * mainAxisPx;
@@ -556,11 +556,11 @@ export function PanelSketch({
                   const y = isVertical ? panelY : panelY + startPx;
                   const width = isVertical ? sizePx : panelWidthPx;
                   const height = isVertical ? panelHeightPx : sizePx;
-                  const guideColor = "#2563eb";
+                  const guideColor = "var(--dg-info-text)";
                   const isAlt = band.index % 2 === 1;
                   return (
                     <g key={`band-${band.type}-${band.index}`}>
-                      <rect x={x} y={y} width={Math.max(0, width)} height={Math.max(0, height)} fill={band.index % 2 === 0 ? "#dff3f6" : "#eef2f7"} />
+                      <rect x={x} y={y} width={Math.max(0, width)} height={Math.max(0, height)} fill={band.index % 2 === 0 ? "var(--dg-accent-bg)" : "var(--dg-surface-3)"} />
                       {isVertical ? (
                         <g>
                           {(() => {
@@ -598,8 +598,8 @@ export function PanelSketch({
                 const dividerX = isVertical ? panelX + startPx : panelX;
                 const dividerY = isVertical ? panelY : panelY + startPx;
                 return isVertical
-                  ? <rect key={`divider-${band.index}`} x={dividerX} y={panelY} width={Math.max(2, sizePx)} height={panelHeightPx} fill="#0f172a" opacity="0.7" />
-                  : <rect key={`divider-${band.index}`} x={panelX} y={dividerY} width={panelWidthPx} height={Math.max(2, sizePx)} fill="#0f172a" opacity="0.7" />;
+                  ? <rect key={`divider-${band.index}`} x={dividerX} y={panelY} width={Math.max(2, sizePx)} height={panelHeightPx} fill="var(--dg-text)" opacity="0.7" />
+                  : <rect key={`divider-${band.index}`} x={panelX} y={dividerY} width={panelWidthPx} height={Math.max(2, sizePx)} fill="var(--dg-text)" opacity="0.7" />;
               })}
             </svg>
           </div>
@@ -632,13 +632,13 @@ function PanelSketchModal({
   const count = Array.isArray(sectionSizes) ? sectionSizes.length : 0;
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "#fff", borderRadius: 18, border: "1px solid #e5e7eb", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
+      <div style={{ width: "min(960px, 100%)", maxHeight: "88vh", overflow: "auto", background: "var(--dg-card)", borderRadius: 18, border: "1px solid var(--dg-border)", boxShadow: "0 18px 50px rgba(15,23,42,.18)", padding: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 18 }}>Esquema del {title}</div>
             <div className="muted" style={{ marginTop: 4 }}>Orientación de lamas {isVertical ? "vertical" : "horizontal"} · {count || 0} secciones · línea entre secciones {formatMm(dividerMm)}</div>
           </div>
-          <button type="button" onClick={onClose} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
+          <button type="button" onClick={onClose} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Cerrar</button>
         </div>
         <PanelSketch
           orientation={orientation}
@@ -715,24 +715,24 @@ function PanelLamasConfigCard({ config, dimensions, setDimensions }) {
   }
 
   return (
-    <div style={{ marginTop: 12, border: "1px solid #e0e7ff", background: "#f8fbff", borderRadius: 14, padding: 12 }}>
+    <div style={{ marginTop: 12, border: "1px solid var(--dg-info-border)", background: "var(--dg-info-bg)", borderRadius: 14, padding: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <div>
           <div style={{ fontWeight: 900, marginBottom: 4 }}>Esquema {config.title}</div>
           <div className="muted">Se activa por Panel en Lamas 22mm. Misma lógica de distribución que Ipanel.</div>
         </div>
-        <button type="button" onClick={() => setSketchOpen(true)} style={{ border: "1px solid #c7d2fe", borderRadius: 10, background: "#eef2ff", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Ver esquema {config.title}</button>
+        <button type="button" onClick={() => setSketchOpen(true)} style={{ border: "1px solid var(--dg-purple-border)", borderRadius: 10, background: "var(--dg-purple-bg)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Ver esquema {config.title}</button>
       </div>
-      {!state.setupCompleted ? <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "#fff7ed", color: "#9a3412", fontWeight: 800 }}>Falta completar y guardar el esquema de {config.title.toLowerCase()}.</div> : null}
+      {!state.setupCompleted ? <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "var(--dg-warning-bg)", color: "var(--dg-warning-text)", fontWeight: 800 }}>Falta completar y guardar el esquema de {config.title.toLowerCase()}.</div> : null}
       <div className="spacer" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, alignItems: "start" }}>
         <FieldBox label="Orientación de lamas">
-          <select value={state.orientation} onChange={(e) => { const nextOrientation = normalizePanelOrientation(e.target.value); const nextMax = getDivisionsMaxByOrientation(nextOrientation); const nextDivisions = clampDivisions(state.divisions, nextMax); setPatch({ [panelField(config, "orientacion")]: nextOrientation, [panelField(config, "orientation")]: nextOrientation, ...(nextDivisions ? { [panelField(config, "divisiones")]: nextDivisions, [panelField(config, "cantidad_divisiones")]: nextDivisions } : {}), [panelField(config, "setup_completed")]: false, [panelField(config, "popup_completed")]: false }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #ddd", background: "var(--dg-card)" }}>
+          <select value={state.orientation} onChange={(e) => { const nextOrientation = normalizePanelOrientation(e.target.value); const nextMax = getDivisionsMaxByOrientation(nextOrientation); const nextDivisions = clampDivisions(state.divisions, nextMax); setPatch({ [panelField(config, "orientacion")]: nextOrientation, [panelField(config, "orientation")]: nextOrientation, ...(nextDivisions ? { [panelField(config, "divisiones")]: nextDivisions, [panelField(config, "cantidad_divisiones")]: nextDivisions } : {}), [panelField(config, "setup_completed")]: false, [panelField(config, "popup_completed")]: false }); }} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--dg-border)", background: "var(--dg-card)" }}>
             <option value="horizontal">Horizontal</option>
             <option value="vertical">Vertical</option>
           </select>
         </FieldBox>
-        <FieldBox label="Cantidad de divisiones" helper={`Entero positivo entre 2 y ${maxDivisions}.`} helperColor={divisionsHasError ? "#b91c1c" : undefined}>
+        <FieldBox label="Cantidad de divisiones" helper={`Entero positivo entre 2 y ${maxDivisions}.`} helperColor={divisionsHasError ? "var(--dg-danger-text)" : undefined}>
           <Input type="text" inputMode="numeric" value={state.divisions} onChange={(v) => { const next = normalizeDivisionsInput(v, maxDivisions); setPatch({ [panelField(config, "divisiones")]: next, [panelField(config, "cantidad_divisiones")]: next, [panelField(config, "distribucion_divisiones")]: "repartido", [panelField(config, "divisiones_distribucion")]: "repartido", [panelField(config, "divisiones_incluyen_liston")]: false, [panelField(config, "setup_completed")]: false, [panelField(config, "popup_completed")]: false }); }} onBlur={(e) => { const next = clampDivisions(e?.target?.value, maxDivisions); setPatch({ [panelField(config, "divisiones")]: next, [panelField(config, "cantidad_divisiones")]: next, [panelField(config, "distribucion_divisiones")]: "repartido", [panelField(config, "divisiones_distribucion")]: "repartido", [panelField(config, "divisiones_incluyen_liston")]: false, [panelField(config, "setup_completed")]: false, [panelField(config, "popup_completed")]: false }); }} placeholder="Ej: 4" style={inputStateStyle(divisionsHasError)} />
         </FieldBox>
       </div>
@@ -755,10 +755,10 @@ function PanelLamasConfigCard({ config, dimensions, setDimensions }) {
             ))}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-            <button type="button" onClick={redistributeSections} style={{ border: "1px solid #ddd", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Repartir en partes iguales</button>
-            <button type="button" onClick={applyClassicDistribution} style={{ border: "1px solid #0f766e", borderRadius: 10, background: "#ecfdf5", color: "#0f766e", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Distribución clásica</button>
+            <button type="button" onClick={redistributeSections} style={{ border: "1px solid var(--dg-border)", borderRadius: 10, background: "var(--dg-card)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Repartir en partes iguales</button>
+            <button type="button" onClick={applyClassicDistribution} style={{ border: "1px solid var(--dg-accent-text)", borderRadius: 10, background: "var(--dg-accent-bg)", color: "var(--dg-accent-text)", padding: "9px 12px", fontWeight: 800, cursor: "pointer" }}>Distribución clásica</button>
           </div>
-          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: metrics.exceeds ? "#fee2e2" : "#eff6ff", color: metrics.exceeds ? "#991b1b" : "#1d4ed8", fontWeight: 700 }}>
+          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: metrics.exceeds ? "var(--dg-danger-bg)" : "var(--dg-info-bg)", color: metrics.exceeds ? "var(--dg-danger-text)" : "var(--dg-info-text)", fontWeight: 700 }}>
             {metrics.exceeds
               ? `Las medidas de las secciones superan la dimensión total disponible. Reducí ${formatMm(Math.abs(metrics.remainingMm))} para continuar.`
               : metrics.matchesExactly
@@ -862,7 +862,7 @@ export default function PuertaDimensions() {
         </div>
         <div>
           <div className="muted">Superficie automática</div>
-          <Input value={area > 0 ? `${metric(area)} m²` : ""} onChange={() => {}} disabled style={{ width: "100%", background: "#f3f4f6" }} />
+          <Input value={area > 0 ? `${metric(area)} m²` : ""} onChange={() => {}} disabled style={{ width: "100%", background: "var(--dg-surface-3)" }} />
         </div>
       </div>
       <div className="muted" style={{ marginTop: 8 }}>

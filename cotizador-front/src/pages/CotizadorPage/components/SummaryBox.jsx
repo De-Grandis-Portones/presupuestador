@@ -21,8 +21,8 @@ export default function SummaryBox({ totals }) {
         </div>
         {hasPreviouslyBilled ? (
           <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
-            <div style={{ color: "#B91C1C", fontWeight: 700 }}>Facturado previamente</div>
-            <div style={{ color: "#B91C1C", fontWeight: 700 }}>{formatARS(totals.previouslyBilled)}</div>
+            <div style={{ color: "var(--dg-danger-text)", fontWeight: 700 }}>Facturado previamente</div>
+            <div style={{ color: "var(--dg-danger-text)", fontWeight: 700 }}>{formatARS(totals.previouslyBilled)}</div>
           </div>
         ) : null}
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid var(--dg-border)", fontWeight: 800 }}>

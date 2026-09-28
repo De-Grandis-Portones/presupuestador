@@ -81,7 +81,7 @@ function PhoneCell({ distributor, value, onChange, onSave, saving }) {
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Ej. 3516123456"
-          style={{ width: "100%", minWidth: 0, padding: 8, borderRadius: 10, border: "1px solid #ddd" }}
+          style={{ width: "100%", minWidth: 0, padding: 8, borderRadius: 10, border: "1px solid var(--dg-border)" }}
         />
         <Button variant="secondary" disabled={saving || !changed} onClick={() => onSave(current)}>
           {saving ? "Guardando..." : "Guardar"}
@@ -103,7 +103,7 @@ function MapsCell({ distributor, value, onChange, onSave, saving }) {
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder="https://maps.app.goo.gl/..."
-          style={{ width: "100%", minWidth: 0, padding: 8, borderRadius: 10, border: "1px solid #ddd" }}
+          style={{ width: "100%", minWidth: 0, padding: 8, borderRadius: 10, border: "1px solid var(--dg-border)" }}
         />
         <Button variant="secondary" disabled={saving || !changed} onClick={() => onSave(current)}>
           {saving ? "Guardando..." : "Guardar"}
@@ -183,7 +183,7 @@ function LogoCell({ distributor, onSave, saving }) {
           {loadingPreview ? (
             <span className="muted" style={{ fontSize: 12 }}>Cargando...</span>
           ) : previewUrl ? (
-            <img src={previewUrl} alt="Logo" style={{ maxWidth: 90, maxHeight: 32, objectFit: "contain", border: "1px solid #eee", borderRadius: 6, background: "var(--dg-card)" }} />
+            <img src={previewUrl} alt="Logo" style={{ maxWidth: 90, maxHeight: 32, objectFit: "contain", border: "1px solid var(--dg-border-soft)", borderRadius: 6, background: "var(--dg-card)" }} />
           ) : (
             <span className="muted" style={{ fontSize: 12 }}>Sin vista previa</span>
           )}
@@ -356,14 +356,14 @@ export default function MyDistributorsPage() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Buscar por distribuidor, vendedor, usuario, contrasena, lista de precios, partner o estado..."
-            style={{ flex: 1, minWidth: 280, padding: 10, borderRadius: 12, border: "1px solid #ddd" }}
+            style={{ flex: 1, minWidth: 280, padding: 10, borderRadius: 12, border: "1px solid var(--dg-border)" }}
           />
           <div className="muted" style={{ fontSize: 13 }}>
             {filteredDistributors.length} de {distributors.length}
           </div>
         </div>
         {pricelistsQ.isError ? (
-          <div style={{ color: "#d93025", fontSize: 13, marginTop: 10 }}>
+          <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>
             No se pudieron cargar los nombres de listas desde Odoo. Se muestran los IDs.
           </div>
         ) : null}
@@ -372,7 +372,7 @@ export default function MyDistributorsPage() {
       <div className="spacer" />
       <div className="card" style={{ overflowX: "auto" }}>
         {q.isLoading ? <div className="muted">Cargando distribuidores...</div> : null}
-        {q.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{q.error?.message || "No se pudieron cargar los distribuidores"}</div> : null}
+        {q.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{q.error?.message || "No se pudieron cargar los distribuidores"}</div> : null}
         {!q.isLoading && !distributors.length ? <div className="muted">No hay distribuidores para mostrar.</div> : null}
         {!q.isLoading && !!distributors.length && !filteredDistributors.length ? <div className="muted">No hay distribuidores que coincidan con la busqueda.</div> : null}
 

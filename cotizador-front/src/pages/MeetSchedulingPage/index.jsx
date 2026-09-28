@@ -30,10 +30,12 @@ const WEEKDAY_LABELS_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves
 // Paleta institucional (misma que src/styles.css :root) - se repite aca en JS porque
 // necesitamos mezclar el color con alpha (ej. fondos tenues de iconos) en estilos
 // inline, algo que un var(--dg-teal) de CSS no permite hacer directo en JS.
+// PETROL y GRAY se usan como color de texto/iconos, asi que van como var(--dg-*) para
+// que se adapten al dark mode; donde se mezclan con alpha se usa color-mix().
 const TEAL = "#01A39F";
-const PETROL = "#005060";
+const PETROL = "var(--dg-petrol)";
 const GOLD = "#CDA800";
-const GRAY = "#515859";
+const GRAY = "var(--dg-gray)";
 
 function Icon({ children, size = 18, color, style }) {
   return (
@@ -138,7 +140,7 @@ function SectionCard({ icon, accent = TEAL, title, subtitle, children }) {
             <div
               style={{
                 width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                background: `${accent}1A`, color: accent,
+                background: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
@@ -156,8 +158,8 @@ function SectionCard({ icon, accent = TEAL, title, subtitle, children }) {
 
 function EmptyState({ icon, text }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 0", color: GRAY, opacity: 0.7 }}>
-      {icon}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 0", color: "var(--dg-muted)" }}>
+      <span style={{ display: "flex", opacity: 0.7 }}>{icon}</span>
       <div style={{ fontSize: 13 }}>{text}</div>
     </div>
   );
@@ -267,6 +269,7 @@ function SlotRow({ slot, nowMs, confirmDeleteSlotId, confirmCancelSlotId, setCon
   const isBooked = slot.status === "booked";
   const isOverdue = isBooked && new Date(slot.start_at).getTime() + MEETING_JOIN_TOLERANCE_MINUTES * 60000 < nowMs;
   const accent = isOverdue ? WARNING_RED : isBooked ? GOLD : TEAL;
+  const accentText = isOverdue ? "var(--dg-danger-text)" : accent;
   return (
     <div
       style={{
@@ -279,12 +282,12 @@ function SlotRow({ slot, nowMs, confirmDeleteSlotId, confirmCancelSlotId, setCon
         alignItems: "center",
         gap: 12,
         flexWrap: "wrap",
-        background: isOverdue ? "#fdecea" : "var(--dg-card)",
+        background: isOverdue ? "var(--dg-danger-bg)" : "var(--dg-card)",
       }}
     >
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <ClockIcon size={15} color={accent} />
+          <ClockIcon size={15} color={accentText} />
           <b style={{ fontSize: 15 }}>{formatTime(slot.start_at)}</b>
           <span className="muted">({slot.duration_minutes} min)</span>
           {slot.source_rule_id ? (
@@ -295,7 +298,7 @@ function SlotRow({ slot, nowMs, confirmDeleteSlotId, confirmCancelSlotId, setCon
           <span
             style={{
               fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3,
-              color: accent, background: `${accent}1A`, padding: "2px 8px", borderRadius: 999,
+              color: accentText, background: `${accent}1A`, padding: "2px 8px", borderRadius: 999,
             }}
           >
             {isBooked ? "Reservado" : "Disponible"}
@@ -303,7 +306,7 @@ function SlotRow({ slot, nowMs, confirmDeleteSlotId, confirmCancelSlotId, setCon
           {isOverdue ? (
             <span
               style={{
-                fontSize: 11, fontWeight: 800, color: WARNING_RED, background: `${WARNING_RED}1A`,
+                fontSize: 11, fontWeight: 800, color: "var(--dg-danger-text)", background: `${WARNING_RED}1A`,
                 padding: "2px 8px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 4,
               }}
               title="Pasó el horario + tolerancia. Esto es un aviso por reloj, no una confirmación real de que el cliente no se unió (la app no tiene forma de saber si entró a Meet)."
@@ -569,7 +572,7 @@ function RecurringRulesCard() {
         </Button>
       </div>
       {createRuleM.error ? (
-        <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{createRuleM.error.message}</div>
+        <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{createRuleM.error.message}</div>
       ) : null}
 
       <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -630,7 +633,7 @@ function RecurringRulesCard() {
         ))}
       </div>
       {deleteRuleM.error ? (
-        <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{deleteRuleM.error.message}</div>
+        <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{deleteRuleM.error.message}</div>
       ) : null}
     </SectionCard>
   );
@@ -738,7 +741,7 @@ export default function MeetSchedulingPage() {
         className="card"
         style={{
           marginBottom: 16,
-          background: `linear-gradient(135deg, ${PETROL} 0%, ${TEAL} 100%)`,
+          background: `linear-gradient(135deg, #005060 0%, ${TEAL} 100%)`,
           color: "#fff",
           border: "none",
           display: "flex",
@@ -820,7 +823,7 @@ export default function MeetSchedulingPage() {
             {saveSettingsM.isPending ? "Guardando..." : "Guardar configuración"}
           </Button>
           {saveSettingsM.error ? (
-            <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{saveSettingsM.error.message}</div>
+            <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{saveSettingsM.error.message}</div>
           ) : null}
         </div>
       </SectionCard>
@@ -863,14 +866,14 @@ export default function MeetSchedulingPage() {
           </Button>
         </div>
         {createSlotM.error ? (
-          <div style={{ color: "#d93025", fontSize: 13, marginTop: 8 }}>{createSlotM.error.message}</div>
+          <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 8 }}>{createSlotM.error.message}</div>
         ) : null}
       </SectionCard>
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: `${PETROL}1A`, color: PETROL, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: `color-mix(in srgb, ${PETROL} 10%, transparent)`, color: PETROL, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <CalendarIcon size={18} />
             </div>
             <div style={{ fontWeight: 900, fontSize: 15, color: PETROL }}>Horarios</div>
@@ -886,10 +889,10 @@ export default function MeetSchedulingPage() {
         </div>
 
         {deleteSlotM.error ? (
-          <div style={{ color: "#d93025", fontSize: 13, marginBottom: 10 }}>{deleteSlotM.error.message}</div>
+          <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginBottom: 10 }}>{deleteSlotM.error.message}</div>
         ) : null}
         {cancelBookingM.error ? (
-          <div style={{ color: "#d93025", fontSize: 13, marginBottom: 10 }}>{cancelBookingM.error.message}</div>
+          <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginBottom: 10 }}>{cancelBookingM.error.message}</div>
         ) : null}
         {slotsQ.isLoading ? <div className="muted">Cargando...</div> : null}
         {!slotsQ.isLoading && !groupedSlots.length ? (

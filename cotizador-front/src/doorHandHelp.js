@@ -38,7 +38,7 @@ function openDoorHandHelpModal() {
   dialog.style.maxHeight = "90vh";
   dialog.style.overflow = "auto";
   dialog.style.borderRadius = "16px";
-  dialog.style.background = "#fff";
+  dialog.style.background = "var(--dg-card)";
   dialog.style.boxShadow = "0 20px 50px rgba(15, 23, 42, 0.28)";
 
   const header = document.createElement("div");
@@ -47,7 +47,7 @@ function openDoorHandHelpModal() {
   header.style.justifyContent = "space-between";
   header.style.gap = "12px";
   header.style.padding = "12px 14px";
-  header.style.borderBottom = "1px solid #eef2f7";
+  header.style.borderBottom = "1px solid var(--dg-border-soft)";
 
   const title = document.createElement("div");
   title.textContent = "Mano de la puerta";
@@ -102,9 +102,9 @@ function makeHelpIcon() {
   helpIcon.style.height = "24px";
   helpIcon.style.marginLeft = "8px";
   helpIcon.style.borderRadius = "999px";
-  helpIcon.style.border = "1px solid #c7d2fe";
-  helpIcon.style.background = "#fff";
-  helpIcon.style.color = "#3730a3";
+  helpIcon.style.border = "1px solid var(--dg-purple-border)";
+  helpIcon.style.background = "var(--dg-card)";
+  helpIcon.style.color = "var(--dg-purple-text)";
   helpIcon.style.fontWeight = "900";
   helpIcon.style.lineHeight = "1";
   helpIcon.style.cursor = "pointer";

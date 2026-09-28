@@ -292,7 +292,7 @@ function doorOdooReference(d) {
 function OdooReferenceCell({ value }) {
   const text = String(value || "").trim();
   if (!text) return <span className="muted">—</span>;
-  return <span style={{ fontWeight: 900, color: "#0f5132", background: "#e7f7ed", border: "1px solid #bfe6c8", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
+  return <span style={{ fontWeight: 900, color: "var(--dg-success-text)", background: "var(--dg-success-bg)", border: "1px solid var(--dg-success-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{text}</span>;
 }
 function productionReference(row) {
   return quoteOdooReference(row);
@@ -588,7 +588,7 @@ export default function AprobacionTecnicaPage() {
   const renderApprovalRows = (items, totalItems, page, onPageChange, emptyText, showPlegadoInfo = true, showType = false) => (
     <>
       {q.isLoading && <div className="muted">Cargando...</div>}
-      {q.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{q.error.message}</div>}
+      {q.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{q.error.message}</div>}
       {!q.isLoading && !totalItems && <div className="muted">{emptyText}</div>}
       {!!totalItems && (
         <>
@@ -604,7 +604,7 @@ export default function AprobacionTecnicaPage() {
   const renderProductionRows = (items, totalItems, page, onPageChange, emptyText) => (
     <>
       {produccionQ.isLoading && <div className="muted">Cargando...</div>}
-      {produccionQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{produccionQ.error.message}</div>}
+      {produccionQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{produccionQ.error.message}</div>}
       {!produccionQ.isLoading && !totalItems && <div className="muted">{emptyText}</div>}
       {!!totalItems && (
         <>
@@ -679,7 +679,7 @@ export default function AprobacionTecnicaPage() {
             <h3 style={{ marginBottom: 8 }}>Detalles técnicos Ipanels sin medición</h3>
             <div className="muted" style={{ marginBottom: 12 }}>Los Ipanels no pasan por medidor. Se completan y aprueban desde esta sección.</div>
             {measQ.isLoading && <div className="muted">Cargando detalles técnicos...</div>}
-            {measQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{measQ.error.message}</div>}
+            {measQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{measQ.error.message}</div>}
             {!measQ.isLoading && !ipanelDetailRows.length && <div className="muted">Sin detalles técnicos de Ipanels</div>}
             {!!ipanelDetailRows.length && (
               <>
@@ -704,7 +704,7 @@ export default function AprobacionTecnicaPage() {
             <h3 style={{ marginBottom: 8 }}>Detalles técnicos Plegados sin medición</h3>
             <div className="muted" style={{ marginBottom: 12 }}>Los Plegados no pasan por medidor. Se aprueban directo desde esta sección.</div>
             {measQ.isLoading && <div className="muted">Cargando detalles técnicos...</div>}
-            {measQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{measQ.error.message}</div>}
+            {measQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{measQ.error.message}</div>}
             {!measQ.isLoading && !plegadoDetailRows.length && <div className="muted">Sin detalles técnicos de Plegados</div>}
             {!!plegadoDetailRows.length && (
               <>
@@ -725,7 +725,7 @@ export default function AprobacionTecnicaPage() {
         {tab === "aprobaciones_mediciones" && (
           <>
             {measQ.isLoading && <div className="muted">Cargando...</div>}
-            {measQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{measQ.error.message}</div>}
+            {measQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{measQ.error.message}</div>}
             {!measQ.isLoading && !measurementRows.length && <div className="muted">Sin portones en circuito técnico</div>}
             {!!measurementRows.length && (
               <>
@@ -763,7 +763,7 @@ export default function AprobacionTecnicaPage() {
         {tab === "acopio" && (
           <>
             {acopioQ.isLoading && <div className="muted">Cargando...</div>}
-            {acopioQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{acopioQ.error.message}</div>}
+            {acopioQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{acopioQ.error.message}</div>}
             {!acopioQ.isLoading && !acopioRows.length && <div className="muted">Sin solicitudes</div>}
             {!!acopioRows.length && (
               <>
@@ -782,7 +782,7 @@ export default function AprobacionTecnicaPage() {
         {tab === "acopio_listado" && (
           <>
             {acopioListadoQ.isLoading && <div className="muted">Cargando...</div>}
-            {acopioListadoQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{acopioListadoQ.error.message}</div>}
+            {acopioListadoQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{acopioListadoQ.error.message}</div>}
             {!acopioListadoQ.isLoading && !acopioListadoRows.length && <div className="muted">Sin elementos en acopio</div>}
             {!!acopioListadoRows.length && (
               <>
@@ -802,7 +802,7 @@ export default function AprobacionTecnicaPage() {
         {tab === "aprobados" && (
           <>
             {aprobadosQ.isLoading && <div className="muted">Cargando...</div>}
-            {aprobadosQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{aprobadosQ.error.message}</div>}
+            {aprobadosQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{aprobadosQ.error.message}</div>}
             {!aprobadosQ.isLoading && !aprobadosRows.length && <div className="muted">Sin presupuestos aprobados</div>}
             {!!aprobadosRows.length && (
               <>
@@ -848,7 +848,7 @@ export default function AprobacionTecnicaPage() {
         {tab === "aprobaciones_puertas" && (
           <>
             {doorsQ.isLoading && <div className="muted">Cargando...</div>}
-            {doorsQ.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{doorsQ.error.message}</div>}
+            {doorsQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{doorsQ.error.message}</div>}
             {!doorsQ.isLoading && !doorRows.length && <div className="muted">Sin puertas pendientes</div>}
             {!!doorRows.length && (
               <>

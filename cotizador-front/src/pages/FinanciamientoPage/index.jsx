@@ -238,7 +238,7 @@ export default function FinanciamientoPage() {
       <div className="spacer" />
       <div className="card">
         {q.isLoading ? <div className="muted">Cargando configuración...</div> : null}
-        {q.isError ? <div style={{ color: "#d93025", fontSize: 13 }}>{q.error?.message || "No se pudo cargar"}</div> : null}
+        {q.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{q.error?.message || "No se pudo cargar"}</div> : null}
 
         {!!rows.length ? (
           <>
@@ -274,7 +274,7 @@ export default function FinanciamientoPage() {
                             onChange={(v) => updatePaymentMethodName(index, v)}
                             onBlur={(e) => blurPaymentMethodName(index, e?.target?.value)}
                             placeholder="Ej: CHEQUE 0 - 30 - 60 - 90"
-                            style={{ width: "100%", borderColor: missingName || hasDuplicate ? "#d93025" : undefined }}
+                            style={{ width: "100%", borderColor: missingName || hasDuplicate ? "var(--dg-danger-text)" : undefined }}
                           />
                         ) : (
                           <div style={{ fontWeight: 800 }}>{row.payment_method}</div>
@@ -292,7 +292,7 @@ export default function FinanciamientoPage() {
                           value={String(row.percent ?? "")}
                           onChange={(v) => updateRow(index, { percent: sanitizePercentInput(v) })}
                           onBlur={(e) => updateRow(index, { percent: normalizePercent(e?.target?.value) })}
-                          style={{ width: 120, textAlign: "right", borderColor: invalidPercent ? "#d93025" : undefined }}
+                          style={{ width: 120, textAlign: "right", borderColor: invalidPercent ? "var(--dg-danger-text)" : undefined }}
                         />
                       </td>
                       <td>
@@ -321,7 +321,7 @@ export default function FinanciamientoPage() {
                 {saveM.isPending ? "Guardando..." : "Guardar financiamiento"}
               </Button>
             </div>
-            {!!invalidRows.length ? <div style={{ color: "#d93025", fontSize: 13, marginTop: 10 }}>Revisá nombres duplicados, nombres vacíos o porcentajes inválidos antes de guardar. El descuento máximo permitido es -100%.</div> : null}
+            {!!invalidRows.length ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>Revisá nombres duplicados, nombres vacíos o porcentajes inválidos antes de guardar. El descuento máximo permitido es -100%.</div> : null}
           </>
         ) : (!q.isLoading ? (
           <>

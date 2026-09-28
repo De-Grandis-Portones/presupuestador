@@ -94,7 +94,7 @@ export default function PuertasPage() {
         <Input value={searchText} onChange={setSearchText} placeholder="Buscar por codigo, cliente, porton vinculado, estructura, Ipanel o estado..." style={{ width: "100%" }} />
         <div className="spacer" />
         {q.isLoading && <div className="muted">Cargando...</div>}
-        {q.isError && <div style={{ color: "#d93025", fontSize: 13 }}>{q.error.message}</div>}
+        {q.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{q.error.message}</div>}
         {!q.isLoading && !rows.length && <div className="muted">No tenes puertas cargadas.</div>}
         {!!rows.length && (
           <>
