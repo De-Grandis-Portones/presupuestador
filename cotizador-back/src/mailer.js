@@ -5,19 +5,20 @@ import axios from "axios";
 // 1) Relay por Vercel (la que se usa hoy): el backend corre en Render y el plan gratis de
 //    Render bloquea los puertos SMTP, asi que el email lo manda una funcion de Vercel
 //    (cotizador-front/api/send-mail.js) con Nodemailer y la casilla de la empresa.
-//      MAIL_RELAY_URL    - ej. https://presupuestador-degrandisportones.vercel.app/api/send-mail
-//      MAIL_RELAY_SECRET - la misma clave cargada en Vercel
+//      MAIL_RELAY_SECRET - la misma clave cargada en Vercel (con esto alcanza)
+//      MAIL_RELAY_URL    - opcional, default la funcion del front de produccion
 //
 // 2) Resend (si algun dia se verifica el dominio en resend.com):
 //      RESEND_API_KEY, MAIL_FROM (remitente del dominio verificado)
 //
 // Si estan las dos, se usa el relay.
 const RESEND_DEFAULT_FROM = "Presupuestador De Grandis <onboarding@resend.dev>";
+const DEFAULT_RELAY_URL = "https://presupuestador-degrandisportones.vercel.app/api/send-mail";
 
 function relayConfig() {
-  const url = String(process.env.MAIL_RELAY_URL || "").trim();
   const secret = String(process.env.MAIL_RELAY_SECRET || "").trim();
-  return url && secret ? { url, secret } : null;
+  if (!secret) return null;
+  return { url: String(process.env.MAIL_RELAY_URL || "").trim() || DEFAULT_RELAY_URL, secret };
 }
 
 export function isMailConfigured() {

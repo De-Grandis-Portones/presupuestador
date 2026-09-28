@@ -6,13 +6,14 @@ import nodemailer from "nodemailer";
 // Render y el plan gratis de Render bloquea los puertos SMTP; Vercel los deja abiertos.
 // El backend la llama con MAIL_RELAY_URL + MAIL_RELAY_SECRET (ver cotizador-back/src/mailer.js).
 //
-// Variables de entorno en Vercel:
+// Variables de entorno en Vercel (obligatorias):
 //   MAIL_RELAY_SECRET - la misma clave que en el backend. Sin ella la funcion no manda nada.
-//   SMTP_HOST         - ej. mail.degrandisportones.com
-//   SMTP_PORT         - 465 (SSL) o 587 (STARTTLS). Default 465.
-//   SMTP_USER         - la casilla, ej. sistemas2@degrandisportones.com
-//   SMTP_PASS         - contraseña de esa casilla
-//   MAIL_FROM_NAME    - nombre del remitente (default "De Grandis Portones")
+//   SMTP_PASS         - contraseña de la casilla que manda los emails
+// Opcionales (tienen default, solo hace falta cargarlas para cambiarlas):
+//   SMTP_HOST (mail.degrandisportones.com), SMTP_PORT (465), SMTP_USER
+//   (sistemas2@degrandisportones.com), MAIL_FROM_NAME ("De Grandis Portones")
+const DEFAULT_SMTP_HOST = "mail.degrandisportones.com";
+const DEFAULT_SMTP_USER = "sistemas2@degrandisportones.com";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -36,14 +37,15 @@ export default async function handler(req, res) {
   if (!subject || String(subject).length > 300) return res.status(400).json({ ok: false, error: "Asunto inválido" });
   if (String(text || "").length > 20000 || String(html || "").length > 50000) return res.status(400).json({ ok: false, error: "Mensaje demasiado largo" });
 
-  const user = String(process.env.SMTP_USER || "").trim();
+  const host = String(process.env.SMTP_HOST || "").trim() || DEFAULT_SMTP_HOST;
+  const user = String(process.env.SMTP_USER || "").trim() || DEFAULT_SMTP_USER;
   const port = Number(process.env.SMTP_PORT || 465);
-  if (!process.env.SMTP_HOST || !user || !process.env.SMTP_PASS) {
-    return res.status(500).json({ ok: false, error: "SMTP no configurado" });
+  if (!process.env.SMTP_PASS) {
+    return res.status(500).json({ ok: false, error: "SMTP no configurado (falta SMTP_PASS)" });
   }
 
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host,
     port,
     secure: port === 465,
     auth: { user, pass: process.env.SMTP_PASS },
