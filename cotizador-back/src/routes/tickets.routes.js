@@ -1,6 +1,6 @@
 import express from "express";
 import { requireAuth } from "../auth.js";
-import { createTicket, listMyTickets, getTicketForOwner, addOwnMessage, deleteOwnTicket } from "../ticketsDb.js";
+import { createTicket, listMyTickets, getTicketForOwner, getTicketAdjuntosForOwner, addOwnMessage, deleteOwnTicket } from "../ticketsDb.js";
 
 const MAX_TICKET_ADJUNTOS = 5;
 // ~15MB de bytes crudos de adjuntos (igual al límite combinado del cliente,
@@ -79,6 +79,17 @@ export function buildTicketsRouter() {
       const ticket = await getTicketForOwner(Number(req.params.id), String(req.user.id));
       if (!ticket) return res.status(404).json({ ok: false, error: "Ticket no encontrado" });
       res.json({ ok: true, ticket });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Contenido de los adjuntos (data_url), aparte del detalle: ver getTicketForOwner.
+  router.get("/mine/:id/adjuntos", async (req, res, next) => {
+    try {
+      const adjuntos = await getTicketAdjuntosForOwner(Number(req.params.id), String(req.user.id));
+      if (!adjuntos) return res.status(404).json({ ok: false, error: "Ticket no encontrado" });
+      res.json({ ok: true, adjuntos });
     } catch (err) {
       next(err);
     }

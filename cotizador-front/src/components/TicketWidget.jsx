@@ -5,7 +5,7 @@
 // hardcodeados (no el theme propio de esta app) para que el widget se vea
 // igual en todas las apps.
 import { useEffect, useRef, useState } from "react";
-import { createTicket, listMyTickets, getMyTicket, addMyTicketMessage, cancelMyTicket } from "../api/tickets.js";
+import { createTicket, listMyTickets, getMyTicket, getMyTicketAdjuntos, addMyTicketMessage, cancelMyTicket } from "../api/tickets.js";
 import {
   fileToTicketAttachment,
   formatTicketAttachmentMeta,
@@ -23,11 +23,14 @@ import {
 // nuevo. No hay tabla de "visto" en el backend, así que se trackea acá con
 // localStorage (por navegador, no sincroniza entre dispositivos — trade-off
 // aceptable para no tocar schema/endpoints por esto), guardando por ticket
-// el último {updated_at, estado} que el usuario vio. Comparando contra el
-// estado actual:
+// el último {updated_at, estado, ultima_respuesta_at} que el usuario vio.
+// Comparando contra el estado actual:
 //   - pasó a "closed" y antes no lo estaba -> notifica.
-//   - el estado NO cambió pero updated_at sí -> es un mensaje nuevo -> notifica.
-//   - el estado cambió a otra cosa (ej. pending -> in_progress) -> NO notifica.
+//   - hay un mensaje de soporte más nuevo que el último visto -> notifica.
+//   - cualquier otro cambio (ej. pending -> in_progress, o updated_at que se
+//     movió sin mensaje de soporte) -> NO notifica. Antes se tomaba cualquier
+//     cambio de updated_at como "mensaje nuevo", y se prendía el aviso sin
+//     ninguna respuesta para leer.
 // Un ticket nunca antes trackeado (el backlog completo la primera vez que
 // esto corre en un navegador, o cualquier ticket nuevo) se toma como línea
 // de base -- se guarda tal cual está, sin disparar notificación por
@@ -51,18 +54,38 @@ function writeSeenMap(map) {
   }
 }
 
+// El listado trae `ultima_respuesta_at` calculado en el backend; el detalle
+// (getMyTicket) no, pero trae los mensajes, así que se saca de ahí.
+function ultimaRespuestaAt(ticket) {
+  if (ticket.ultima_respuesta_at !== undefined) return ticket.ultima_respuesta_at;
+  const deSoporte = (ticket.mensajes || []).filter((m) => m.es_admin).map((m) => m.created_at);
+  return deSoporte.length ? deSoporte.reduce((a, b) => (new Date(b) > new Date(a) ? b : a)) : null;
+}
+
+function seenSnapshot(ticket) {
+  return { updated_at: ticket.updated_at, estado: ticket.estado, ultima_respuesta_at: ultimaRespuestaAt(ticket) };
+}
+
 function markTicketSeen(id, ticket) {
   if (!ticket) return;
   const map = readSeenMap();
-  map[id] = { updated_at: ticket.updated_at, estado: ticket.estado };
+  map[id] = seenSnapshot(ticket);
   writeSeenMap(map);
+}
+
+function gotNewReply(prev, ticket) {
+  const ultima = ultimaRespuestaAt(ticket);
+  if (!ultima) return false;
+  // Entradas guardadas antes de que existiera ultima_respuesta_at: alcanza
+  // con que la respuesta sea posterior a lo último que el usuario vio.
+  if (prev.ultima_respuesta_at === undefined) return new Date(ultima) > new Date(prev.updated_at);
+  return !prev.ultima_respuesta_at || new Date(ultima) > new Date(prev.ultima_respuesta_at);
 }
 
 function isTicketNotifyWorthy(prev, ticket) {
   if (!prev) return false;
   const becameClosed = ticket.estado === "closed" && prev.estado !== "closed";
-  const gotNewMessage = prev.estado === ticket.estado && prev.updated_at !== ticket.updated_at;
-  return becameClosed || gotNewMessage;
+  return becameClosed || gotNewReply(prev, ticket);
 }
 
 // Devuelve los ids de los tickets con novedad (cerrado o comentario nuevo) y
@@ -78,7 +101,7 @@ function syncTicketNotifications(tickets) {
     if (isTicketNotifyWorthy(prev, t)) {
       notifiedIds.push(t.id);
     } else {
-      nextMap[t.id] = { updated_at: t.updated_at, estado: t.estado };
+      nextMap[t.id] = seenSnapshot(t);
     }
   }
   writeSeenMap(nextMap);
@@ -110,7 +133,7 @@ const T = {
 export default function TicketWidget() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("nueva");
-  const panelRef = useRef(null);
+  const widgetRef = useRef(null);
 
   const [categoria, setCategoria] = useState(TICKET_CATEGORIAS[0]);
   const [mensaje, setMensaje] = useState("");
@@ -128,35 +151,93 @@ export default function TicketWidget() {
   const [notifiedTicketIds, setNotifiedTicketIds] = useState(() => new Set());
   const [confirmandoAnular, setConfirmandoAnular] = useState(false);
   const [anulando, setAnulando] = useState(false);
+  const [abriendoId, setAbriendoId] = useState(null);
+  const [errorTicket, setErrorTicket] = useState("");
+  // Contenido de los adjuntos del ticket abierto, que llega aparte del detalle.
+  const [adjuntosCompletos, setAdjuntosCompletos] = useState({ ticketId: null, adjuntos: [] });
+  const [errorAdjuntos, setErrorAdjuntos] = useState("");
+  const adjuntosPedidoRef = useRef(null);
+  const ticketAbiertoRef = useRef(null);
+  const cargandoMisTicketsRef = useRef(false);
 
   useEffect(() => {
     function onDocClick(e) {
-      if (open && panelRef.current && !panelRef.current.contains(e.target)) setOpen(false);
+      // Todo el widget (botón + panel), no solo el panel: si no, clickear el
+      // botón con el panel abierto lo cerraba en el mousedown y el onClick lo
+      // volvía a abrir - el botón nunca podía cerrarlo.
+      if (open && widgetRef.current && !widgetRef.current.contains(e.target)) setOpen(false);
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
+  // El ticket que el usuario tiene a la vista (panel abierto en "Mis
+  // tickets"), para que los polls de abajo lo puedan refrescar. Con el panel
+  // cerrado queda en null: una respuesta nueva ahí tiene que prender el aviso,
+  // no marcarse como vista sola.
   useEffect(() => {
-    if (open && tab === "mias") cargarMisTickets();
+    ticketAbiertoRef.current = open && tab === "mias" ? ticketSeleccionado : null;
+  }, [open, tab, ticketSeleccionado]);
+
+  useEffect(() => {
+    if (open) cargarMisTickets({ silent: tab !== "mias" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, tab]);
 
   // Poll para el badge de "no leídos" en el botón — corre siempre, no solo
   // con el panel abierto, para que se note un ticket respondido aunque no
-  // hayas vuelto a entrar a "Mis tickets".
+  // hayas vuelto a entrar a "Mis tickets". También al volver a la pestaña o
+  // ventana, para no esperar hasta el próximo poll.
   useEffect(() => {
     cargarMisTickets({ silent: true });
     const interval = setInterval(() => cargarMisTickets({ silent: true }), 60000);
-    return () => clearInterval(interval);
+    function alVolver() {
+      if (document.visibilityState === "visible") cargarMisTickets({ silent: true });
+    }
+    window.addEventListener("focus", alVolver);
+    document.addEventListener("visibilitychange", alVolver);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", alVolver);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Con "Mis tickets" a la vista, más seguido: si soporte responde mientras
+  // el usuario mira el ticket, la respuesta aparece sola.
+  useEffect(() => {
+    if (!(open && tab === "mias")) return undefined;
+    const interval = setInterval(() => cargarMisTickets({ silent: true }), 15000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, tab]);
+
   async function cargarMisTickets(opts = {}) {
     const silent = !!opts.silent;
+    // focus + visibilitychange + polls pueden coincidir: uno a la vez alcanza.
+    if (silent && cargandoMisTicketsRef.current) return;
+    cargandoMisTicketsRef.current = true;
     if (!silent) setCargandoMias(true);
     try {
-      const tickets = await listMyTickets();
+      let tickets = await listMyTickets();
+      // Antes el ticket abierto se traía una sola vez, al tocarlo: una
+      // respuesta que llegaba después no aparecía hasta salir y volver a
+      // entrar. Si cambió, se vuelve a traer acá.
+      const abierto = ticketAbiertoRef.current;
+      const fila = abierto && tickets.find((t) => t.id === abierto.id);
+      if (fila && (fila.updated_at !== abierto.updated_at || fila.estado !== abierto.estado)) {
+        try {
+          const ticket = await getMyTicket(abierto.id);
+          if (ticketAbiertoRef.current?.id === ticket.id) {
+            setTicketSeleccionado(ticket);
+            markTicketSeen(ticket.id, ticket);
+            tickets = tickets.map((t) => (t.id === ticket.id ? { ...t, ...seenSnapshot(ticket) } : t));
+          }
+        } catch (err) {
+          console.error("Error refrescando el ticket abierto:", err);
+        }
+      }
       setMisTickets(tickets);
       const notified = syncTicketNotifications(tickets);
       setNotifiedTicketIds(new Set(notified));
@@ -164,23 +245,50 @@ export default function TicketWidget() {
     } catch (err) {
       console.error("Error cargando mis tickets:", err);
     } finally {
+      cargandoMisTicketsRef.current = false;
       if (!silent) setCargandoMias(false);
+    }
+  }
+
+  async function cargarAdjuntos(id) {
+    adjuntosPedidoRef.current = id;
+    setErrorAdjuntos("");
+    try {
+      const lista = await getMyTicketAdjuntos(id);
+      if (adjuntosPedidoRef.current === id) setAdjuntosCompletos({ ticketId: id, adjuntos: lista });
+    } catch (err) {
+      console.error("Error cargando adjuntos del ticket:", err);
+      if (adjuntosPedidoRef.current === id) setErrorAdjuntos(err.message || "No se pudieron cargar los adjuntos.");
     }
   }
 
   async function abrirTicket(id) {
     setConfirmandoAnular(false);
+    setErrorTicket("");
+    if (ticketSeleccionado?.id !== id) setErrorAdjuntos("");
+    setAbriendoId(id);
     try {
       const ticket = await getMyTicket(id);
       setTicketSeleccionado(ticket);
       if (ticket) {
         markTicketSeen(ticket.id, ticket);
-        const notified = syncTicketNotifications(misTickets);
+        // El listado puede tener hasta 60s de atraso: si justo llegó una
+        // respuesta, el punto rojo se volvería a prender comparando contra
+        // datos viejos, así que se actualiza esa fila con lo recién traído.
+        const actualizados = misTickets.map((t) => (t.id === ticket.id ? { ...t, ...seenSnapshot(ticket) } : t));
+        setMisTickets(actualizados);
+        const notified = syncTicketNotifications(actualizados);
         setNotifiedTicketIds(new Set(notified));
         setUnreadCount(notified.length);
+        const faltaContenido = (ticket.adjuntos || []).some((a) => !a.data_url);
+        if (faltaContenido && adjuntosCompletos.ticketId !== ticket.id) cargarAdjuntos(ticket.id);
       }
     } catch (err) {
+      // Antes solo iba a la consola: el usuario tocaba el ticket y no pasaba nada.
       console.error("Error abriendo ticket:", err);
+      setErrorTicket(err.message || "No se pudo abrir el ticket. Probá de nuevo.");
+    } finally {
+      setAbriendoId(null);
     }
   }
 
@@ -288,7 +396,7 @@ export default function TicketWidget() {
     // se confundía con esos (que son tickets de USUARIOS hacia comercial/técnica, no hacia
     // sistemas). Ahora es un botón flotante abajo a la derecha, separado del resto de la
     // navegación, para que quede claro que es "reportar un problema del sistema en sí".
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000 }}>
+    <div ref={widgetRef} style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000 }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -324,7 +432,6 @@ export default function TicketWidget() {
 
       {open && (
         <div
-          ref={panelRef}
           style={{
             position: "absolute", bottom: "calc(100% + 8px)", right: 0,
             width: 360, maxWidth: "90vw",
@@ -489,6 +596,12 @@ export default function TicketWidget() {
               </form>
             )}
 
+            {tab === "mias" && errorTicket && (
+              <div style={{ color: T.danger, fontSize: 12, marginBottom: 8 }}>
+                No se pudo abrir el ticket: {errorTicket}
+              </div>
+            )}
+
             {tab === "mias" && !ticketSeleccionado && (
               <div>
                 {cargandoMias && <div style={{ fontSize: 13, color: T.inkWeak }}>Cargando...</div>}
@@ -523,6 +636,9 @@ export default function TicketWidget() {
                     <span style={{ fontSize: 11, fontWeight: 700, color: ESTADO_COLOR[t.estado] || T.ink }}>
                       {ESTADO_LABEL[t.estado] || t.estado}
                     </span>
+                    {abriendoId === t.id && (
+                      <span style={{ fontSize: 11, color: T.inkWeak, marginLeft: 8 }}>Abriendo...</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -532,7 +648,7 @@ export default function TicketWidget() {
               <div>
                 <button
                   type="button"
-                  onClick={() => setTicketSeleccionado(null)}
+                  onClick={() => { setTicketSeleccionado(null); setErrorTicket(""); }}
                   style={{ background: "none", border: "none", color: T.brand700, cursor: "pointer", padding: 0, marginBottom: 8 }}
                 >
                   ← Volver
@@ -545,22 +661,43 @@ export default function TicketWidget() {
 
                 {(ticketSeleccionado.adjuntos || []).length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                    {ticketSeleccionado.adjuntos.map((a, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => openTicketAttachment(a)}
-                        onDoubleClick={() => downloadTicketAttachment(a)}
-                        title={`${formatTicketAttachmentMeta(a)} (clic para ver, doble clic para descargar)`}
-                        style={{ border: `1px solid ${T.border}`, borderRadius: 6, padding: 4, background: "transparent", cursor: "pointer", fontSize: 11 }}
-                      >
-                        {isImageTicketAttachment(a) ? (
-                          <img src={a.data_url} alt={a.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 4, display: "block" }} />
-                        ) : (
-                          <span>📎 {formatTicketAttachmentMeta(a)}</span>
-                        )}
-                      </button>
-                    ))}
+                    {(adjuntosCompletos.ticketId === ticketSeleccionado.id ? adjuntosCompletos.adjuntos : ticketSeleccionado.adjuntos).map((a, idx) => {
+                      const listo = !!a.data_url;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={!listo}
+                          onClick={() => openTicketAttachment(a)}
+                          onDoubleClick={() => downloadTicketAttachment(a)}
+                          title={listo
+                            ? `${formatTicketAttachmentMeta(a)} (clic para ver, doble clic para descargar)`
+                            : `${formatTicketAttachmentMeta(a)} (cargando...)`}
+                          style={{
+                            border: `1px solid ${T.border}`, borderRadius: 6, padding: 4, background: "transparent", fontSize: 11,
+                            cursor: listo ? "pointer" : "wait", opacity: listo ? 1 : 0.6,
+                          }}
+                        >
+                          {listo && isImageTicketAttachment(a) ? (
+                            <img src={a.data_url} alt={a.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 4, display: "block" }} />
+                          ) : (
+                            <span>📎 {formatTicketAttachmentMeta(a)}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {errorAdjuntos && (
+                  <div style={{ fontSize: 12, color: T.danger, marginTop: 6 }}>
+                    No se pudieron cargar los adjuntos.{" "}
+                    <button
+                      type="button"
+                      onClick={() => cargarAdjuntos(ticketSeleccionado.id)}
+                      style={{ background: "none", border: "none", padding: 0, color: T.brand700, cursor: "pointer", textDecoration: "underline", fontSize: 12 }}
+                    >
+                      Reintentar
+                    </button>
                   </div>
                 )}
 
@@ -573,7 +710,16 @@ export default function TicketWidget() {
                       <div style={{ fontSize: 13, whiteSpace: "pre-wrap", color: T.ink }}>{m.mensaje}</div>
                     </div>
                   ))}
-                  {(!ticketSeleccionado.mensajes || ticketSeleccionado.mensajes.length === 0) && (
+                  {ticketSeleccionado.estado === "closed" ? (
+                    // Cerrar el ticket también dispara el aviso de novedades, aunque soporte
+                    // no haya escrito nada: sin esta línea se veía "Todavía no hay respuestas"
+                    // y parecía que la respuesta avisada no aparecía.
+                    <div style={{ fontSize: 12, fontWeight: 600, color: ESTADO_COLOR.closed }}>
+                      {(ticketSeleccionado.mensajes || []).some((m) => m.es_admin)
+                        ? "Soporte cerró este ticket."
+                        : "Soporte cerró este ticket sin dejar un comentario."}
+                    </div>
+                  ) : (!ticketSeleccionado.mensajes || ticketSeleccionado.mensajes.length === 0) && (
                     <div style={{ fontSize: 13, color: T.inkWeak }}>Todavía no hay respuestas.</div>
                   )}
                 </div>
