@@ -10,6 +10,7 @@ import { adminCreateUser, adminExportDistributors, adminListUsers, adminUpdateUs
 import { getPricelists } from "../../api/odoo.js";
 
 const PAGE_SIZE = 50;
+const EMAIL_LIKE_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function getRolesText(u) {
   const roles = [];
@@ -46,6 +47,7 @@ export default function UsersAdminPage() {
   const [mode, setMode] = useState("create");
   const [fUsername, setFUsername] = useState("");
   const [fFullName, setFFullName] = useState("");
+  const [fEmail, setFEmail] = useState("");
   const [fPassword, setFPassword] = useState("");
   const [fIsVendedor, setFIsVendedor] = useState(true);
   const [fIsDistribuidor, setFIsDistribuidor] = useState(false);
@@ -123,6 +125,7 @@ export default function UsersAdminPage() {
     setSelectedId(null);
     setFUsername("");
     setFFullName("");
+    setFEmail("");
     setFPassword("");
     setFIsVendedor(roleTab !== "distribuidor" && roleTab !== "medidor" && roleTab !== "superuser" && roleTab !== "administracion");
     setFIsDistribuidor(roleTab === "distribuidor");
@@ -143,6 +146,7 @@ export default function UsersAdminPage() {
     setSelectedId(u.id);
     setFUsername(u.username);
     setFFullName(u.full_name || "");
+    setFEmail(u.email || "");
     setFPassword("");
     setFIsVendedor(!!u.is_vendedor);
     setFIsDistribuidor(!!u.is_distribuidor);
@@ -189,6 +193,7 @@ export default function UsersAdminPage() {
         username: fUsername,
         password: fPassword,
         full_name: fFullName,
+        email: fEmail.trim(),
         is_vendedor: fIsVendedor,
         is_distribuidor: fIsDistribuidor,
         is_medidor: fIsMedidor,
@@ -214,6 +219,7 @@ export default function UsersAdminPage() {
     mutationFn: () =>
       adminUpdateUser(selectedId, {
         full_name: fFullName,
+        email: fEmail.trim(),
         password: fPassword ? fPassword : "",
         is_vendedor: fIsVendedor,
         is_distribuidor: fIsDistribuidor,
@@ -317,6 +323,17 @@ export default function UsersAdminPage() {
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>Nombre</div>
             <Input value={fFullName} onChange={setFFullName} placeholder="Nombre completo" style={{ width: "100%" }} />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>Email (para recuperar la contraseña)</div>
+            <Input
+              type="email"
+              value={fEmail}
+              onChange={setFEmail}
+              placeholder={EMAIL_LIKE_RE.test(fUsername.trim()) ? `Vacío = ${fUsername.trim()}` : "email@ejemplo.com"}
+              style={{ width: "100%" }}
+            />
           </div>
 
           <div>
@@ -467,7 +484,7 @@ export default function UsersAdminPage() {
 
       <div className="card">
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <Input value={q} onChange={setQ} placeholder="Buscar por usuario o nombre…" style={{ flex: 1, minWidth: 260 }} />
+          <Input value={q} onChange={setQ} placeholder="Buscar por usuario, nombre o email…" style={{ flex: 1, minWidth: 260 }} />
           <select
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value)}
@@ -524,7 +541,12 @@ export default function UsersAdminPage() {
                       <td style={tableCellStyle}>#{u.id}</td>
                       <td style={tableCellStyle}>
                         <div style={{ fontWeight: 900 }}>{u.username}</div>
+                        {u.email && u.email.toLowerCase() !== String(u.username || "").trim().toLowerCase() ? (
+                          <div className="muted" style={{ fontSize: 12 }}>Email: {u.email}</div>
+                        ) : null}
+                        {!u.recovery_email ? <div className="muted" style={{ fontSize: 12 }}>Sin email de recuperación</div> : null}
                         {u.visible_password ? <div className="muted" style={{ fontSize: 12 }}>Pass: {u.visible_password}</div> : null}
+                        {!u.visible_password && u.password_self_changed ? <div className="muted" style={{ fontSize: 12 }}>Pass: la cambió el usuario</div> : null}
                         {u.unlimited_dimensions ? (
                           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--dg-warning-text)", marginTop: 2 }} title="Excepción activa: sin límite de medidas en portón">
                             ⚠ Sin límite de medidas

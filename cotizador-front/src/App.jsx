@@ -46,6 +46,9 @@ import AdministracionDetailPage from "./pages/AdministracionDetailPage/index.jsx
 import MeetSchedulingPage from "./pages/MeetSchedulingPage/index.jsx";
 import MeetPublicSchedulingPage from "./pages/MeetPublicSchedulingPage/index.jsx";
 import TutorialPage from "./pages/TutorialPage/index.jsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage/index.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage/index.jsx";
+import MyAccountPage from "./pages/MyAccountPage/index.jsx";
 
 import RequireAuth from "./routes/RequireAuth.jsx";
 import AppLayout from "./layouts/AppLayout.jsx";
@@ -89,6 +92,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/recuperar-contrasena" element={<ForgotPasswordPage />} />
+        <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
         <Route path="/aceptacion-cliente/:token" element={<ClientAcceptancePage />} />
         <Route path="/agendar-meet-tecnico" element={<MeetPublicSchedulingPage />} />
         <Route path="/" element={<RequireAuth><AppLayout /></RequireAuth>}>
@@ -137,6 +142,7 @@ export default function App() {
           <Route path="administracion/:id" element={<AdministracionDetailPage />} />
           <Route path="servicio-tecnico/calendario-meet" element={<MeetSchedulingPage />} />
           <Route path="tutorial" element={<TutorialPage />} />
+          <Route path="mi-cuenta" element={<MyAccountPage />} />
         </Route>
         <Route path="*" element={<Navigate to={token ? "/menu" : "/login"} replace />} />
       </Routes>

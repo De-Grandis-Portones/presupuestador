@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 
 import Button from "../../ui/Button.jsx";
 import PaginationControls from "../../ui/PaginationControls.jsx";
-import { listMyDistributors, updateMyDistributorDefaultMapsUrl, updateMyDistributorPhone, getMyDistributorLogo, updateMyDistributorLogo } from "../../api/sellerDistributors.js";
+import { listMyDistributors, updateMyDistributorDefaultMapsUrl, updateMyDistributorPhone, updateMyDistributorEmail, getMyDistributorLogo, updateMyDistributorLogo } from "../../api/sellerDistributors.js";
 import { getPricelists } from "../../api/odoo.js";
 import { useAuthStore } from "../../domain/auth/store.js";
 
@@ -26,8 +26,16 @@ function normalizeSearch(value) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function PasswordCell({ value }) {
+function PasswordCell({ value, selfChanged }) {
   const password = String(value || "").trim();
+  if (!password && selfChanged) {
+    return (
+      <div>
+        <span className="muted">La cambió el distribuidor</span>
+        <div className="muted" style={{ fontSize: 12 }}>Es privada. Si la olvida, puede usar "¿Olvidaste tu contraseña?" o resetearla desde Gestor de usuarios.</div>
+      </div>
+    );
+  }
   if (!password) {
     return (
       <div>
@@ -88,6 +96,32 @@ function PhoneCell({ distributor, value, onChange, onSave, saving }) {
         </Button>
       </div>
       <div className="muted" style={{ fontSize: 12 }}>Teléfono del distribuidor para notificaciones de medición.</div>
+    </div>
+  );
+}
+
+function EmailCell({ distributor, value, onChange, onSave, saving }) {
+  const original = String(distributor?.email || "").trim();
+  const current = String(value || "").trim();
+  const changed = current.toLowerCase() !== original.toLowerCase();
+  const recovery = String(distributor?.recovery_email || "").trim();
+  return (
+    <div style={{ display: "grid", gap: 8, width: "100%" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(150px, 1fr) auto", gap: 8, alignItems: "center", width: "100%" }}>
+        <input
+          type="email"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={recovery && !original ? `Vacío = ${recovery}` : "email@ejemplo.com"}
+          style={{ width: "100%", minWidth: 0, padding: 8, borderRadius: 10, border: "1px solid var(--dg-border)" }}
+        />
+        <Button variant="secondary" disabled={saving || !changed} onClick={() => onSave(current)}>
+          {saving ? "Guardando..." : "Guardar"}
+        </Button>
+      </div>
+      <div className="muted" style={{ fontSize: 12 }}>
+        {recovery ? `El link de "¿Olvidaste tu contraseña?" llega a ${recovery}.` : "Sin email: no puede recuperar la contraseña solo."}
+      </div>
     </div>
   );
 }
@@ -211,6 +245,7 @@ export default function MyDistributorsPage() {
   const [searchText, setSearchText] = useState("");
   const [mapsDrafts, setMapsDrafts] = useState({});
   const [phoneDrafts, setPhoneDrafts] = useState({});
+  const [emailDrafts, setEmailDrafts] = useState({});
   const [page, setPage] = useState(1);
   const qc = useQueryClient();
 
@@ -245,6 +280,15 @@ export default function MyDistributorsPage() {
     onError: (e) => toast.error(e?.message || "No se pudo guardar el teléfono"),
   });
 
+  const saveEmailM = useMutation({
+    mutationFn: ({ id, value }) => updateMyDistributorEmail(id, value),
+    onSuccess: () => {
+      toast.success("Email guardado");
+      qc.invalidateQueries({ queryKey: ["myDistributors"] });
+    },
+    onError: (e) => toast.error(e?.message || "No se pudo guardar el email"),
+  });
+
   const saveLogoM = useMutation({
     mutationFn: ({ id, value }) => updateMyDistributorLogo(id, value),
     onSuccess: (_data, variables) => {
@@ -270,12 +314,15 @@ export default function MyDistributorsPage() {
   useEffect(() => {
     const nextMaps = {};
     const nextPhone = {};
+    const nextEmail = {};
     for (const d of distributors) {
       nextMaps[d.id] = String(d?.default_maps_url || "");
       nextPhone[d.id] = String(d?.phone || "");
+      nextEmail[d.id] = String(d?.email || "");
     }
     setMapsDrafts(nextMaps);
     setPhoneDrafts(nextPhone);
+    setEmailDrafts(nextEmail);
   }, [distributors]);
 
   const filteredDistributors = useMemo(() => {
@@ -288,6 +335,7 @@ export default function MyDistributorsPage() {
         d?.full_name,
         d?.username,
         d?.visible_password,
+        d?.recovery_email,
         d?.odoo_partner_id,
         d?.odoo_pricelist_id,
         d?.default_maps_url,
@@ -379,18 +427,19 @@ export default function MyDistributorsPage() {
         {!q.isLoading && !!distributors.length && !filteredDistributors.length ? <div className="muted">No hay distribuidores que coincidan con la busqueda.</div> : null}
 
         {!!filteredDistributors.length ? (
-          <table style={{ width: "100%", minWidth: 1900, tableLayout: "fixed" }}>
+          <table style={{ width: "100%", minWidth: 2150, tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "10%" }} />
               <col style={{ width: "11%" }} />
-              <col style={{ width: "8%" }} />
               <col style={{ width: "9%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
               <col style={{ width: "5%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "5%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "11%" }} />
               <col style={{ width: "12%" }} />
+              <col style={{ width: "4%" }} />
+              <col style={{ width: "9%" }} />
             </colgroup>
             <thead>
               <tr>
@@ -400,6 +449,7 @@ export default function MyDistributorsPage() {
                 <th>Contrasena</th>
                 <th>Lista de precios</th>
                 <th>Partner Odoo</th>
+                <th>Email recuperación</th>
                 <th>Teléfono</th>
                 <th>Maps por defecto</th>
                 <th>Estado</th>
@@ -422,9 +472,18 @@ export default function MyDistributorsPage() {
                         <Button variant="ghost" onClick={() => copyToClipboard(username, "Usuario")}>Copiar</Button>
                       </div>
                     </td>
-                    <td style={tableCellStyle}><PasswordCell value={d.visible_password} /></td>
+                    <td style={tableCellStyle}><PasswordCell value={d.visible_password} selfChanged={d.password_self_changed} /></td>
                     <td style={tableCellStyle}><PricelistCell distributor={d} pricelistById={pricelistById} /></td>
                     <td style={tableCellStyle}>{d.odoo_partner_id || <span className="muted">-</span>}</td>
+                    <td style={tableCellStyle}>
+                      <EmailCell
+                        distributor={d}
+                        value={emailDrafts[d.id] ?? ""}
+                        onChange={(value) => setEmailDrafts((prev) => ({ ...prev, [d.id]: value }))}
+                        onSave={(value) => saveEmailM.mutate({ id: d.id, value })}
+                        saving={saveEmailM.isPending && String(saveEmailM.variables?.id || "") === String(d.id)}
+                      />
+                    </td>
                     <td style={tableCellStyle}>
                       <PhoneCell
                         distributor={d}

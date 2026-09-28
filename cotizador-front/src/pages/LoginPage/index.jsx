@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 
 import Input from "../../ui/Input.jsx";
 import Button from "../../ui/Button.jsx";
-import { login } from "../../api/auth.js";
+import { login, getPasswordResetEnabled } from "../../api/auth.js";
 import { useAuthStore } from "../../domain/auth/store.js";
 import { setOdooBootstrap } from "../../domain/odoo/bootstrap.js";
 import { prefetchOdooBootstrapInBackground } from "../../domain/odoo/prefetch.js";
@@ -50,6 +50,14 @@ export default function LoginPage() {
     setShake(false);
     window.setTimeout(() => setShake(true), 0);
   };
+
+  // El link de recuperacion solo aparece si el envio de emails ya esta configurado.
+  const resetEnabledQ = useQuery({
+    queryKey: ["passwordResetEnabled"],
+    queryFn: getPasswordResetEnabled,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
   const m = useMutation({
     mutationFn: () => login({ username, password }),
@@ -133,6 +141,11 @@ export default function LoginPage() {
               <EyeIcon open={showPassword} />
             </button>
           </div>
+          {resetEnabledQ.data === true ? (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+              <Link to="/recuperar-contrasena" style={{ color: "var(--dg-accent-text)", fontSize: 13 }}>¿Olvidaste tu contraseña?</Link>
+            </div>
+          ) : null}
 
           <div className="spacer" />
           {m.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{m.error.message}</div>}

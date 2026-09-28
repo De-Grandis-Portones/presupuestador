@@ -125,11 +125,34 @@ export async function getTicketForOwner(id, userId) {
   );
   const ticket = rows[0];
   if (!ticket) return null;
+  // Las respuestas de soporte las escribe un admin de planificación
+  // (autor_id = admin_users.id): se muestra su nombre real en vez del
+  // usuario de login, y si no tiene nombre cargado queda el usuario.
+  const autorNombre = (await hayAdminUsers())
+    ? `coalesce(case when m.es_admin then
+         (select nullif(trim(au.name), '') from public.admin_users au where au.id::text = m.autor_id::text)
+       end, m.autor_username) as autor_nombre`
+    : "m.autor_username as autor_nombre";
   const mensajes = await dbQuery(
-    `select * from public.ticket_mensajes where ticket_id = $1 order by created_at asc;`,
+    `select m.*, ${autorNombre} from public.ticket_mensajes m where m.ticket_id = $1 order by m.created_at asc;`,
     [id]
   );
   return { ...ticket, mensajes: mensajes.rows };
+}
+
+// admin_users es la tabla de admins de planificación: en producción vive en
+// esta misma base, pero no necesariamente en una base local de prueba.
+let adminUsersPromise = null;
+function hayAdminUsers() {
+  if (!adminUsersPromise) {
+    adminUsersPromise = dbQuery(`select to_regclass('public.admin_users') is not null as ok;`)
+      .then(({ rows }) => !!rows[0]?.ok)
+      .catch((err) => {
+        adminUsersPromise = null;
+        throw err;
+      });
+  }
+  return adminUsersPromise;
 }
 
 export async function getTicketAdjuntosForOwner(id, userId) {
