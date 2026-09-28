@@ -105,14 +105,22 @@ export function computeBudgetSectorSummary({ sections, products, lines }) {
 // cada linea se ubica segun la seccion de catalogo del producto (section_ids)
 // y el sector asignado a esa seccion (presupuestador_sections.budget_sector).
 // Si ninguna seccion del catalog_kind tiene sector asignado todavia, devuelve
-// null para que el PDF no agregue esta hoja (comportamiento actual sin cambios).
+// null para que el PDF no agregue esta hoja (comportamiento actual sin cambios) -
+// eso es config legitima, no una falla.
+// Antes, si loadCatalogBootstrap fallaba (ej. Odoo caido/timeout), este catch
+// devolvia null igual: el PDF salia "silenciosamente" con el formato viejo (sin
+// avisar) en vez de con el resumen por sector. Ahora se deja propagar el error
+// para que la descarga falle de una, con un mensaje claro, y el usuario reintente
+// en vez de llevarse un PDF incompleto sin saberlo.
 export async function resolveBudgetSectorSummary({ catalogKind, lines, odoo }) {
   try {
     const catalog = await loadCatalogBootstrap(odoo, catalogKind);
     return computeBudgetSectorSummary({ sections: catalog?.sections, products: catalog?.products, lines });
   } catch (e) {
     console.error("resolveBudgetSectorSummary error:", e?.message || e);
-    return null;
+    const err = new Error("No se pudo generar el PDF: falló la conexión con Odoo al armar el resumen del presupuesto. Probá de nuevo.");
+    err.status = 502;
+    throw err;
   }
 }
 

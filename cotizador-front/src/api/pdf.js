@@ -75,13 +75,34 @@ function logPdfApiResponse(kind, payload, res) {
   }
 }
 
+// Con responseType "blob", un error del backend (status != 2xx) llega como un
+// Blob en vez de JSON parseado - sin esto, el catch del llamador solo ve el
+// mensaje generico de axios ("Request failed with status code 502") en vez del
+// motivo real que mandó el server.
+async function extractBlobErrorMessage(maybeBlob) {
+  try {
+    if (!(maybeBlob instanceof Blob)) return "";
+    const text = await maybeBlob.text();
+    const parsed = JSON.parse(text);
+    return String(parsed?.error || "").trim();
+  } catch {
+    return "";
+  }
+}
+
 export async function downloadPresupuestoPdf(payload) {
   logPdfApiRequest("presupuesto", payload);
-  const res = await http.post("/api/pdf/presupuesto", payload, {
-    responseType: "blob",
-  });
-  logPdfApiResponse("presupuesto", payload, res);
-  triggerDownload(res.data, buildPdfFilename(payload, "presupuesto"));
+  try {
+    const res = await http.post("/api/pdf/presupuesto", payload, {
+      responseType: "blob",
+    });
+    logPdfApiResponse("presupuesto", payload, res);
+    triggerDownload(res.data, buildPdfFilename(payload, "presupuesto"));
+  } catch (e) {
+    const blobMessage = await extractBlobErrorMessage(e?.response?.data);
+    if (blobMessage) throw new Error(blobMessage);
+    throw e;
+  }
 }
 
 export async function downloadProformaPdf(payload) {
