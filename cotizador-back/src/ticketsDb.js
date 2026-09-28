@@ -52,9 +52,11 @@ export async function createTicket({ categoria, mensaje, rutaOrigen, creadoPorId
   await ensureTicketsSchema();
   const { rows } = await dbQuery(
     `
+    -- returning sin adjuntos: el cliente ya los tiene, y devolverlos (MBs en base64)
+    -- podía cortar la respuesta por timeout con el ticket ya guardado -> reenvío duplicado.
     insert into public.tickets (categoria, mensaje, ruta_origen, creado_por_id, creado_por_username, app_origen, adjuntos)
     values ($1, $2, $3, $4, $5, 'presupuestador', $6::jsonb)
-    returning *;
+    returning ${TICKET_LIST_COLUMNS};
     `,
     [
       categoria,
@@ -70,26 +72,55 @@ export async function createTicket({ categoria, mensaje, rutaOrigen, creadoPorId
 
 // Sin `adjuntos`: esa columna puede pesar varios MB por fila (adjuntos en
 // base64) y esta consulta es para pintar la lista de "Mis tickets" (solo
-// categoría/estado/fecha) - se recorta a propósito. El detalle sí trae todo
-// vía `select *` en getTicketForOwner.
+// categoría/estado/fecha) - se recorta a propósito. El contenido de los
+// adjuntos se pide aparte, solo al abrir un ticket (getTicketAdjuntosForOwner).
 const TICKET_LIST_COLUMNS = `
   id, categoria, mensaje, estado, creado_por_id, creado_por_username,
   ruta_origen, app_origen, created_at, updated_at
 `;
 
+// Todas las consultas "del dueño" filtran también por app_origen: la tabla es
+// compartida y creado_por_id es el id de usuario de CADA app (acá
+// presupuestador_users.id, en planificación admin_users.id, ...), así que el
+// mismo número puede ser otra persona en otra app. Sin esto, el usuario 7 de
+// acá veía (y podía responder/anular) los tickets del admin 7 de planificación.
+//
+// `ultima_respuesta_at` = último mensaje de soporte (es_admin). El aviso de
+// "respuesta nueva" del widget se basa en esto y no en updated_at, que también
+// se mueve sin que haya nada nuevo para leer (el propio comentario del
+// usuario, soporte "tomando" el ticket en curso, etc.).
 export async function listMyTickets(userId) {
   await ensureTicketsSchema();
   const { rows } = await dbQuery(
-    `select ${TICKET_LIST_COLUMNS} from public.tickets where creado_por_id = $1 order by created_at desc;`,
+    `
+    select ${TICKET_LIST_COLUMNS},
+      (select max(m.created_at) from public.ticket_mensajes m where m.ticket_id = t.id and m.es_admin) as ultima_respuesta_at
+    from public.tickets t
+    where t.creado_por_id = $1 and t.app_origen = 'presupuestador'
+    order by t.created_at desc;
+    `,
     [userId]
   );
   return rows;
 }
 
+// Detalle SIN el contenido de los adjuntos (solo name/type/size, en el mismo
+// orden): antes venían acá los data_url en base64 (hasta ~20MB) y, con una
+// conexión lenta, el pedido no llegaba a terminar - el usuario tocaba el
+// ticket y no se abría, sin poder leer la respuesta de soporte (que pesa
+// nada). El contenido se pide aparte con getTicketAdjuntosForOwner.
 export async function getTicketForOwner(id, userId) {
   await ensureTicketsSchema();
   const { rows } = await dbQuery(
-    `select * from public.tickets where id = $1 and creado_por_id = $2;`,
+    `
+    select ${TICKET_LIST_COLUMNS},
+      case when jsonb_typeof(t.adjuntos) = 'array' then coalesce(
+        (select jsonb_agg(a.adj - 'data_url' order by a.i) from jsonb_array_elements(t.adjuntos) with ordinality as a(adj, i)),
+        '[]'::jsonb
+      ) else '[]'::jsonb end as adjuntos
+    from public.tickets t
+    where t.id = $1 and t.creado_por_id = $2 and t.app_origen = 'presupuestador';
+    `,
     [id, userId]
   );
   const ticket = rows[0];
@@ -99,6 +130,16 @@ export async function getTicketForOwner(id, userId) {
     [id]
   );
   return { ...ticket, mensajes: mensajes.rows };
+}
+
+export async function getTicketAdjuntosForOwner(id, userId) {
+  await ensureTicketsSchema();
+  const { rows } = await dbQuery(
+    `select adjuntos from public.tickets where id = $1 and creado_por_id = $2 and app_origen = 'presupuestador';`,
+    [id, userId]
+  );
+  if (!rows[0]) return null;
+  return Array.isArray(rows[0].adjuntos) ? rows[0].adjuntos : [];
 }
 
 export async function addOwnMessage(ticketId, { autorId, autorUsername, mensaje }) {
@@ -124,7 +165,7 @@ export async function addOwnMessage(ticketId, { autorId, autorUsername, mensaje 
 export async function deleteOwnTicket(id, userId) {
   await ensureTicketsSchema();
   const { rows } = await dbQuery(
-    `delete from public.tickets where id = $1 and creado_por_id = $2 and estado != 'closed' returning id;`,
+    `delete from public.tickets where id = $1 and creado_por_id = $2 and app_origen = 'presupuestador' and estado != 'closed' returning id;`,
     [id, userId]
   );
   return rows[0] || null;
