@@ -3,6 +3,9 @@ import { requireAuth } from "../auth.js";
 import { createTicket, listMyTickets, getTicketForOwner, getTicketAdjuntosForOwner, addOwnMessage, deleteOwnTicket } from "../ticketsDb.js";
 
 const MAX_TICKET_ADJUNTOS = 5;
+// Largo máximo del título libre del ticket (el input del widget ya lo corta
+// con maxLength; acá se recorta por si alguien llama a la API directo).
+const MAX_TICKET_TITULO = 120;
 // ~15MB de bytes crudos de adjuntos (igual al límite combinado del cliente,
 // ver ticketAttachment.js) codificado en base64 (~x1.34). El cliente ya
 // valida esto antes de enviar, pero acá no hay que confiar ciegamente en
@@ -41,9 +44,13 @@ export function buildTicketsRouter() {
 
   router.post("/", async (req, res, next) => {
     try {
+      const titulo = String(req.body?.titulo || "").trim().slice(0, MAX_TICKET_TITULO);
       const categoria = String(req.body?.categoria || "").trim();
       const mensaje = String(req.body?.mensaje || "").trim();
       const rutaOrigen = req.body?.rutaOrigen ? String(req.body.rutaOrigen) : null;
+      // El widget nuevo ya no deja enviar sin título: este mensaje solo lo ve
+      // quien tiene abierta la versión vieja de la pantalla (sin el campo).
+      if (!titulo) return res.status(400).json({ ok: false, error: 'Falta el título. Si no ves el campo "Título", recargá la página.' });
       if (!categoria) return res.status(400).json({ ok: false, error: "Falta la categoría" });
       if (!mensaje) return res.status(400).json({ ok: false, error: "Falta el mensaje" });
       const adjuntos = normalizeTicketAdjuntos(req.body?.adjuntos);
@@ -52,6 +59,7 @@ export function buildTicketsRouter() {
       }
 
       const ticket = await createTicket({
+        titulo,
         categoria,
         mensaje,
         rutaOrigen,

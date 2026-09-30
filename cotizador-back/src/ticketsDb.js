@@ -44,18 +44,21 @@ export async function ensureTicketsSchema() {
     CREATE INDEX IF NOT EXISTS idx_ticket_mensajes_ticket ON public.ticket_mensajes(ticket_id);
 
     ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS adjuntos JSONB NOT NULL DEFAULT '[]'::jsonb;
+    -- Título libre (migración tickets_titulo de planificación). Nullable: los
+    -- tickets viejos no tienen y se sigue mostrando la categoría.
+    ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS titulo TEXT;
   `);
   ensured = true;
 }
 
-export async function createTicket({ categoria, mensaje, rutaOrigen, creadoPorId, creadoPorUsername, adjuntos }) {
+export async function createTicket({ titulo, categoria, mensaje, rutaOrigen, creadoPorId, creadoPorUsername, adjuntos }) {
   await ensureTicketsSchema();
   const { rows } = await dbQuery(
     `
     -- returning sin adjuntos: el cliente ya los tiene, y devolverlos (MBs en base64)
     -- podía cortar la respuesta por timeout con el ticket ya guardado -> reenvío duplicado.
-    insert into public.tickets (categoria, mensaje, ruta_origen, creado_por_id, creado_por_username, app_origen, adjuntos)
-    values ($1, $2, $3, $4, $5, 'presupuestador', $6::jsonb)
+    insert into public.tickets (categoria, mensaje, ruta_origen, creado_por_id, creado_por_username, app_origen, adjuntos, titulo)
+    values ($1, $2, $3, $4, $5, 'presupuestador', $6::jsonb, $7)
     returning ${TICKET_LIST_COLUMNS};
     `,
     [
@@ -65,6 +68,7 @@ export async function createTicket({ categoria, mensaje, rutaOrigen, creadoPorId
       creadoPorId || null,
       creadoPorUsername || null,
       JSON.stringify(Array.isArray(adjuntos) ? adjuntos : []),
+      titulo || null,
     ]
   );
   return rows[0];
@@ -75,7 +79,7 @@ export async function createTicket({ categoria, mensaje, rutaOrigen, creadoPorId
 // categoría/estado/fecha) - se recorta a propósito. El contenido de los
 // adjuntos se pide aparte, solo al abrir un ticket (getTicketAdjuntosForOwner).
 const TICKET_LIST_COLUMNS = `
-  id, categoria, mensaje, estado, creado_por_id, creado_por_username,
+  id, titulo, categoria, mensaje, estado, creado_por_id, creado_por_username,
   ruta_origen, app_origen, created_at, updated_at
 `;
 
