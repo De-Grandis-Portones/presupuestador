@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 import Input from "../../ui/Input.jsx";
 import Button from "../../ui/Button.jsx";
-import NewPasswordFields from "../../components/NewPasswordFields.jsx";
-import { MIN_PASSWORD_LENGTH } from "../../domain/auth/password.js";
-import { changePassword, updateMyEmail } from "../../api/auth.js";
+import { changePassword, updateMyEmail, getPasswordResetEnabled } from "../../api/auth.js";
 import { useAuthStore } from "../../domain/auth/store.js";
 
 function EmailCard() {
@@ -64,65 +62,60 @@ function EmailCard() {
 }
 
 function ChangePasswordCard() {
-  const setSession = useAuthStore((s) => s.setSession);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [show, setShow] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const [sentTo, setSentTo] = useState("");
+
+  // El cambio se hace desde un link que llega por email: sin envio de emails no se puede.
+  const mailQ = useQuery({
+    queryKey: ["passwordResetEnabled"],
+    queryFn: getPasswordResetEnabled,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const hasEmail = !!user?.recovery_email;
+  const mailReady = mailQ.data === true;
 
   const m = useMutation({
-    mutationFn: () => changePassword({ currentPassword, newPassword: password }),
-    onSuccess: (data) => {
-      // El cambio invalida todas las sesiones anteriores; el back devuelve un token nuevo
-      // para seguir usando esta.
-      setSession({ token: data.token, user: data.user });
-      setCurrentPassword("");
-      setPassword("");
-      setConfirm("");
-      toast.success("Contraseña cambiada. Se cerraron tus sesiones en otros dispositivos.");
-    },
+    mutationFn: () => changePassword(),
+    onSuccess: (data) => setSentTo(data.sent_to || "tu email"),
   });
 
-  const canSubmit = !!currentPassword && password.length >= MIN_PASSWORD_LENGTH && password === confirm && !m.isPending;
+  const notice = (tone, content) => (
+    <div
+      style={{
+        marginTop: 10, padding: "10px 12px", borderRadius: 10, fontSize: 13, lineHeight: 1.5,
+        background: `var(--dg-${tone}-bg)`, border: `1px solid var(--dg-${tone}-border)`, color: `var(--dg-${tone}-text)`,
+      }}
+    >
+      {content}
+    </div>
+  );
 
   return (
     <div className="card">
       <h3 style={{ marginTop: 0 }}>Cambiar contraseña</h3>
       <div className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
-        Al cambiarla se cierra tu sesión en los otros dispositivos. La nueva contraseña es privada: no la ve nadie más.
+        Te mandamos un email con un botón para elegir tu nueva contraseña. Cuando la cambies se cierran todas tus sesiones,
+        también esta, y entrás con la nueva. La nueva contraseña es privada: no la ve nadie más.
       </div>
+      {sentTo
+        ? notice("success", <>Te mandamos un email a <strong>{sentTo}</strong>. Entrá a tu correo y tocá <strong>"Cambiar contraseña"</strong>. El link vence en 30 minutos; si no lo ves, revisá la carpeta de spam.</>)
+        : null}
+      {!hasEmail ? notice("warning", "Primero cargá tu email arriba: ahí te mandamos el link para cambiar la contraseña.") : null}
+      {hasEmail && mailQ.data === false
+        ? notice("warning", "El envío de emails todavía no está disponible, así que por ahora no se puede cambiar la contraseña desde acá. Pedile a tu vendedor que te la cambie.")
+        : null}
+      {m.isError ? <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginTop: 10 }}>{m.error.message}</div> : null}
       <div className="spacer" />
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (canSubmit) m.mutate();
+      <Button
+        onClick={() => {
+          setSentTo("");
+          m.mutate();
         }}
-        style={{ maxWidth: 420 }}
+        disabled={!hasEmail || !mailReady || m.isPending}
       >
-        <div className="muted">Contraseña actual</div>
-        <Input
-          type={show ? "text" : "password"}
-          value={currentPassword}
-          onChange={setCurrentPassword}
-          placeholder="Contraseña actual"
-          autoComplete="current-password"
-          style={{ width: "100%" }}
-        />
-        <div className="spacer" />
-        <NewPasswordFields
-          password={password}
-          confirm={confirm}
-          onPasswordChange={setPassword}
-          onConfirmChange={setConfirm}
-          show={show}
-          onShowChange={setShow}
-        />
-        <div className="spacer" />
-        {m.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13, marginBottom: 8 }}>{m.error.message}</div>}
-        <Button type="submit" disabled={!canSubmit}>
-          {m.isPending ? "Guardando..." : "Cambiar contraseña"}
-        </Button>
-      </form>
+        {m.isPending ? "Enviando email..." : sentTo ? "Mandar el email de nuevo" : "Cambiar contraseña"}
+      </Button>
     </div>
   );
 }

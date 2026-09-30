@@ -7,7 +7,7 @@ import {
   requestPasswordReset,
   getPasswordResetTokenInfo,
   resetPasswordWithToken,
-  changeOwnPassword,
+  requestOwnPasswordChange,
   updateOwnEmail,
 } from "../passwordReset.js";
 import { getMailStatus } from "../mailer.js";
@@ -102,9 +102,9 @@ export function buildAuthRouter() {
     res.json({ ok: true, user: sanitizeUserForPricing(req.user) });
   });
 
-  // El front muestra "¿Olvidaste tu contraseña?" solo si el envio de emails funciona de
-  // verdad (ver getMailStatus). Asi el codigo se puede publicar antes de cargar las
-  // variables del email, y el link aparece solo cuando se cargan.
+  // La pantalla "¿Olvidaste tu contraseña?" pide el link solo si el envio de emails funciona
+  // de verdad (ver getMailStatus); si no, avisa que todavia no esta disponible. Asi el
+  // codigo se puede publicar antes de cargar las variables del email.
   router.get("/password-reset/status", async (_req, res) => {
     res.json({ ok: true, enabled: await getMailStatus() });
   });
@@ -144,19 +144,21 @@ export function buildAuthRouter() {
     }
   });
 
-  // Devuelve un token nuevo: el cambio cierra todas las sesiones anteriores (ver
-  // password_changed_at en requireAuth), incluida la actual.
+  // "Mi cuenta": no cambia nada en el momento, manda al email de la cuenta un link para
+  // elegir la contraseña nueva (el mismo que usa "¿Olvidaste tu contraseña?"). Sin envio de
+  // emails funcionando no se puede cambiar desde aca.
   router.post("/change-password", requireAuth, changePasswordLimiter, async (req, res) => {
     try {
-      await changeOwnPassword({
-        userId: req.user?.id || req.user?.user_id,
-        currentPassword: req.body?.current_password,
-        newPassword: req.body?.new_password,
-      });
-      const user = sanitizeUserForPricing(req.user);
-      res.json({ ok: true, token: signToken(user), user });
+      if (!(await getMailStatus())) {
+        return res.status(503).json({
+          ok: false,
+          error: "El envío de emails todavía no está disponible, así que por ahora no se puede cambiar la contraseña desde acá. Pedile a tu vendedor que te la cambie.",
+        });
+      }
+      const r = await requestOwnPasswordChange({ userId: req.user?.id || req.user?.user_id, ip: req.ip });
+      res.json({ ok: true, sent_to: r.sent_to });
     } catch (e) {
-      res.status(400).json({ ok: false, error: e?.message || "No se pudo cambiar la contraseña" });
+      res.status(400).json({ ok: false, error: e?.message || "No se pudo mandar el email para cambiar la contraseña" });
     }
   });
 

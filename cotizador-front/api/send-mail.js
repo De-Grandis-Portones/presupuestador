@@ -26,20 +26,26 @@ function secretMatches(given, expected) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Método no permitido" });
 
-  const secret = String(process.env.MAIL_RELAY_SECRET || "");
-  if (!secret || !secretMatches(req.headers["x-mail-relay-secret"], secret)) {
+  // trim(): al pegar valores en el panel de Vercel es comun que se cuele un espacio o un
+  // salto de linea; el backend tambien hace trim de su copia de la clave.
+  const secret = String(process.env.MAIL_RELAY_SECRET || "").trim();
+  // Sin clave cargada (o cargada pero sin volver a publicar) responde 503 y no 401, asi se
+  // distingue "falta configurar" de "la clave no coincide" sin revelar nada.
+  if (!secret) return res.status(503).json({ ok: false, error: "MAIL_RELAY_SECRET no configurada en Vercel" });
+  if (!secretMatches(String(req.headers["x-mail-relay-secret"] || "").trim(), secret)) {
     return res.status(401).json({ ok: false, error: "No autorizado" });
   }
 
   const host = String(process.env.SMTP_HOST || "").trim() || DEFAULT_SMTP_HOST;
   const user = String(process.env.SMTP_USER || "").trim() || DEFAULT_SMTP_USER;
   const port = Number(process.env.SMTP_PORT || 465);
-  const transporter = process.env.SMTP_PASS
+  const pass = String(process.env.SMTP_PASS || "").trim();
+  const transporter = pass
     ? nodemailer.createTransport({
         host,
         port,
         secure: port === 465,
-        auth: { user, pass: process.env.SMTP_PASS },
+        auth: { user, pass },
         connectionTimeout: 15000,
       })
     : null;

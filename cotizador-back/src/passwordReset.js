@@ -76,32 +76,99 @@ export function validateNewPassword(password) {
   return p;
 }
 
-function buildResetEmail({ username, fullName, link }) {
+function buildLinkEmail({ username, fullName, link, subject, intro, action, button, ignore }) {
   const name = String(fullName || "").trim() || username;
-  const subject = "Recuperar tu contraseña del Presupuestador";
   const text = [
     `Hola ${name}:`,
     "",
-    "Pediste recuperar la contraseña del Presupuestador de De Grandis Portones.",
+    intro,
     `Usuario: ${username}`,
     "",
-    `Para elegir una nueva, entrá a este link (vence en ${TOKEN_TTL_MINUTES} minutos y sirve una sola vez):`,
+    `${action} (vence en ${TOKEN_TTL_MINUTES} minutos y sirve una sola vez):`,
     link,
     "",
-    "Si no lo pediste vos, ignorá este email: tu contraseña no cambia.",
+    ignore,
   ].join("\n");
   const html = `
 <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#1f2937;max-width:520px;margin:0 auto;padding:24px">
   <p>Hola ${escapeHtml(name)}:</p>
-  <p>Pediste recuperar la contraseña del Presupuestador de De Grandis Portones.</p>
+  <p>${escapeHtml(intro)}</p>
   <p>Usuario: <strong>${escapeHtml(username)}</strong></p>
   <p style="margin:28px 0">
-    <a href="${escapeHtml(link)}" style="background:#01a39f;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Elegir nueva contraseña</a>
+    <a href="${escapeHtml(link)}" style="background:#01a39f;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">${escapeHtml(button)}</a>
   </p>
   <p style="font-size:13px;color:#6b7280">El link vence en ${TOKEN_TTL_MINUTES} minutos y sirve una sola vez. Si el botón no funciona, copiá esta dirección en el navegador:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
-  <p style="font-size:13px;color:#6b7280">Si no lo pediste vos, ignorá este email: tu contraseña no cambia.</p>
+  <p style="font-size:13px;color:#6b7280">${escapeHtml(ignore)}</p>
 </div>`.trim();
   return { subject, text, html };
+}
+
+function buildResetEmail({ username, fullName, link }) {
+  return buildLinkEmail({
+    username,
+    fullName,
+    link,
+    subject: "Recuperar tu contraseña del Presupuestador",
+    intro: "Pediste recuperar la contraseña del Presupuestador de De Grandis Portones.",
+    action: "Para elegir una nueva, entrá a este link",
+    button: "Elegir nueva contraseña",
+    ignore: "Si no lo pediste vos, ignorá este email: tu contraseña no cambia.",
+  });
+}
+
+function buildChangeEmail({ username, fullName, link }) {
+  return buildLinkEmail({
+    username,
+    fullName,
+    link,
+    subject: "Cambiar tu contraseña del Presupuestador",
+    intro: 'Pediste cambiar la contraseña del Presupuestador de De Grandis Portones desde "Mi cuenta".',
+    action: "Para elegir la nueva, entrá a este link",
+    button: "Cambiar contraseña",
+    ignore: "Si no lo pediste vos, ignorá este email: tu contraseña no cambia.",
+  });
+}
+
+// "sistemas2@degrandisportones.com" -> "si*******@degrandisportones.com"
+function maskEmail(email) {
+  const [local, domain] = String(email || "").split("@");
+  if (!domain) return "";
+  return `${local.slice(0, 2)}${"*".repeat(Math.max(3, local.length - 2))}@${domain}`;
+}
+
+async function recentLinksCount(userId) {
+  const r = await dbQuery(
+    `select count(*)::int as n from public.presupuestador_password_resets where user_id = $1 and created_at > now() - interval '1 hour'`,
+    [userId]
+  );
+  return Number(r.rows?.[0]?.n || 0);
+}
+
+// Crea el link de un solo uso y manda el email. Si el email no sale, el link se anula para
+// que no quede uno suelto.
+async function issuePasswordLink({ user, to, ip, buildEmail }) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const tokenHash = hashToken(token);
+  await dbQuery(
+    `insert into public.presupuestador_password_resets (user_id, token_hash, sent_to, requested_ip, expires_at)
+     values ($1, $2, $3, $4, now() + ($5::int * interval '1 minute'))`,
+    [user.id, tokenHash, to, ip ? String(ip).slice(0, 100) : null, TOKEN_TTL_MINUTES]
+  );
+
+  // El token va en el hash (#) y no en la query: el navegador no lo manda al servidor
+  // (ni queda en logs de Vercel) ni en el Referer.
+  const link = `${resolveAppBaseUrl()}/restablecer-contrasena#token=${token}`;
+  if (process.env.MAIL_DEV_LOG_LINKS === "1") {
+    console.log(`[password-reset] link para ${user.username} <${to}>: ${link}`);
+  }
+
+  try {
+    const { subject, text, html } = buildEmail({ username: user.username, fullName: user.full_name, link });
+    await sendMail({ to, subject, text, html });
+  } catch (e) {
+    await dbQuery(`update public.presupuestador_password_resets set used_at = now() where token_hash = $1`, [tokenHash]);
+    throw e;
+  }
 }
 
 // Nunca le dice a quien lo pide si el usuario existe o tiene email: el route responde
@@ -130,28 +197,8 @@ export async function requestPasswordReset({ identifier, ip = null }) {
     const to = String(user.recovery_email || "").trim();
     if (!to) continue;
 
-    const recent = await dbQuery(
-      `select count(*)::int as n from public.presupuestador_password_resets where user_id = $1 and created_at > now() - interval '1 hour'`,
-      [user.id]
-    );
-    if (Number(recent.rows?.[0]?.n || 0) >= MAX_EMAILS_PER_USER_PER_HOUR) continue;
-
-    const token = crypto.randomBytes(32).toString("base64url");
-    await dbQuery(
-      `insert into public.presupuestador_password_resets (user_id, token_hash, sent_to, requested_ip, expires_at)
-       values ($1, $2, $3, $4, now() + ($5::int * interval '1 minute'))`,
-      [user.id, hashToken(token), to, ip ? String(ip).slice(0, 100) : null, TOKEN_TTL_MINUTES]
-    );
-
-    // El token va en el hash (#) y no en la query: el navegador no lo manda al servidor
-    // (ni queda en logs de Vercel) ni en el Referer.
-    const link = `${resolveAppBaseUrl()}/restablecer-contrasena#token=${token}`;
-    if (process.env.MAIL_DEV_LOG_LINKS === "1") {
-      console.log(`[password-reset] link para ${user.username} <${to}>: ${link}`);
-    }
-
-    const { subject, text, html } = buildResetEmail({ username: user.username, fullName: user.full_name, link });
-    await sendMail({ to, subject, text, html });
+    if ((await recentLinksCount(user.id)) >= MAX_EMAILS_PER_USER_PER_HOUR) continue;
+    await issuePasswordLink({ user, to, ip, buildEmail: buildResetEmail });
     sent += 1;
   }
   return { sent };
@@ -182,7 +229,7 @@ export async function getPasswordResetTokenInfo(token) {
 // tiene que quedar a la vista del vendedor) y se cierran sus otras sesiones.
 // password_changed_at sale del reloj de Node (no now() de Postgres) porque se compara
 // contra el iat de los JWT, que tambien firma Node: si los relojes del server y de la base
-// difieren, el token nuevo de "Mi cuenta" podria quedar invalido apenas se emite.
+// difieren, una sesion iniciada justo despues del cambio podria quedar invalida.
 async function setSelfChangedPassword(userId, password) {
   const r = await dbQuery(
     `
@@ -235,27 +282,41 @@ export async function resetPasswordWithToken({ token, password }) {
   return user;
 }
 
-export async function changeOwnPassword({ userId, currentPassword, newPassword }) {
+// "Mi cuenta" -> Cambiar contraseña: manda al email de la cuenta el mismo tipo de link que
+// "¿Olvidaste tu contraseña?", y la contraseña nueva se elige desde ese link (asi solo la
+// cambia quien tiene acceso al email, aunque alguien mas tenga la sesion abierta).
+export async function requestOwnPasswordChange({ userId, ip = null }) {
   const id = Number(userId || 0);
   if (!id) throw new Error("Usuario inválido");
-  const p = validateNewPassword(newPassword);
 
   await ensurePasswordResetSchema();
 
-  const ok = await dbQuery(
-    `select id from public.presupuestador_users where id = $1 and password_hash = crypt($2::text, password_hash) limit 1`,
-    [id, String(currentPassword ?? "")]
-  );
-  if (!ok.rows?.[0]) throw new Error("La contraseña actual no es correcta");
-
-  const user = await setSelfChangedPassword(id, p);
-  if (!user) throw new Error("Usuario inhabilitado");
-
-  await dbQuery(
-    `update public.presupuestador_password_resets set used_at = now() where user_id = $1 and used_at is null`,
+  const r = await dbQuery(
+    `
+    select u.id, u.username, u.full_name, ${recoveryEmailSql("u")} as recovery_email
+      from public.presupuestador_users u
+     where u.id = $1
+       and coalesce(u.is_active, true) = true
+     limit 1
+    `,
     [id]
   );
-  return user;
+  const user = r.rows?.[0];
+  if (!user) throw new Error("Usuario inhabilitado");
+  const to = String(user.recovery_email || "").trim();
+  if (!to) throw new Error("Primero cargá tu email: ahí te mandamos el link para cambiar la contraseña.");
+
+  if ((await recentLinksCount(id)) >= MAX_EMAILS_PER_USER_PER_HOUR) {
+    throw new Error("Ya te mandamos varios emails en la última hora. Usá el último que te llegó o probá más tarde.");
+  }
+
+  try {
+    await issuePasswordLink({ user, to, ip, buildEmail: buildChangeEmail });
+  } catch (e) {
+    console.error("[password-change] no se pudo mandar el email:", e?.message || e);
+    throw new Error("No se pudo mandar el email. Probá de nuevo en un rato.");
+  }
+  return { sent_to: maskEmail(to) };
 }
 
 export async function updateOwnEmail({ userId, email }) {
