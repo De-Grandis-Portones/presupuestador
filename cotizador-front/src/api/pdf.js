@@ -90,11 +90,14 @@ async function extractBlobErrorMessage(maybeBlob) {
   }
 }
 
+const PDF_DOWNLOAD_TIMEOUT_MS = 60000;
+
 export async function downloadPresupuestoPdf(payload) {
   logPdfApiRequest("presupuesto", payload);
   try {
     const res = await http.post("/api/pdf/presupuesto", payload, {
       responseType: "blob",
+      timeout: PDF_DOWNLOAD_TIMEOUT_MS,
     });
     logPdfApiResponse("presupuesto", payload, res);
     triggerDownload(res.data, buildPdfFilename(payload, "presupuesto"));
@@ -109,6 +112,7 @@ export async function downloadProformaPdf(payload) {
   logPdfApiRequest("proforma", payload);
   const res = await http.post("/api/pdf/proforma", payload, {
     responseType: "blob",
+    timeout: PDF_DOWNLOAD_TIMEOUT_MS,
   });
   logPdfApiResponse("proforma", payload, res);
   triggerDownload(res.data, buildPdfFilename(payload, "proforma"));
@@ -120,7 +124,10 @@ export async function downloadMedicionPdf(quoteId) {
 }
 
 export async function fetchMedicionPdfBlob(quoteId) {
-  const res = await http.get(`/api/pdf/medicion/${quoteId}`, { responseType: "blob" });
+  const res = await http.get(`/api/pdf/medicion/${quoteId}`, {
+    responseType: "blob",
+    timeout: PDF_DOWNLOAD_TIMEOUT_MS,
+  });
   return res.data;
 }
 
