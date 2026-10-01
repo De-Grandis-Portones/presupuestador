@@ -1,6 +1,25 @@
 import express from "express";
 import { requireAuth } from "../auth.js";
 
+// El tool estático "Actualizador de listas de precios" (Planificacion Planta,
+// Frontend/public/listas-precios.html) nunca tuvo login de usuario - no es
+// una pantalla de cotizador-front, es una página HTML suelta. El commit que
+// le agregó requireAuth a todo este router (para que no cualquiera con la
+// URL pudiera reescribir precios reales) no contempló esa herramienta y la
+// rompió. En vez de volver a dejar todo abierto, se le da su propia key fija
+// por header (mismo espíritu que partnerAuth.js para los distribuidores
+// externos) con permisos equivalentes a administración, que es lo mínimo
+// que necesita para poder escribir precios vía /items/:id e /increase.
+function requireAuthOrStaticKey(req, res, next) {
+  const sentKey = String(req.headers["x-price-lists-key"] || "").trim();
+  const expectedKey = String(process.env.PRICE_LISTS_STATIC_API_KEY || "").trim();
+  if (expectedKey && sentKey === expectedKey) {
+    req.user = { is_superuser: false, is_administracion: true, is_active: true, username: "listas-precios-tool" };
+    return next();
+  }
+  return requireAuth(req, res, next);
+}
+
 function toId(value) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -447,10 +466,11 @@ export function buildPriceListsRouter(odoo) {
 
   // Ninguna ruta de este archivo tenía auth - cualquiera con la URL podía
   // leer y, peor, reescribir precios reales de Odoo (ver /increase más abajo,
-  // que puede vaciar una lista entera con un solo request). El frontend ya
-  // manda el Bearer token en todos sus pedidos (src/api/http.js), así que
-  // esto no debería romper el uso actual desde la app.
-  router.use(requireAuth);
+  // que puede vaciar una lista entera con un solo request). cotizador-front
+  // manda el Bearer token en todos sus pedidos (src/api/http.js); la página
+  // suelta listas-precios.html manda la key fija en su lugar (ver
+  // requireAuthOrStaticKey arriba) - ninguna de las dos rompe a la otra.
+  router.use(requireAuthOrStaticKey);
 
   // Además de estar logueado, tocar precios en bulk queda reservado a
   // administración (mismo criterio que admin.routes.js's requireAdministracion).
