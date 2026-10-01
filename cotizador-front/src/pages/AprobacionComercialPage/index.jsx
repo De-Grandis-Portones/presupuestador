@@ -715,7 +715,7 @@ export default function AprobacionComercialPage() {
               return (
                 <>
                   <table>
-                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Solicitud</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Decisiones</th><th></th></tr></thead>
+                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Solicitud</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Cambios</th><th>Decisiones</th><th></th></tr></thead>
                     <tbody>
                       {visibleAcopioRows.map((r) => {
                         const canAct = (r.acopio_to_produccion_commercial_decision || "pending") === "pending";
@@ -730,6 +730,7 @@ export default function AprobacionComercialPage() {
                             <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                             {hasPlegado && <td><PlegadoInfoCell row={r} /></td>}
                             <td><BudgetObservationCell row={r} /></td>
+                            <td>{measurementQuickDiffLabel(r)}</td>
                             <td>{acopioReqLabel(r)}</td>
                             <td className="right">
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -759,7 +760,7 @@ export default function AprobacionComercialPage() {
               return (
                 <>
                   <table>
-                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Solicitud Prod.</th><th></th></tr></thead>
+                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Cambios</th><th>Solicitud Prod.</th><th></th></tr></thead>
                     <tbody>
                       {visibleAcopioListadoRows.map((r) => {
                         const pdfKey = `quote-${r.id}`;
@@ -773,6 +774,7 @@ export default function AprobacionComercialPage() {
                             <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                             {hasPlegado && <td><PlegadoInfoCell row={r} /></td>}
                             <td><BudgetObservationCell row={r} /></td>
+                            <td>{measurementQuickDiffLabel(r)}</td>
                             <td>{r.acopio_to_produccion_status ? acopioReqLabel(r) : "—"}</td>
                             <td className="right">
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
