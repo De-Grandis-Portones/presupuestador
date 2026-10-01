@@ -54,7 +54,7 @@ function parseQtyText(raw) {
   return Number.isFinite(n) ? n : null;
 }
 
-export default function LineRow({ line, finalUnit, total, formatARS, hasSection37Mismatch = false }) {
+export default function LineRow({ line, finalUnit, total, formatARS }) {
   const { setQty, setLineBasePrice, removeLine } = useQuoteStore();
   const user = useAuthStore((state) => state.user);
   const visibleName = String(line.name || line.raw_name || `Producto ${line.product_id}`).trim();
@@ -169,11 +169,7 @@ export default function LineRow({ line, finalUnit, total, formatARS, hasSection3
       </td>
 
       <td className="right">
-        {!canEditPrice && hasSection37Mismatch ? (
-          <span style={{ color: "var(--dg-danger-text)", fontWeight: 700 }} title="El precio base no incluye la instalación sumada correctamente. Recargá la página (Shift+F5).">
-            ⚠ {formatARS(line.basePrice)}
-          </span>
-        ) : !canEditPrice && line.price_error ? (
+        {!canEditPrice && line.price_error ? (
           <span style={{ color: "var(--dg-danger-text)", fontWeight: 700, fontSize: 13 }} title="No se pudo obtener el precio de Odoo para este producto. Reintentá o revisá tu conexión.">
             ⚠ Precio no disponible
           </span>
