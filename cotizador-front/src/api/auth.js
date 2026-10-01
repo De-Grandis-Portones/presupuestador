@@ -41,13 +41,11 @@ export async function resetPassword({ token, password }) {
   return data; // { ok, username }
 }
 
-export async function changePassword({ currentPassword, newPassword }) {
-  const { data } = await http.post("/api/auth/change-password", {
-    current_password: currentPassword,
-    new_password: newPassword,
-  });
-  if (!data?.ok) throw new Error(data?.error || "No se pudo cambiar la contraseña");
-  return data; // { ok, token, user }
+// "Mi cuenta": manda al email de la cuenta un link para elegir la contraseña nueva.
+export async function changePassword() {
+  const { data } = await http.post("/api/auth/change-password");
+  if (!data?.ok) throw new Error(data?.error || "No se pudo mandar el email para cambiar la contraseña");
+  return data; // { ok, sent_to }
 }
 
 export async function updateMyEmail(email) {
