@@ -12,8 +12,9 @@ const DEFAULT_PAYMENT_METHODS = [
   "Transferencia",
   "Cta Cte",
   "Cheques 30",
-  "Cheques 0 - 30 - 60 - 90 - 120",
-  "Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180 - 210",
+  "Cheques 0 - 30 - 60 - 90",
+  "Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180",
+  "Cheques 0 - 30 - 60",
   "CORDOBESA 4 CUOTAS",
   "CORDOBESA 6 CUOTAS",
   "CORDOBESA 10 CUOTAS",
@@ -25,6 +26,11 @@ const DEFAULT_PAYMENT_METHODS = [
   "NARANJA 12 CUOTAS",
   "OTRAS TC BANC 3 CUOTAS",
   "OTRAS TC BANC 6 CUOTAS",
+  "MERCADO PAGO 3 CUOTAS",
+  "MERCADO PAGO 6 CUOTAS",
+  "MERCADO PAGO 9 CUOTAS",
+  "MERCADO PAGO 12 CUOTAS",
+  "MERCADO PAGO 18 CUOTAS",
 ];
 const MULTIPLE_PAYMENT_METHOD = "Pago Multiple";
 
@@ -53,7 +59,7 @@ function normalizePaymentMethodKey(value) {
 }
 function defaultPercentOverride(paymentMethod) {
   const key = normalizePaymentMethodKey(paymentMethod);
-  if (key === normalizePaymentMethodKey("CORDOBESA 12 CUOTAS")) return 24;
+  if (key === normalizePaymentMethodKey("CORDOBESA 12 CUOTAS")) return 21;
   return null;
 }
 function methodKeyAliases(value) {
