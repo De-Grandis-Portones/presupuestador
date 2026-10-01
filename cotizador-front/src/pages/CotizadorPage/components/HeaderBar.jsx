@@ -417,12 +417,12 @@ export default function HeaderBar({ showMargin }) {
   const isMultiplePayment = isMultiplePaymentMethod(paymentMethod);
   const currentPaymentCategory = paymentCategoryFromMethod(paymentMethod, paymentCategoryOverride);
   const paymentCategoryOptions = useMemo(() => {
-    const options = [...MAIN_PAYMENT_METHODS];
+    const options = buildMainPaymentMethods(isDistribuidor);
     if (currentPaymentCategory && !options.some((x) => normalizeKey(x) === normalizeKey(currentPaymentCategory))) {
       options.push(currentPaymentCategory);
     }
     return options;
-  }, [currentPaymentCategory]);
+  }, [currentPaymentCategory, isDistribuidor]);
   const showCardSelector = currentPaymentCategory === CARD_CATEGORY;
   const allowsCondition2 = paymentAllowsCondition2(paymentMethod);
   const conditionValue = allowsCondition2 && conditionMode === "cond2" ? "cond2" : "cond1";
