@@ -343,8 +343,11 @@ async function buildLines(payload, { useBasePrice, odoo, displayNetPrices = fals
     try { return normKind(payload?.catalog_kind || "porton"); } catch { return "porton"; }
   })();
   const productIds = collectUniquePositiveInts(rawLines.map((line) => line?.product_id));
+  const tPdfNames0 = Date.now();
   const pdfNameMap = await getProductPdfNameMap(catalogKind, productIds);
+  const tOdooNames0 = Date.now();
   const odooNames = await readOdooNamesFlexible(odoo, rawLines);
+  console.log(`[pdf.timing] getProductPdfNameMap=${tOdooNames0 - tPdfNames0}ms readOdooNamesFlexible=${Date.now() - tOdooNames0}ms lineCount=${rawLines.length} quote=${getQuoteNumber(payload) || "?"}`);
   const distributorPayload = isDistributorPayload(payload);
   // El envío lo sigue cobrando De Grandis aunque sea "provisión propia" del
   // distribuidor: en la proforma va al precio de la lista de precios del
@@ -1259,14 +1262,19 @@ export function buildPdfRouter(odoo = null) {
   });
 
   router.post("/proforma", requireAuth, async (req, res, next) => {
+    const tStart = Date.now();
     try {
       const rawPayload = req.body || {};
       const payload = { ...rawPayload, seller_name: resolveLoggedUserSellerName(req.user, rawPayload) };
       const pdf = await renderPdf({ title: "PROFORMA", payload, useBasePrice: true, odoo, displayNetPrices: true, taxRate: isCondition2(payload) ? 0.105 : IVA_RATE, allowNewBudgetFormat: false });
+      console.log(`[pdf.timing] POST /api/pdf/proforma total=${Date.now() - tStart}ms user=${req.user?.id || "?"} quote=${getQuoteNumber(payload) || "?"}`);
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${buildDownloadFilename(payload, "proforma", "Proforma_")}"`);
       res.send(pdf);
-    } catch (e) { next(e); }
+    } catch (e) {
+      console.log(`[pdf.timing] POST /api/pdf/proforma FAILED after ${Date.now() - tStart}ms user=${req.user?.id || "?"}`, e?.message || e);
+      next(e);
+    }
   });
 
   router.get("/medicion/public/:token", async (req, res, next) => {
