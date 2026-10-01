@@ -2689,6 +2689,16 @@ export function buildQuotesRouter(odoo) {
         fulfillment_mode: fm,
         lines: quote.lines,
       });
+      // No pisar measurement_status si ya está en un estado activo del circuito de medición
+      // (p.ej. devuelto al vendedor por el medidor/técnica) - mismo criterio que el PUT de
+      // edición de arriba. Sin esto, re-confirmar un presupuesto devuelto (status vuelve a
+      // 'draft' a propósito para poder editarlo) reseteaba measurement_status a 'pending' y
+      // borraba en los hechos que la medición ya se había tomado - caso real: PNP9421/Ludmila,
+      // la medición quedó "perdida" para Técnica aunque measurement_form siguiera completo.
+      const currentMeasurementStatus = String(quote.measurement_status || "none").toLowerCase().trim();
+      const nextMeasurementStatus = ACTIVE_MEASUREMENT_WORKFLOW_STATUSES.includes(currentMeasurementStatus)
+        ? quote.measurement_status
+        : measurementFlow.measurement_status;
 
       const upd = await dbQuery(
         `update public.presupuestador_quotes
@@ -2723,7 +2733,7 @@ export function buildQuotesRouter(odoo) {
           "pending",
           "pending",
           measurementFlow.requires_measurement,
-          measurementFlow.measurement_status,
+          nextMeasurementStatus,
           measurementFlow.measurement_mode,
           measurementFlow.measurement_subtype,
         ]
