@@ -2604,6 +2604,23 @@ export function buildQuotesRouter(odoo) {
         ? await computeEnvioOdooPriceSnapshot({ odoo, createdByRole: quote.created_by_role, pricelistId: nextPricelistId, lines: nextLines })
         : (quote.envio_odoo_price_snapshot ?? await computeEnvioOdooPriceSnapshot({ odoo, createdByRole: quote.created_by_role, pricelistId: nextPricelistId, lines: nextLines }));
 
+      // Si el presupuesto ya estaba confirmado y en Acopio y todavía no se guardó ningún
+      // "antes" para comparar, se captura ahora (una sola vez) - mismo campo/formato que ya
+      // usa el circuito de medición (buildCommercialDiffSnapshot en measurements.routes.js)
+      // para que Comercial, Técnica y el link de aceptación del cliente puedan mostrar qué
+      // cambió. Antes esto solo pasaba para presupuestos que requieren medición (porton/
+      // puerta en Acopio); Ipanel/Plegados/Otros en Acopio no la requieren, así que un
+      // cambio ahí quedaba invisible para quien lo tiene que aprobar después.
+      // Caso real: INP4249/INP4525.
+      const hasCommercialDiffSnapshot =
+        quote.measurement_commercial_diff_json
+        && typeof quote.measurement_commercial_diff_json === "object"
+        && Array.isArray(quote.measurement_commercial_diff_json.original_lines);
+      const nextCommercialDiffSnapshot =
+        quote.status === "synced_odoo" && quote.fulfillment_mode === "acopio" && !hasCommercialDiffSnapshot
+          ? { original_lines: quote.lines || [], original_payload: quote.payload || {}, captured_at: new Date().toISOString() }
+          : quote.measurement_commercial_diff_json;
+
       const upd = await dbQuery(
         `update public.presupuestador_quotes
             set fulfillment_mode=$2,
@@ -2621,6 +2638,7 @@ export function buildQuotesRouter(odoo) {
                 acopio_to_produccion_status=$14,
                 created_at=case when $15::boolean then now() else created_at end,
                 envio_odoo_price_snapshot=$16,
+                measurement_commercial_diff_json=$17::jsonb,
                 -- Fecha en que entro a produccion (ver comentario en quotesSchema.js): solo se
                 -- estampa la primera vez que pasa de no-produccion a produccion, y se limpia si
                 -- vuelve a acopio. Si ya estaba en produccion no se toca (no pisa una fecha vieja).
@@ -2652,6 +2670,7 @@ export function buildQuotesRouter(odoo) {
           nextAcopioStatus,
           isRefreshEmissionDate,
           envioOdooPriceSnapshot,
+          JSON.stringify(nextCommercialDiffSnapshot || null),
         ]
       );
       res.json({ ok: true, quote: upd.rows[0] });
