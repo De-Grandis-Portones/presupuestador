@@ -115,10 +115,45 @@ function fmtDate(iso) {
 // un presupuesto ya confirmado en Acopio, ver PUT /:id en quotes.routes.js) contra las
 // lineas actuales, para que Tecnica tambien vea que cambio antes de aprobar el paso a
 // Produccion.
+function getQuoteMarginPercentForDiff(payload) {
+  const candidates = [payload?.margin_percent_ui, payload?.marginPercent];
+  for (const value of candidates) {
+    const n = Number(String(value ?? "").replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+function getQuoteFinancingPercentForDiff(payload) {
+  const candidates = [
+    payload?.quote_adjustment_percent_snapshot,
+    payload?.financing_percent_snapshot,
+    payload?.financing_percent,
+    payload?.payment_adjustment_percent,
+  ];
+  for (const value of candidates) {
+    if (value === null || value === undefined || String(value).trim() === "") continue;
+    const n = Number(String(value).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
 function measurementQuickDiffLabel(row) {
   const snapshot = row?.measurement_commercial_diff_json;
   if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.original_lines)) return "—";
-  const diff = computeCommercialLinesDiff(snapshot.original_lines, row?.lines || []);
+  // Mismo margen/condición/financiación que usa QuoteDetailPage (commercialLinesDiff) para
+  // que el monto de acá coincida con el que explica el detalle del presupuesto - antes se
+  // llamaba sin estos datos (margen 0%, cond1, financiación 0%), dando un monto distinto
+  // al de adentro del presupuesto (caso real: NP4560, Julio Maiolo, Ornella Petetta, 2026-10-02).
+  const originalPayload = snapshot.original_payload || row?.payload || {};
+  const currentPayload = row?.payload || {};
+  const diff = computeCommercialLinesDiff(snapshot.original_lines, row?.lines || [], {
+    originalMarginPercent: getQuoteMarginPercentForDiff(originalPayload),
+    currentMarginPercent: getQuoteMarginPercentForDiff(currentPayload),
+    originalConditionMode: String(originalPayload?.condition_mode || "cond1").trim(),
+    currentConditionMode: String(currentPayload?.condition_mode || "cond1").trim(),
+    originalFinancingPercent: getQuoteFinancingPercentForDiff(originalPayload),
+    currentFinancingPercent: getQuoteFinancingPercentForDiff(currentPayload),
+  });
   if (!diff.hasChanges) return "Sin cambios";
   const hasToleranceAbsorption = diff.added?.some((l) => String(l?.name || "").startsWith("Diferencia de medición absorbida"));
   const sign = diff.diffAmount > 0 ? "+" : diff.diffAmount < 0 ? "-" : "";
