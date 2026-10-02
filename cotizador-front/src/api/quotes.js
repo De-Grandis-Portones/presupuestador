@@ -82,7 +82,12 @@ export async function listPortonesEstado(kind = "") {
 export async function getPendingClientAcceptance() {
   const { data } = await http.get(`/api/quotes/pending-client-acceptance`);
   if (!data?.ok) throw new Error(data?.error || "No se pudo cargar las aceptaciones pendientes");
-  return { own: data.own || [], distributors: data.distributors || [] };
+  return {
+    own: data.own || [],
+    distributors: data.distributors || [],
+    returned_own: data.returned_own || [],
+    returned_distributors: data.returned_distributors || [],
+  };
 }
 
 export async function confirmMeasurementLinkSent(id) {

@@ -2420,7 +2420,43 @@ export function buildQuotesRouter(odoo) {
         distributorRows = distQ.rows || [];
       }
 
-      res.json({ ok: true, own: ownQ.rows || [], distributors: distributorRows });
+      // Devuelto por medición/técnica/comercial: el vendedor tiene que entrar, revisar la
+      // diferencia de superficie y confirmar de nuevo para que siga a Enc. Comercial - sin
+      // esto se queda trabado en 'draft' indefinidamente si nadie se da cuenta. Pedido
+      // explícito: sumar este aviso al mismo popup de "firma pendiente" (no uno nuevo),
+      // para que el vendedor vea todo lo que tiene que atender en un solo lugar.
+      const returnedSelect = `
+        select q.id, q.quote_number, q.odoo_sale_order_name,
+               q.end_customer, q.catalog_kind,
+               q.measurement_review_at, q.measurement_review_notes,
+               q.created_by_user_id, q.created_by_role,
+               u.username as created_by_username, u.full_name as created_by_full_name
+          from public.presupuestador_quotes q
+          join public.presupuestador_users u on u.id = q.created_by_user_id
+         where q.quote_kind = 'original'
+           and q.measurement_status = 'returned_to_seller'
+           and q.cancelled_at is null
+      `;
+      const returnedOwnQ = await dbQuery(
+        `${returnedSelect} and q.created_by_user_id = $1 order by q.measurement_review_at asc`,
+        [userId],
+      );
+      let returnedDistributorRows = [];
+      if (u.is_vendedor) {
+        const returnedDistQ = await dbQuery(
+          `${returnedSelect} and u.assigned_seller_user_id = $1 and coalesce(u.is_distribuidor, false) = true order by q.measurement_review_at asc`,
+          [userId],
+        );
+        returnedDistributorRows = returnedDistQ.rows || [];
+      }
+
+      res.json({
+        ok: true,
+        own: ownQ.rows || [],
+        distributors: distributorRows,
+        returned_own: returnedOwnQ.rows || [],
+        returned_distributors: returnedDistributorRows,
+      });
     } catch (e) { next(e); }
   });
 
