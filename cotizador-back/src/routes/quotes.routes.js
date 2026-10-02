@@ -5,7 +5,7 @@ import { ensureQuotesMeasurementColumns, QUOTE_LIST_COLUMNS_SQL } from "../quote
 import { getCommercialFinalTolerancePercent } from "../settingsDb.js";
 import { commitQuoteProductionWeek, captureQuotedProductionEstimate } from "../productionPlanning.js";
 import { triggerPreproductionForClientAcceptance } from "../measurementFinalization.js";
-import { isLegacyImport, assertNotLegacyImport, finalizeLegacyAcopioToProduccion, completeLegacyAcopioToProduccion } from "../legacyImport.js";
+import { isLegacyImport, assertNotLegacyImport, finalizeLegacyAcopioToProduccion, completeLegacyAcopioToProduccion, buildLegacyNvLines } from "../legacyImport.js";
 import { getPriceFromPricelist } from "./odoo.routes.js";
 
 // Un presupuesto que requiere medición reserva su semana de producción recién cuando el
@@ -2672,6 +2672,52 @@ export function buildQuotesRouter(odoo) {
           envioOdooPriceSnapshot,
           JSON.stringify(nextCommercialDiffSnapshot || null),
         ]
+      );
+      res.json({ ok: true, quote: upd.rows[0] });
+    } catch (e) { next(e); }
+  });
+
+  // Portón migrado del sistema anterior (ver legacyImport.js): permite corregir la
+  // ficha técnica y los datos del cliente ANTES de solicitar el paso de acopio a
+  // producción. Una vez solicitado (acopio_to_produccion_status != 'none') se
+  // bloquea, mismo criterio conservador que el resto del flujo legacy. No toca
+  // Odoo en ningún punto - solo actualiza la fila local.
+  router.put("/:id/legacy-ficha", requireSellerOrDistributor, async (req, res, next) => {
+    try {
+      const u = req.user;
+      const id = req.params.id;
+      const body = req.body || {};
+      const r = await dbQuery(`select * from public.presupuestador_quotes where id=$1`, [id]);
+      const quote = r.rows?.[0];
+      if (!quote) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
+      if (String(quote.created_by_user_id) !== String(u.user_id)) return res.status(403).json({ ok: false, error: "No sos dueño" });
+      if (!isLegacyImport(quote)) return res.status(400).json({ ok: false, error: "Este presupuesto no es un portón migrado del sistema anterior" });
+      if (String(quote.acopio_to_produccion_status || "none") !== "none") {
+        return res.status(409).json({ ok: false, error: "Ya se solicitó el paso a producción: no se puede editar la ficha." });
+      }
+
+      const nextEndCustomer = body.end_customer !== undefined ? body.end_customer : quote.end_customer;
+      const custErr = validateEndCustomerDraft(nextEndCustomer);
+      if (custErr) return res.status(400).json({ ok: false, error: custErr });
+
+      const prevFicha = (quote.payload && typeof quote.payload === "object" && quote.payload.legacy_ficha) || {};
+      const bodyFicha = (body.legacy_ficha && typeof body.legacy_ficha === "object") ? body.legacy_ficha : {};
+      const prevOpciones = Array.isArray(prevFicha.opciones) ? prevFicha.opciones : [];
+      const nextOpciones = Array.isArray(bodyFicha.opciones)
+        ? bodyFicha.opciones.map((o, i) => ({ ...(prevOpciones[i] || null), ...o }))
+        : prevFicha.opciones;
+      const nextFicha = { ...prevFicha, ...bodyFicha, opciones: nextOpciones };
+      const nextPayload = { ...(quote.payload || {}), legacy_ficha: nextFicha };
+      const nextLines = buildLegacyNvLines({ ...quote, payload: nextPayload });
+
+      const upd = await dbQuery(
+        `update public.presupuestador_quotes
+            set end_customer=$2::jsonb,
+                payload=$3::jsonb,
+                lines=$4::jsonb
+          where id=$1
+          returning *`,
+        [id, JSON.stringify(nextEndCustomer), JSON.stringify(nextPayload), JSON.stringify(nextLines)],
       );
       res.json({ ok: true, quote: upd.rows[0] });
     } catch (e) { next(e); }
