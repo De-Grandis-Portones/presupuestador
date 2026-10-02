@@ -319,7 +319,7 @@ export const TUTORIAL_SECTIONS = [
       },
       {
         type: "tip",
-        text: "En el filtro **En Producción** aparece la columna **Aceptación del cliente**: ahí ves si el cliente ya firmó y podés copiar el link con **🔗 Ver link**.",
+        text: "Si el cliente todavía no firmó, la fila tiene el botón **🔗 Link de aceptación** para copiar el link (con cualquier filtro). En el filtro **En Producción** aparece además la columna **Aceptación del cliente**: ahí ves si ya firmó (nombre, DNI y fecha) y el link con **🔗 Ver link**.",
       },
     ],
     goTo: { path: "/presupuestos", label: "Ir a Mis presupuestos" },
@@ -375,8 +375,8 @@ export const TUTORIAL_SECTIONS = [
         type: "list",
         items: [
           "Se genera cuando Técnica hace la aprobación final (con la NV ya creada). En ese momento Técnica lo manda por WhatsApp al cliente, al distribuidor y al contacto adicional.",
-          "Si hace falta reenviarlo: **Mis presupuestos** → filtro **En Producción** → columna **Aceptación del cliente** → **🔗 Ver link** → **Copiar link**, y mandalo vos.",
-          "A las 9, 12 y 17 hs aparece el aviso **Clientes con firma pendiente**, con los que todavía no firmaron, cuántos días llevan y el botón **Copiar link**.",
+          "Si hace falta reenviarlo: **Mis presupuestos** → en la fila del cliente, **🔗 Link de aceptación** → **Copiar link**, y mandalo vos. (En el filtro **En Producción** está en la columna **Aceptación del cliente** → **🔗 Ver link**.)",
+          "A las 9, 12 y 17 hs aparece el aviso **Clientes con firma pendiente**, con los que todavía no firmaron, cuántos días llevan y el botón **Copiar link**. Sale una vez por horario: si lo cerrás, el link sigue estando en **Mis presupuestos**.",
         ],
       },
       { type: "sub", text: "Qué hace el cliente" },

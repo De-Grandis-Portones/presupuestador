@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import Button from "../../ui/Button.jsx";
@@ -268,6 +268,12 @@ function buildClientAcceptanceUrl(token) {
   if (!token) return null;
   return `${window.location.origin}/aceptacion-cliente/${token}`;
 }
+// Link de aceptacion todavia sin firmar. Mismo criterio que el aviso de las
+// 9/12/17 (PendingClientAcceptanceModal): hay NV viejas con la firma solo en el payload.
+function pendingAcceptanceUrl(q) {
+  if (q?.cancelled_at || q?.measurement_client_accepted_at || q?.payload?.measurement_client_acceptance?.accepted_at) return null;
+  return buildClientAcceptanceUrl(q?.measurement_share_token);
+}
 
 function LinkPopup({ url, onClose }) {
   const [copied, setCopied] = useState(false);
@@ -289,16 +295,30 @@ function LinkPopup({ url, onClose }) {
     <div ref={ref} style={{
       position: "absolute", zIndex: 100, background: "var(--dg-card)", border: "1px solid var(--dg-border)",
       borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", padding: "14px 16px",
-      minWidth: 320, maxWidth: 460, right: 0, top: "calc(100% + 4px)",
+      minWidth: 320, maxWidth: 460, right: 0, top: "calc(100% + 4px)", textAlign: "left",
     }}>
       <div style={{ fontSize: 12, color: "var(--dg-muted)", marginBottom: 6 }}>Link de aceptación del cliente:</div>
       <div style={{ fontSize: 12, wordBreak: "break-all", background: "var(--dg-surface-3)", padding: "6px 8px", borderRadius: 4, color: "var(--dg-text)", marginBottom: 10 }}>{url}</div>
-      <button
-        onClick={handleCopy}
-        style={{ padding: "5px 14px", borderRadius: 6, border: "1px solid var(--dg-border)", background: copied ? "var(--dg-success-bg)" : "var(--dg-card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: copied ? "var(--dg-success-text)" : "var(--dg-text)" }}
-      >
-        {copied ? "✓ Copiado" : "Copiar link"}
-      </button>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button
+          onClick={handleCopy}
+          style={{ padding: "5px 14px", borderRadius: 6, border: "1px solid var(--dg-border)", background: copied ? "var(--dg-success-bg)" : "var(--dg-card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: copied ? "var(--dg-success-text)" : "var(--dg-text)" }}
+        >
+          {copied ? "✓ Copiado" : "Copiar link"}
+        </button>
+        {/* Abrirlo solo consulta (GET publico, no marca nada como visto). */}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ padding: "5px 14px", borderRadius: 6, border: "1px solid var(--dg-border)", background: "var(--dg-card)", fontSize: 13, fontWeight: 600, color: "var(--dg-text)", textDecoration: "none" }}
+        >
+          Abrir ↗
+        </a>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--dg-muted)", marginTop: 8 }}>
+        Podés abrirlo para ver lo que va a ver el cliente. La firma (nombre y DNI) la tiene que completar el cliente.
+      </div>
     </div>
   );
 }
@@ -328,8 +348,11 @@ function TypeBadge({ label }) {
 
 export default function PresupuestosPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((s) => s.user);
-  const [filter, setFilter] = useState("all");
+  // El aviso "Clientes con firma pendiente" entra con { filter: "produccion" } para
+  // caer directo en la vista con la columna "Aceptación del cliente".
+  const [filter, setFilter] = useState(() => (location.state?.filter === "produccion" ? "produccion" : "all"));
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(1);
@@ -338,7 +361,13 @@ export default function PresupuestosPage() {
   const [plegadoModal, setPlegadoModal] = useState(null);
   const [linkPopupId, setLinkPopupId] = useState(null);
 
-  const showAcceptanceColumn = filter === "produccion" && !!(user?.is_distribuidor || user?.is_vendedor);
+  const canSeeAcceptanceLink = !!(user?.is_distribuidor || user?.is_vendedor);
+  const showAcceptanceColumn = filter === "produccion" && canSeeAcceptanceLink;
+
+  // Si ya estaba en /presupuestos y vuelve a entrar desde el aviso, no se remonta.
+  useEffect(() => {
+    if (location.state?.filter === "produccion") setFilter("produccion");
+  }, [location.key, location.state]);
 
   const quotesQ = useQuery({ queryKey: ["quotes", "mine"], queryFn: () => listQuotes({ scope: "mine" }) });
   const doorsQ = useQuery({ queryKey: ["doors", "mine", "presupuestos"], queryFn: () => listDoors({ scope: "mine" }), enabled: !!user?.is_vendedor || !!user?.is_distribuidor });
@@ -525,6 +554,9 @@ export default function PresupuestosPage() {
                   const isTechnicalOnly = String(r?.measurement_subtype || "").toLowerCase() === "sin_medicion" || String(r?.measurement_mode || "").toLowerCase() === "tecnica_only";
                   const measurementLabel = isTechnicalOnly ? "Ver detalle técnico" : "Ver medición";
                   const isCancelled = !!r.cancelled_at;
+                  // Fuera de "En Producción" no esta la columna de aceptacion: el link
+                  // pendiente de firma se ofrece igual como boton en las acciones.
+                  const rowAcceptanceUrl = canSeeAcceptanceLink && !showAcceptanceColumn ? pendingAcceptanceUrl(r) : null;
                   return (
                     <tr key={r.id} style={isCancelled ? { color: "var(--dg-danger-text)", textDecoration: "line-through" } : undefined}>
                       <td>
@@ -591,6 +623,12 @@ export default function PresupuestosPage() {
                           </span>
                         ) : (
                           <>
+                            {rowAcceptanceUrl ? (
+                              <span style={{ position: "relative" }}>
+                                <Button variant="ghost" title="El cliente todavía no firmó la aceptación" onClick={() => setLinkPopupId(linkPopupId === r.id ? null : r.id)}>🔗 Link de aceptación</Button>
+                                {linkPopupId === r.id ? <LinkPopup url={rowAcceptanceUrl} onClose={() => setLinkPopupId(null)} /> : null}
+                              </span>
+                            ) : null}
                             {isLegacyImport(r) ? <Button variant="ghost" onClick={() => navigate(`/presupuestos/${r.id}`)}>Ver ficha</Button> : null}
                             {!isLegacyImport(r) ? <Button variant="ghost" disabled={downloadingPdfKey === originalPdfKey} onClick={() => handleDownloadQuotePdf(r.id)}>Ver original</Button> : null}
                             {canDownloadQuoteProforma && !isLegacyImport(r) ? <Button variant="ghost" disabled={downloadingPdfKey === originalProformaPdfKey} onClick={() => handleDownloadQuoteProformaPdf(r.id)}>Proforma</Button> : null}
