@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
-import { getQuote, reviewCommercial, reviewTechnical, createRevisionQuote, updateLegacyFicha } from "../../api/quotes.js";
+import { getQuoteForApproval, reviewCommercial, reviewTechnical, createRevisionQuote, updateLegacyFicha } from "../../api/quotes.js";
 import { reviewCommercialMeasurement } from "../../api/measurements.js";
 import { listDoorsByQuote } from "../../api/doors.js";
 import { downloadMedicionPdf } from "../../api/pdf.js";
@@ -1218,7 +1218,7 @@ export default function QuoteDetailPage() {
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [billingCustomer, setBillingCustomer] = useState(emptyBillingCustomer());
 
-  const q = useQuery({ queryKey: ["quote", quoteId], queryFn: () => getQuote(quoteId), enabled: !!quoteId });
+  const q = useQuery({ queryKey: ["quote", quoteId], queryFn: () => getQuoteForApproval(quoteId), enabled: !!quoteId });
   const linkedDoorsQ = useQuery({ queryKey: ["doors", "by-quote", quoteId], queryFn: () => listDoorsByQuote(quoteId), enabled: !!quoteId });
   const quote = q.data;
   const isRevision = (quote?.quote_kind || "original") === "copy";
