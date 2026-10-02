@@ -35,9 +35,9 @@ const TECHNICAL_TAB_LABELS = {
 const TECHNICAL_TABS_BY_SECTION = {
   all: ["aprobaciones_todos", "aprobaciones_portones", "aprobaciones_ipanels", "aprobaciones_puertas", "aprobaciones_plegados", "aprobaciones_otros", "aprobaciones_mediciones", "acopio", "acopio_listado", "produccion", "produccion_ipanels", "produccion_puertas", "aprobados"],
   porton: ["aprobaciones_portones", "aprobaciones_mediciones", "acopio", "acopio_listado", "produccion", "aprobados"],
-  ipanel: ["aprobaciones_ipanels", "acopio", "acopio_listado", "produccion_ipanels", "aprobados"],
+  ipanel: ["aprobaciones_ipanels", "aprobaciones_mediciones", "acopio", "acopio_listado", "produccion_ipanels", "aprobados"],
   puerta: ["aprobaciones_puertas", "aprobaciones_mediciones", "acopio", "acopio_listado", "produccion_puertas", "aprobados"],
-  plegados: ["aprobaciones_plegados", "aprobados"],
+  plegados: ["aprobaciones_plegados", "aprobaciones_mediciones", "aprobados"],
   otros: ["aprobaciones_otros", "aprobados"],
 };
 const VALID_TABS = Object.keys(TECHNICAL_TAB_LABELS);
@@ -78,6 +78,7 @@ function technicalTabLabel(tabKey, section = "all") {
     if (section === "porton") return "Circuito técnico Portones";
     if (section === "puerta") return "Circuito técnico Puertas";
     if (section === "ipanel") return "Circuito técnico Ipanels";
+    if (section === "plegados") return "Circuito técnico Plegados";
     return "Circuito técnico";
   }
   return TECHNICAL_TAB_LABELS[tabKey] || tabKey;
@@ -494,7 +495,17 @@ export default function AprobacionTecnicaPage() {
   const otrosRows = useMemo(() => approvalBaseRows.filter(isOtrosRow), [approvalBaseRows]);
 
   const measurementRows = useMemo(() => {
-    let arr = (measQ.data || []).slice().filter((r) => !isIpanelRow(r) && !isPlegadosRow(r)).filter((r) => rowMatchesApprovalSection(r, approvalSection));
+    // Ipanel/plegados en producción no pasan por medidor (siempre "tecnica_only"): la
+    // confirmación final de Técnica para ellos SÍ tiene que aparecer acá, por eso el
+    // "circuito técnico" genérico (secciones porton/puerta/todos) los sigue excluyendo,
+    // pero su propia sección (section=ipanel/plegados) necesita verlos - si no, quedan
+    // sin ningún lugar donde Técnica pueda confirmarlos (caso real: INP4249, Grivel
+    // Aberturas, 2026-10-02 - "sincronizado" en Estado de Productos pero invisible acá).
+    const includeIpanelPlegados = approvalSection === "ipanel" || approvalSection === "plegados";
+    let arr = (measQ.data || [])
+      .slice()
+      .filter((r) => includeIpanelPlegados || (!isIpanelRow(r) && !isPlegadosRow(r)))
+      .filter((r) => rowMatchesApprovalSection(r, approvalSection));
     if (measurementStatus === "por_realizar") arr = arr.filter((x) => ["pending", "needs_fix"].includes(String(x?.measurement_status || "")));
     else if (measurementStatus === "por_controlar") arr = arr.filter((x) => String(x?.measurement_status || "") === "submitted");
     else if (measurementStatus === "returned_to_seller") arr = arr.filter((x) => String(x?.measurement_status || "") === "returned_to_seller");
