@@ -263,13 +263,35 @@ function getVanoHeightAddM(params) {
   const mm = getNumberParam(params, ["behind_vano_add_height_mm"], VANO_HEIGHT_ADD_MM_DEFAULT);
   return mm / 1000;
 }
-function computePortonFromVano({ vanoWidthM, vanoHeightM, placementProductId, legsKey, params }) {
+// "Tipo Especial" (pedido 2026-10-02): cuando la instalación va por detrás del vano, el medidor
+// puede marcar que alguno de los lados que normalmente queda tapado por la pared en realidad
+// va a quedar a la vista (sin pared que lo cubra), y en ese lado no hace falta el margen extra
+// completo. El ancho tiene 2 "lados" (pierna izquierda, pierna derecha) que se reparten el
+// aumento de ancho por mitades; el alto tiene 1 solo "lado" (el dintel), que se lleva el aumento
+// de alto completo. Por cada lado marcado "a la vista", su parte dejada de sumar se reemplaza
+// por un descuento fijo de 1cm (en vez de sumar, resta) - con los defaults (200mm ancho/100mm
+// alto) esto da: 1 pierna marcada -> 90mm; las 2 piernas marcadas -> -20mm; dintel marcado ->
+// -10mm, tal como lo pidió el usuario. Marcar todo (piernas + dintel) deja el aumento muy
+// cercano/por debajo de 0, equivalente en la práctica a instalar por dentro del vano.
+const TIPO_ESPECIAL_SIDE_DISCOUNT_M = 0.01; // 1cm
+function computeSpecialAddM(normalAddM, totalSlots, markedCount) {
+  const slots = totalSlots > 0 ? totalSlots : 1;
+  const marked = Math.max(0, Math.min(slots, markedCount));
+  const unmarked = slots - marked;
+  const perSlotNormal = normalAddM / slots;
+  return round4(unmarked * perSlotNormal - marked * TIPO_ESPECIAL_SIDE_DISCOUNT_M);
+}
+function computePortonFromVano({ vanoWidthM, vanoHeightM, placementProductId, legsKey, params, tipoEspecial }) {
   const width = Number(vanoWidthM || 0) || 0;
   const height = Number(vanoHeightM || 0) || 0;
   const id = Number(placementProductId || 0);
   const isBehindVano = id === VANO_BEHIND_PRODUCT_ID;
-  const widthAddM = isBehindVano ? getVanoWidthAddM(legsKey, params) : 0;
-  const heightAddM = isBehindVano ? getVanoHeightAddM(params) : 0;
+  const normalWidthAddM = isBehindVano ? getVanoWidthAddM(legsKey, params) : 0;
+  const normalHeightAddM = isBehindVano ? getVanoHeightAddM(params) : 0;
+  const widthMarkedCount = (tipoEspecial?.pierna_izquierda_vista ? 1 : 0) + (tipoEspecial?.pierna_derecha_vista ? 1 : 0);
+  const heightMarkedCount = tipoEspecial?.dintel_visto ? 1 : 0;
+  const widthAddM = isBehindVano && widthMarkedCount > 0 ? computeSpecialAddM(normalWidthAddM, 2, widthMarkedCount) : normalWidthAddM;
+  const heightAddM = isBehindVano && heightMarkedCount > 0 ? computeSpecialAddM(normalHeightAddM, 1, heightMarkedCount) : normalHeightAddM;
   return {
     widthM: width > 0 ? round4(width + widthAddM) : 0,
     heightM: height > 0 ? round4(height + heightAddM) : 0,
@@ -344,7 +366,7 @@ function formatMetersFromMm(mm) {
 // a partir del vano final (medido), replicando exactamente lo que hace el presupuesto. legsKey
 // para el ajuste "por detras del vano" se resuelve con un pequeno punto fijo (2-3 iteraciones),
 // igual que converge la UI entre renders sucesivos del efecto en PortonDimensions.jsx.
-export async function computeOfficialPortonMeasurements({ vanoWidthM, vanoHeightM, lines, portonType, dimensions, legsKeyOverride }) {
+export async function computeOfficialPortonMeasurements({ vanoWidthM, vanoHeightM, lines, portonType, dimensions, legsKeyOverride, tipoEspecial }) {
   const rulesData = await getTechnicalMeasurementRules("porton");
   const params = getRulesParams(rulesData);
   const placementProductId = getSelectedVanoPlacementProductId(lines);
@@ -356,7 +378,7 @@ export async function computeOfficialPortonMeasurements({ vanoWidthM, vanoHeight
 
   for (let i = 0; i < 4; i += 1) {
     const vanoLegsKey = normalizeLegsKeyForVano(legsLabelGuess);
-    portonFromVano = computePortonFromVano({ vanoWidthM, vanoHeightM, placementProductId, legsKey: vanoLegsKey, params });
+    portonFromVano = computePortonFromVano({ vanoWidthM, vanoHeightM, placementProductId, legsKey: vanoLegsKey, params, tipoEspecial });
     const portonWidthM = portonFromVano.widthM > 0 ? portonFromVano.widthM : vanoWidthM;
     const portonHeightM = portonFromVano.heightM > 0 ? portonFromVano.heightM : vanoHeightM;
     preview = buildCalculatedPreview({ widthM: portonWidthM, heightM: portonHeightM, lines, params, portonType, dimensions, legsLabelOverride });
