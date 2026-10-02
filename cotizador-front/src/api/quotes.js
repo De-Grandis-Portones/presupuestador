@@ -30,6 +30,18 @@ export async function getQuote(id) {
   if (!data?.ok) throw new Error(data?.error || "No se pudo cargar el presupuesto");
   return withoutPaymentAdjustmentSnapshot(data.quote);
 }
+// A diferencia de getQuote (que borra el snapshot de financiación a propósito para que el
+// EDITOR recalcule con la tasa vigente hoy), QuoteDetailPage necesita lo contrario: el
+// presupuesto ya confirmado/sincronizado tiene que mostrar los mismos montos que se
+// sincronizaron a Odoo, usando la tasa congelada al momento de confirmar - no la tasa de
+// hoy. Si las tasas cambiaron desde entonces (caso real: NP4616, tasa de "OTRAS TC BANC 6
+// CUOTAS" subió de 21% a 22%), con getQuote el total mostrado en Aprobación Comercial no
+// coincidía con el de Odoo.
+export async function getQuoteForApproval(id) {
+  const { data } = await http.get(`/api/quotes/${id}`);
+  if (!data?.ok) throw new Error(data?.error || "No se pudo cargar el presupuesto");
+  return data.quote;
+}
 export async function createQuote(payload) { const body = withTechnicalSnapshot(payload); const { data } = await http.post(`/api/quotes`, body); if (!data?.ok) throw new Error(data?.error || "No se pudo crear el presupuesto"); return data.quote; }
 export async function updateQuote(id, payload) { const body = withTechnicalSnapshot(payload); const { data } = await http.put(`/api/quotes/${id}`, body); if (!data?.ok) throw new Error(data?.error || "No se pudo actualizar el presupuesto"); return data.quote; }
 export async function submitQuote(id, payload = {}) { const body = withTechnicalSnapshot(payload && typeof payload === "object" ? payload : {}); const { data } = await http.post(`/api/quotes/${id}/submit`, body); if (!data?.ok) throw new Error(data?.error || "No se pudo enviar a aprobación"); return data.quote; }
