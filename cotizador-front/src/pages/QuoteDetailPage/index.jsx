@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
-import { getQuote, reviewCommercial, reviewTechnical, createRevisionQuote } from "../../api/quotes.js";
+import { getQuote, reviewCommercial, reviewTechnical, createRevisionQuote, updateLegacyFicha } from "../../api/quotes.js";
 import { reviewCommercialMeasurement } from "../../api/measurements.js";
 import { listDoorsByQuote } from "../../api/doors.js";
 import { downloadMedicionPdf } from "../../api/pdf.js";
@@ -1260,6 +1260,10 @@ export default function QuoteDetailPage() {
     mutationFn: ({ action, notes: reviewNotes }) => reviewCommercialMeasurement(quoteId, { action, notes: reviewNotes }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["quote", quoteId] }); navigate(approvalReturnPath); },
   });
+  const legacyFichaM = useMutation({
+    mutationFn: (payload) => updateLegacyFicha(quoteId, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["quote", quoteId] }),
+  });
 
   const showCommercialDiffPanel = !isRevision && quote?.measurement_commercial_review_status === "pending";
   const canActOnCommercialReview = showCommercialDiffPanel && !!user?.is_enc_comercial;
@@ -1382,7 +1386,11 @@ export default function QuoteDetailPage() {
             {isLegacy ? (
               <>
                 <div className="spacer" />
-                <LegacyFichaCard quote={quote} />
+                <LegacyFichaCard
+                  quote={quote}
+                  canEdit={String(quote.created_by_user_id) === String(user?.user_id) && String(quote.acopio_to_produccion_status || "none") === "none"}
+                  onSave={(payload) => legacyFichaM.mutateAsync(payload)}
+                />
               </>
             ) : null}
             {isPlegadosQuote(quote) ? (
