@@ -1824,6 +1824,7 @@ async function buildMeasurementFinalizationBase({ odoo, originalQuote, measureme
         // puede cambiarlo desde el presupuestador (ni medidor ni tecnica) - la unica
         // via de override es superusuario forzando el resync puntual de un portón.
         legsKeyOverride: allowLegsOverride ? (String(measurementForm?.piernas || "").trim() || undefined) : undefined,
+        tipoEspecial: measurementForm?.instalacion_tipo_especial || null,
       });
       dimensionsPatch = officialMeasurements.dimensionsPatch;
     } catch (e) {

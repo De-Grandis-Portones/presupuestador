@@ -495,6 +495,20 @@ function getBudgetProductIdSet(quote) {
   const lines = Array.isArray(quote?.lines) ? quote.lines : [];
   return new Set(lines.map((line) => Number(line?.product_id || 0)).filter(Boolean));
 }
+// "Tipo Especial" (pedido 2026-10-02): ver el comentario largo en computeSpecialAddMm
+// (cotizador-back/src/portonVanoMeasurements.js) - misma formula, duplicada acá para que
+// la vista previa en vivo del medidor coincida con lo que el backend terminará calculando
+// al aprobar Técnica. Ancho: 2 lados (pierna izquierda/derecha) que se reparten el aumento
+// por mitades; alto: 1 lado (dintel) que se lleva el aumento completo. Cada lado marcado "a
+// la vista" reemplaza su parte por un descuento fijo de 1cm.
+const TIPO_ESPECIAL_SIDE_DISCOUNT_MM = 10;
+function computeSpecialAddMm(normalAddMm, totalSlots, markedCount) {
+  const slots = totalSlots > 0 ? totalSlots : 1;
+  const marked = Math.max(0, Math.min(slots, markedCount));
+  const unmarked = slots - marked;
+  const perSlotNormal = normalAddMm / slots;
+  return unmarked * perSlotNormal - marked * TIPO_ESPECIAL_SIDE_DISCOUNT_MM;
+}
 function detectInstallationModeByProducts(quote, surfaceParameters) {
   const ids = getBudgetProductIdSet(quote);
   const insideId = Number(surfaceParameters?.installation_inside_product_id || 0);
@@ -657,7 +671,12 @@ function computeAutomaticSummary({ quote, form, surfaceParameters = {} }) {
   let altoCalculadoMm = discountedHeightMm;
   let anchoCalculadoMm = discountedWidthMm;
   if (installationMode === "detras_vano") {
-    altoCalculadoMm = Math.max(0, altoMinMm + Number(surfaceParameters?.behind_vano_add_height_mm || 100));
+    const tipoEspecial = form?.instalacion_tipo_especial || {};
+    const widthMarkedCount = (tipoEspecial.pierna_izquierda_vista ? 1 : 0) + (tipoEspecial.pierna_derecha_vista ? 1 : 0);
+    const heightMarkedCount = tipoEspecial.dintel_visto ? 1 : 0;
+    const normalHeightAddMm = Number(surfaceParameters?.behind_vano_add_height_mm || 100);
+    const heightAddMm = heightMarkedCount > 0 ? computeSpecialAddMm(normalHeightAddMm, 1, heightMarkedCount) : normalHeightAddMm;
+    altoCalculadoMm = Math.max(0, altoMinMm + heightAddMm);
     const addMap = {
       angostas: Number(surfaceParameters?.legs_angostas_add_width_mm || 140),
       comunes: Number(surfaceParameters?.legs_comunes_add_width_mm || 200),
@@ -665,7 +684,9 @@ function computeAutomaticSummary({ quote, form, surfaceParameters = {} }) {
       superanchas: Number(surfaceParameters?.legs_superanchas_add_width_mm || 380),
       especiales: Number(surfaceParameters?.legs_especiales_add_width_mm || surfaceParameters?.legs_superanchas_add_width_mm || 380),
     };
-    anchoCalculadoMm = Math.max(0, anchoMinMm + (addMap[piernasTipo] || 0));
+    const normalWidthAddMm = addMap[piernasTipo] || 0;
+    const widthAddMm = widthMarkedCount > 0 ? computeSpecialAddMm(normalWidthAddMm, 2, widthMarkedCount) : normalWidthAddMm;
+    anchoCalculadoMm = Math.max(0, anchoMinMm + widthAddMm);
   } else if (installationMode === "dentro_vano") {
     // Presupuestos nuevos (con dimensions.vano_size_auto_calc): el porton debe quedar igual al vano.
     // Presupuestos previos a este cambio: se mantiene el descuento historico para no alterar mediciones ya confirmadas.
@@ -964,6 +985,7 @@ export default function MedicionDetailPage() {
 
   const quote = q.data;
   const [form, setForm] = useState(null);
+  const [tipoEspecialOpen, setTipoEspecialOpen] = useState(false);
   const [lastMessage, setLastMessage] = useState("");
   const [extraContact, setExtraContact] = useState({ name: "", role: "", phone: "" });
 
@@ -1094,6 +1116,8 @@ export default function MedicionDetailPage() {
     () => resolveTechnicalSummary({ quote, form, surfaceParameters: technicalRules?.surface_parameters || {} }),
     [quote, form, technicalRules],
   );
+  const tipoEspecialSelectedCount = ["pierna_izquierda_vista", "pierna_derecha_vista", "dintel_visto"]
+    .filter((key) => !!form?.instalacion_tipo_especial?.[key]).length;
   // Medidas de paso ya calculadas por el backend con la medida final (measurementFinalization.js /
   // portonVanoMeasurements.js). Se prefieren sobre technicalSummary (aproximacion local) una vez
   // que la aprobacion tecnica final ya corrio.
@@ -1170,6 +1194,16 @@ export default function MedicionDetailPage() {
     const confirmed = window.confirm("¿Desea modificar el dato de ancho y alto finales?");
     if (!confirmed) return;
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleTipoEspecial(key) {
+    setForm((prev) => ({
+      ...prev,
+      instalacion_tipo_especial: {
+        ...(prev?.instalacion_tipo_especial || {}),
+        [key]: !prev?.instalacion_tipo_especial?.[key],
+      },
+    }));
   }
 
   function normalizePhoneForWhatsApp(phone) {
@@ -1635,16 +1669,56 @@ export default function MedicionDetailPage() {
             <Field label="Tipo de piernas"><StaticValue value={formatPiernas(technicalSummary.piernas_tipo)} /></Field>
             <Field label="Ancho de pierna"><StaticValue value={formatMm(technicalSummary.ancho_pierna_mm)} /></Field>
             <Field label="Tipo de instalación">
-              <StaticValue value={
-                technicalSummary.installation_mode === "detras_vano"
-                  ? "Detrás del vano"
-                  : technicalSummary.installation_mode === "dentro_vano"
-                    ? "Dentro del vano"
-                    : "Sin instalación"
-              } />
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <StaticValue value={
+                  technicalSummary.installation_mode === "detras_vano"
+                    ? "Detrás del vano"
+                    : technicalSummary.installation_mode === "dentro_vano"
+                      ? "Dentro del vano"
+                      : "Sin instalación"
+                } />
+                {(isMedidor || isTechnical) && technicalSummary.installation_mode === "detras_vano" ? (
+                  <Button variant="ghost" onClick={() => setTipoEspecialOpen(true)}>
+                    Tipo Especial{tipoEspecialSelectedCount ? ` (${tipoEspecialSelectedCount})` : ""}
+                  </Button>
+                ) : null}
+              </div>
             </Field>
           </Row>
         </Section>
+
+        {tipoEspecialOpen ? (
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+            onClick={() => setTipoEspecialOpen(false)}
+          >
+            <div
+              className="card"
+              style={{ maxWidth: 420, width: "90%", background: "var(--dg-card)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>Tipo Especial</div>
+              <div className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
+                Marcá los lados que van a quedar a la vista (sin pared que los tape) en esta instalación por detrás del vano - reduce el margen extra que normalmente se le suma en ese lado.
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!form?.instalacion_tipo_especial?.pierna_izquierda_vista} onChange={() => toggleTipoEspecial("pierna_izquierda_vista")} />
+                Pierna Izquierda vista
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!form?.instalacion_tipo_especial?.pierna_derecha_vista} onChange={() => toggleTipoEspecial("pierna_derecha_vista")} />
+                Pierna Derecha vista
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!form?.instalacion_tipo_especial?.dintel_visto} onChange={() => toggleTipoEspecial("dintel_visto")} />
+                Dintel visto
+              </label>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <Button onClick={() => setTipoEspecialOpen(false)}>Cerrar</Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <Section title="Productos que puede cambiar el medidor">
           {editableCount ? null : (
