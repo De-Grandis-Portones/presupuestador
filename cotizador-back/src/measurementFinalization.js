@@ -2004,8 +2004,48 @@ async function persistDimensionsPatch(quoteId, dimensionsPatch) {
   );
 }
 
+// A diferencia de portón (ver nota de 2026-08-19 más arriba: la medida dura la
+// aplica la vendedora a mano, nunca se pisa sola), ipanel/plegados no tienen ese
+// paso intermedio - Técnica confirma directo y ahí termina el circuito, así que
+// nadie más va a corregir payload.dimensions después. Sin esto, el link de
+// aceptación del cliente (y cualquier otra pantalla que lea payload.dimensions)
+// se queda mostrando la medida vieja del presupuesto aunque Técnica haya medido
+// otra cosa (caso real: INP4525, Grivel Aberturas, 2026-10-02 - alto medido
+// 1800mm, payload.dimensions seguía en 1982mm). Pedido explícito del usuario:
+// para estos dos catalog_kind, lo que mide Técnica pasa a ser la medida dura.
+const IPANEL_AUTO_DIMENSION_KINDS = new Set(["ipanel", "plegados"]);
+async function applyMeasuredDimensionsForDirectKinds(originalQuote, measurementForm) {
+  const kind = String(originalQuote?.catalog_kind || "").toLowerCase().trim();
+  if (!IPANEL_AUTO_DIMENSION_KINDS.has(kind)) return;
+  const anchoMm = toNumberLike(measurementForm?.ancho_final_mm);
+  const altoMm = toNumberLike(measurementForm?.alto_final_mm);
+  if (!anchoMm || !altoMm || anchoMm <= 0 || altoMm <= 0) return;
+  const widthM = round4(anchoMm / 1000);
+  const heightM = round4(altoMm / 1000);
+  const dimensionsPatch = { width: String(widthM), height: String(heightM), area_m2: round2(widthM * heightM) };
+  if (!originalQuote.id) return;
+  await dbQuery(
+    `update public.presupuestador_quotes
+        set payload = jsonb_set(
+          coalesce(payload, '{}'::jsonb),
+          '{dimensions}',
+          coalesce(payload->'dimensions', '{}'::jsonb) || $2::jsonb,
+          true
+        )
+      where id=$1`,
+    [originalQuote.id, JSON.stringify(dimensionsPatch)],
+  );
+  // Refleja el cambio en el objeto en memoria para que el resto de esta misma
+  // llamada (buildMeasurementFinalizationBase, etc.) ya vea la medida corregida.
+  originalQuote.payload = {
+    ...(originalQuote.payload || {}),
+    dimensions: { ...(originalQuote.payload?.dimensions || {}), ...dimensionsPatch },
+  };
+}
+
 export async function finalizeMeasurementToRevisionQuote({ odoo, originalQuote, measurementForm }) {
   assertNotLegacyImport(originalQuote, "finalizar una medición (no pasa por medición)");
+  await applyMeasuredDimensionsForDirectKinds(originalQuote, measurementForm);
   const base = await buildMeasurementFinalizationBase({ odoo, originalQuote, measurementForm });
   const finalLines = base.generated_lines || [];
   // WhatsApp y generación de token se hacen DESPUÉS de crear la NV para garantizar que
