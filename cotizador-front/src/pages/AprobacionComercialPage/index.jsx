@@ -432,7 +432,7 @@ export default function AprobacionComercialPage() {
     queryFn: () => listMeasurements({ status: "commercial_review", viewer: "comercial" }),
     enabled: tab === "mediciones" && !!user?.is_enc_comercial,
   });
-  const aprobadosQ = useQuery({ queryKey: ["quotes", "commercial_approved"], queryFn: () => listQuotes({ scope: "commercial_approved" }), enabled: tab === "aprobados" && !!user?.is_enc_comercial });
+  const aprobadosQ = useQuery({ queryKey: ["quotes", "commercial_approved", searchText], queryFn: () => listQuotes({ scope: "commercial_approved", search: searchText }), enabled: tab === "aprobados" && !!user?.is_enc_comercial });
 
   const acopioM = useMutation({ mutationFn: ({ id, action, notes }) => reviewAcopioCommercial(id, { action, notes }), onSuccess: () => acopioQ.refetch() });
   const doorM = useMutation({ mutationFn: ({ id, action, notes }) => reviewDoorCommercial(id, { action, notes }), onSuccess: () => doorsQ.refetch() });

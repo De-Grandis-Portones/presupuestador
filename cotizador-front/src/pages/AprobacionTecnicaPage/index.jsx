@@ -467,7 +467,7 @@ export default function AprobacionTecnicaPage() {
   const produccionQ = useQuery({ queryKey: ["quotes", "production_sent", "technical", tab], queryFn: () => listQuotes({ scope: "production_sent" }), enabled: ["produccion", "produccion_ipanels", "produccion_puertas"].includes(tab) && !!user?.is_rev_tecnica });
   const doorsQ = useQuery({ queryKey: ["doors", "technical_inbox"], queryFn: () => listDoors({ scope: "technical_inbox" }), enabled: tab === "aprobaciones_puertas" && !!user?.is_rev_tecnica });
   const measQ = useQuery({ queryKey: ["measurements", "tecnica", tab, measurementStatus], queryFn: () => listMeasurements({ status: "all", viewer: "tecnica" }), enabled: ["aprobaciones_mediciones", "aprobaciones_ipanels", "aprobaciones_plegados"].includes(tab) && !!user?.is_rev_tecnica });
-  const aprobadosQ = useQuery({ queryKey: ["quotes", "technical_approved"], queryFn: () => listQuotes({ scope: "technical_approved" }), enabled: tab === "aprobados" && !!user?.is_rev_tecnica });
+  const aprobadosQ = useQuery({ queryKey: ["quotes", "technical_approved", searchText], queryFn: () => listQuotes({ scope: "technical_approved", search: searchText }), enabled: tab === "aprobados" && !!user?.is_rev_tecnica });
 
   const acopioM = useMutation({ mutationFn: ({ id, action, notes }) => reviewAcopioTechnical(id, { action, notes }), onSuccess: () => acopioQ.refetch() });
   const doorM = useMutation({ mutationFn: ({ id, action, notes }) => reviewDoorTechnical(id, { action, notes }), onSuccess: () => doorsQ.refetch() });
