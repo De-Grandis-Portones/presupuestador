@@ -5,17 +5,22 @@ import { useAuthStore } from "../../domain/auth/store.js";
 
 const SECTION_CARDS = [
   { key: "porton", title: "Aprobación de Portones", description: "Aprobaciones, circuito técnico, mediciones, acopio y producción de portones.", iconSrc: "/menu-icons/aprobacion-portones.png" },
-  { key: "ipanel", title: "Aprobación de Ipanels", description: "Aprobaciones, acopio y producción de Ipanels. Sin circuito de mediciones.", iconSrc: "/brands/ipanel.png" },
+  { key: "ipanel", title: "Aprobación de Ipanels", description: "Aprobaciones, circuito técnico, acopio y producción de Ipanels.", iconSrc: "/brands/ipanel.png" },
   { key: "puerta", title: "Aprobación de Puertas", description: "Gestión del flujo de aprobación de puertas.", iconSrc: "/menu-icons/aprobacion-puertas.png" },
-  { key: "plegados", title: "Aprobación de Plegados", description: "Aprobaciones de plegados con plano adjunto y descripción visible.", iconSrc: "/menu-icons/otros-presupuestos.png" },
+  { key: "plegados", title: "Aprobación de Plegados", description: "Aprobaciones, circuito técnico y plano/descripción adjuntos de Plegados.", iconSrc: "/menu-icons/otros-presupuestos.png" },
   { key: "otros", title: "Aprobación de Otros", description: "Aprobaciones de presupuestos Otros.", iconSrc: "/menu-icons/otros-presupuestos.png" },
   { key: "all", title: "Todos", description: "Listado general con todos los tipos juntos.", iconSrc: "/menu-icons/mis-presupuestos.png" },
 ];
 
+// Para Técnica, ipanel/plegados abren directo en "Circuito técnico" (aprobaciones_mediciones):
+// ahí es donde aparecen los que ya están sincronizados ("tecnica_only") esperando que Técnica
+// confirme los datos finales - quedaban invisibles porque el tab por defecto ("aprobaciones_
+// ipanels"/"aprobaciones_plegados") solo trae presupuestos nuevos sin sincronizar todavía
+// (caso real: INP4249, Grivel Aberturas). Comercial no tiene ese tab, sigue igual que antes.
 function firstTabForSection(section, mode) {
-  if (section === "ipanel") return "aprobaciones_ipanels";
+  if (section === "ipanel") return mode === "tecnica" ? "aprobaciones_mediciones" : "aprobaciones_ipanels";
   if (section === "puerta") return mode === "tecnica" ? "aprobaciones_puertas" : "puertas";
-  if (section === "plegados") return "aprobaciones_plegados";
+  if (section === "plegados") return mode === "tecnica" ? "aprobaciones_mediciones" : "aprobaciones_plegados";
   if (section === "otros") return "aprobaciones_otros";
   if (section === "all") return "aprobaciones_todos";
   return "aprobaciones_portones";
