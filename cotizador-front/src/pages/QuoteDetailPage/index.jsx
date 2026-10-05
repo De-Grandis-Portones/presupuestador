@@ -1356,7 +1356,16 @@ export default function QuoteDetailPage() {
               <span>· Creado por: <b>{quote.created_by_role}</b></span>
               <span>· Destino: <b>{quote.fulfillment_mode === "acopio" ? "Acopio" : "Producción"}</b></span>
               {isLegacy ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>{legacyImportLabel(quote)}</span> : null}
-              {!isLegacy && !isRevision && quote.status === "synced_odoo" ? <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>En Odoo: {quote.odoo_sale_order_name || `SO#${quote.odoo_sale_order_id}`}</span> : null}
+              {!isLegacy && !isRevision && quote.status === "synced_odoo" ? (
+                // Un ipanel/porton/puerta directo a producción (sin pasar por acopio) nunca
+                // tiene su propio NP - el NV real se genera en la copia final (quote.final_
+                // sale_order_name, que GET /:id ya trae con ese mismo nombre de columna). Sin
+                // este fallback mostraba "SO#null" aunque el NV real ya estuviera sincronizado
+                // (caso real: #10491, Tartabini Natalia, AZ Aberturas, 2026-10-05).
+                <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>
+                  En Odoo: {quote.final_sale_order_name || quote.odoo_sale_order_name || (quote.odoo_sale_order_id ? `SO#${quote.odoo_sale_order_id}` : "—")}
+                </span>
+              ) : null}
               {isRevision && quote.final_sale_order_name ? <span style={pillStyle("var(--dg-success-bg)", "var(--dg-success-border)", "var(--dg-success-text)")}>Odoo final: {quote.final_sale_order_name}</span> : null}
               {isRevision && quote.final_absorbed_by_company ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>Diferencia absorbida por empresa</span> : null}
               {quote.status === "syncing_odoo" ? <span style={pillStyle("var(--dg-warning-bg)", "var(--dg-warning-border)", "var(--dg-warning-text)")}>Sincronizando a Odoo…</span> : null}
