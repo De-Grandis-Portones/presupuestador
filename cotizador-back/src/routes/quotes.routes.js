@@ -4,7 +4,7 @@ import { dbQuery } from "../db.js";
 import { ensureQuotesMeasurementColumns, QUOTE_LIST_COLUMNS_SQL } from "../quotesSchema.js";
 import { getCommercialFinalTolerancePercent } from "../settingsDb.js";
 import { commitQuoteProductionWeek, captureQuotedProductionEstimate } from "../productionPlanning.js";
-import { triggerPreproductionForClientAcceptance } from "../measurementFinalization.js";
+import { triggerPreproductionForClientAcceptance, finalizeMeasurementToRevisionQuote } from "../measurementFinalization.js";
 import { isLegacyImport, assertNotLegacyImport, finalizeLegacyAcopioToProduccion, completeLegacyAcopioToProduccion, buildLegacyNvLines } from "../legacyImport.js";
 import { getPriceFromPricelist } from "./odoo.routes.js";
 
@@ -3136,7 +3136,7 @@ export function buildQuotesRouter(odoo) {
     } catch (e) { next(e); }
   });
 
-  async function finalizeAcopioToProduccionIfReady(id) {
+  async function finalizeAcopioToProduccionIfReady(id, approverUser) {
     const cur = await dbQuery(`select * from public.presupuestador_quotes where id=$1 limit 1`, [id]);
     const quote = cur.rows?.[0];
     if (!quote) return null;
@@ -3178,7 +3178,38 @@ export function buildQuotesRouter(odoo) {
         measurementFlow.measurement_status,
       ]
     );
-    return upd.rows?.[0] || null;
+    let qFinal = upd.rows?.[0] || null;
+
+    // Ipanel/Plegados nunca pasan por un medidor real (siempre "tecnica_only"/sin_medicion):
+    // la aprobación técnica que acaba de pasar acá (Acopio -> Producción) YA ES la única
+    // aprobación técnica que necesitan. Antes quedaban con measurement_status='pending'
+    // esperando una SEGUNDA confirmación separada en el circuito de mediciones - invisible
+    // para Técnica en la práctica (caso real: INP4249, Grivel Aberturas, 2026-10-05). Ahora
+    // se finaliza directo acá: genera la copia, sincroniza a Odoo y dispara el link de
+    // aceptación al cliente - mismo efecto que POST /measurements/:id/review al aprobar.
+    const kind = String(qFinal?.catalog_kind || "").toLowerCase().trim();
+    if (qFinal && ["ipanel", "plegados"].includes(kind)) {
+      const updApproved = await dbQuery(
+        `update public.presupuestador_quotes
+            set measurement_status='approved',
+                measurement_review_by_user_id=$2,
+                measurement_review_at=now(),
+                measurement_review_notes=null,
+                measurement_commercial_review_required=false
+          where id=$1
+          returning *`,
+        [qFinal.id, Number(approverUser?.user_id || approverUser?.id || 0) || null]
+      );
+      qFinal = updApproved.rows?.[0] || qFinal;
+      try {
+        await finalizeMeasurementToRevisionQuote({ odoo, originalQuote: qFinal, measurementForm: qFinal?.measurement_form || {} });
+      } catch (e) {
+        console.error("[acopio->produccion] finalizeMeasurementToRevisionQuote (ipanel/plegados) fallo:", e?.message || e);
+      }
+      qFinal = (await dbQuery(`select * from public.presupuestador_quotes where id=$1`, [qFinal.id])).rows?.[0] || qFinal;
+    }
+
+    return qFinal;
   }
 
   router.post("/:id/acopio/review/commercial", requireRole("is_enc_comercial"), async (req, res, next) => {
@@ -3202,7 +3233,7 @@ export function buildQuotesRouter(odoo) {
 
       const upd1 = await dbQuery(`update public.presupuestador_quotes set acopio_to_produccion_commercial_decision='approved', acopio_to_produccion_commercial_by_user_id=$2, acopio_to_produccion_commercial_at=now(), acopio_to_produccion_commercial_notes=$3 where id=$1 and fulfillment_mode='acopio' and acopio_to_produccion_status='pending' and acopio_to_produccion_commercial_decision='pending' returning *`, [id, Number(u.user_id), notes ? String(notes) : null]);
       const q1 = upd1.rows?.[0] || quote;
-      let qFinal = await finalizeAcopioToProduccionIfReady(id);
+      let qFinal = await finalizeAcopioToProduccionIfReady(id, u);
       if (qFinal && isLegacyImport(qFinal)) {
         // Sin copia final ni NV en Odoo: reserva de semana + fila de preproducción para Planta.
         return res.json({ ok: true, quote: (await completeLegacyAcopioToProduccion(id)) || qFinal });
@@ -3247,7 +3278,7 @@ export function buildQuotesRouter(odoo) {
 
       const upd1 = await dbQuery(`update public.presupuestador_quotes set acopio_to_produccion_technical_decision='approved', acopio_to_produccion_technical_by_user_id=$2, acopio_to_produccion_technical_at=now(), acopio_to_produccion_technical_notes=$3 where id=$1 and fulfillment_mode='acopio' and acopio_to_produccion_status='pending' and acopio_to_produccion_technical_decision='pending' returning *`, [id, Number(u.user_id), notes ? String(notes) : null]);
       const q1 = upd1.rows?.[0] || quote;
-      let qFinal = await finalizeAcopioToProduccionIfReady(id);
+      let qFinal = await finalizeAcopioToProduccionIfReady(id, u);
       if (qFinal && isLegacyImport(qFinal)) {
         // Sin copia final ni NV en Odoo: reserva de semana + fila de preproducción para Planta.
         return res.json({ ok: true, quote: (await completeLegacyAcopioToProduccion(id)) || qFinal });
