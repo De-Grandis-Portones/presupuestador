@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
-import { getQuoteForApproval, reviewCommercial, reviewTechnical, createRevisionQuote, updateLegacyFicha } from "../../api/quotes.js";
+import { getQuoteForApproval, reviewCommercial, reviewTechnical, createRevisionQuote, updateLegacyFicha, requestProductionFromAcopio } from "../../api/quotes.js";
 import { reviewCommercialMeasurement } from "../../api/measurements.js";
 import { listDoorsByQuote } from "../../api/doors.js";
 import { downloadMedicionPdf } from "../../api/pdf.js";
@@ -1264,6 +1264,14 @@ export default function QuoteDetailPage() {
     mutationFn: (payload) => updateLegacyFicha(quoteId, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quote", quoteId] }),
   });
+  // El botón de "Solicitar paso a Producción" existía solo en la lista (PresupuestosPage,
+  // pestaña "En Acopio"). Para un portón migrado del sistema anterior, "Ver ficha" (acá) es
+  // el único lugar al que el vendedor/distribuidor navega - nunca pasaba por esa pestaña, así
+  // que nunca veía el botón. Se agrega acá también, mismo criterio que allá.
+  const requestProductionM = useMutation({
+    mutationFn: () => requestProductionFromAcopio(quoteId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["quote", quoteId] }),
+  });
 
   const showCommercialDiffPanel = !isRevision && quote?.measurement_commercial_review_status === "pending";
   const canActOnCommercialReview = showCommercialDiffPanel && !!user?.is_enc_comercial;
@@ -1435,6 +1443,14 @@ export default function QuoteDetailPage() {
                 {((!isRevision && quote.status === "draft") || (isRevision && !["syncing_odoo", "synced_odoo"].includes(quote.final_status || ""))) ? <Button onClick={() => navigate(quoteEditorPath(quote))}>{isRevision ? (quote.parent_requires_measurement ? "Edición postmedición" : "Edición acopio") : "Editar"}</Button> : null}
                 {!isRevision && quote.final_copy_id ? <Button variant="ghost" onClick={() => navigate(`/presupuestos/${quote.final_copy_id}`)}>Ver final</Button> : null}
                 {(!isLegacy && (user?.is_vendedor || user?.is_distribuidor) && String(quote.created_by_user_id) === String(user.user_id) && !isRevision && quote.status === "synced_odoo" && hasMeasurementForPdf(quote) && !quote.final_copy_id) ? <Button variant="ghost" disabled={revisionM.isPending} onClick={() => revisionM.mutate()}>{revisionM.isPending ? "Creando…" : "Crear ajuste"}</Button> : null}
+                {((user?.is_vendedor || user?.is_distribuidor) && String(quote.created_by_user_id) === String(user.user_id) && !isRevision && quote.fulfillment_mode === "acopio" && quote.status === "synced_odoo") ? (
+                  <Button
+                    disabled={requestProductionM.isPending || quote.acopio_to_produccion_status === "pending"}
+                    onClick={() => requestProductionM.mutate()}
+                  >
+                    {quote.acopio_to_produccion_status === "pending" ? "Solicitud en revisión" : (requestProductionM.isPending ? "Solicitando…" : "Solicitar paso a Producción")}
+                  </Button>
+                ) : null}
                 {isRevision && quote.parent_quote_id ? <Button variant="ghost" onClick={() => navigate(`/presupuestos/${quote.parent_quote_id}`)}>Ver original</Button> : null}
                 <Button variant="ghost" onClick={() => navigate(approvalReturnPath)}>Volver</Button>
               </div>
