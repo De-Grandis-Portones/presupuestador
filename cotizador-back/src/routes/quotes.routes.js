@@ -2216,25 +2216,61 @@ export function buildQuotesRouter(odoo) {
                order by q.created_at desc nulls last, q.id desc limit 200`;
       } else if (scope === "commercial_approved") {
         if (!u.is_enc_comercial) return res.status(403).json({ ok: false, error: "No autorizado" });
-        sql = `select q.*, u.username as created_by_username, u.full_name as created_by_full_name
-               from public.presupuestador_quotes q
-               left join public.presupuestador_users u on u.id = q.created_by_user_id
-               where ${onlyOriginal}
-                 and q.commercial_decision = 'approved'
-                 and (q.status not in ('pending_approvals', 'draft') or q.measurement_status = 'returned_to_seller')
-               order by q.commercial_at desc nulls last, q.id desc limit 200`;
+        // "Aprobados" ordena por fecha de aprobación y corta en 200 filas (performance) - un
+        // presupuesto viejo (aprobado hace meses, p.ej. porque recién ahora salió de acopio)
+        // queda fuera de esas 200 aunque esté perfectamente resuelto. Con texto de búsqueda,
+        // en cambio, se busca por nombre/dirección/referencia SIN el límite de recencia, para
+        // que lo encuentre igual (caso real: INP4249, Grivel Aberturas, 2026-10-05).
+        {
+          const search = toText(req.query.search || "");
+          const searchWhere = search ? `and (
+                   q.odoo_sale_order_name ilike $1
+                   or q.final_sale_order_name ilike $1
+                   or q.quote_number::text ilike $1
+                   or coalesce(q.end_customer->>'name','') ilike $1
+                   or coalesce(q.end_customer->>'city','') ilike $1
+                   or coalesce(q.end_customer->>'address','') ilike $1
+                   or coalesce(u.username,'') ilike $1
+                   or coalesce(u.full_name,'') ilike $1
+                 )` : "";
+          if (search) params = [`%${search}%`];
+          sql = `select q.*, u.username as created_by_username, u.full_name as created_by_full_name
+                 from public.presupuestador_quotes q
+                 left join public.presupuestador_users u on u.id = q.created_by_user_id
+                 where ${onlyOriginal}
+                   and q.commercial_decision = 'approved'
+                   and (q.status not in ('pending_approvals', 'draft') or q.measurement_status = 'returned_to_seller')
+                   ${searchWhere}
+                 order by q.commercial_at desc nulls last, q.id desc limit 200`;
+        }
       } else if (scope === "technical_approved") {
         if (!u.is_rev_tecnica) return res.status(403).json({ ok: false, error: "No autorizado" });
         // Sin payload/lines: son listados (no el detalle de un presupuesto puntual),
         // y payload en particular puede pesar ~200KB/fila TOASTeada — con 200 filas
         // esto pasó de ~15s a milisegundos (ver QUOTE_LIST_COLUMNS_SQL).
-        sql = `select ${QUOTE_LIST_COLUMNS_SQL}, u.username as created_by_username, u.full_name as created_by_full_name
-               from public.presupuestador_quotes q
-               left join public.presupuestador_users u on u.id = q.created_by_user_id
-               where ${onlyOriginal}
-                 and q.technical_decision = 'approved'
-                 and q.status not in ('pending_approvals', 'draft')
-               order by q.technical_at desc nulls last, q.id desc limit 200`;
+        // Mismo criterio de búsqueda que commercial_approved (ver comentario ahí).
+        {
+          const search = toText(req.query.search || "");
+          const searchWhere = search ? `and (
+                   q.odoo_sale_order_name ilike $1
+                   or q.final_sale_order_name ilike $1
+                   or q.quote_number::text ilike $1
+                   or coalesce(q.end_customer->>'name','') ilike $1
+                   or coalesce(q.end_customer->>'city','') ilike $1
+                   or coalesce(q.end_customer->>'address','') ilike $1
+                   or coalesce(u.username,'') ilike $1
+                   or coalesce(u.full_name,'') ilike $1
+                 )` : "";
+          if (search) params = [`%${search}%`];
+          sql = `select ${QUOTE_LIST_COLUMNS_SQL}, u.username as created_by_username, u.full_name as created_by_full_name
+                 from public.presupuestador_quotes q
+                 left join public.presupuestador_users u on u.id = q.created_by_user_id
+                 where ${onlyOriginal}
+                   and q.technical_decision = 'approved'
+                   and q.status not in ('pending_approvals', 'draft')
+                   ${searchWhere}
+                 order by q.technical_at desc nulls last, q.id desc limit 200`;
+        }
       } else if (scope === "commercial_acopio") {
         if (!u.is_enc_comercial) return res.status(403).json({ ok: false, error: "No autorizado" });
         sql = `select q.*, u.username as created_by_username, u.full_name as created_by_full_name

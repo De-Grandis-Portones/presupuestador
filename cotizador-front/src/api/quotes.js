@@ -18,9 +18,10 @@ function withoutPaymentAdjustmentSnapshot(quote) {
   return { ...quote, payload };
 }
 
-export async function listQuotes({ scope = "mine" } = {}) {
+export async function listQuotes({ scope = "mine", search = "" } = {}) {
   const params = new URLSearchParams();
   params.set("scope", scope);
+  if (search) params.set("search", search);
   const { data } = await http.get(`/api/quotes?${params.toString()}`);
   if (!data?.ok) throw new Error(data?.error || "No se pudieron cargar presupuestos");
   return data.quotes || [];
