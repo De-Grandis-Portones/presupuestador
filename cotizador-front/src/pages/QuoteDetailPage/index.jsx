@@ -10,7 +10,7 @@ import { listDoorsByQuote } from "../../api/doors.js";
 import { downloadMedicionPdf } from "../../api/pdf.js";
 import { findBillingCustomerByVat, getBillingOptions, getFinancingPreview } from "../../api/odoo.js";
 import { useAuthStore } from "../../domain/auth/store.js";
-import { formatARS, calcTotals, calcLineTotal, resolveLineFinalUnitPrice } from "../../domain/quote/pricing.js";
+import { formatARS, calcTotals, calcLineTotal, resolveLineFinalUnitPrice, resolvePreviouslyBilledUnitPrice } from "../../domain/quote/pricing.js";
 import { computeCommercialLinesDiff } from "../../domain/quote/commercialDiff.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
 import LegacyFichaCard from "../../components/LegacyFichaCard.jsx";
@@ -744,9 +744,17 @@ function resolveApprovalProformaBasePrice(line, quote) {
   const snapshot = Number(quote?.envio_odoo_price_snapshot);
   return Number.isFinite(snapshot) && snapshot > 0 ? snapshot : storedBasePrice;
 }
+// "Facturado previamente" (ver pricing.js: linea auto-generada al editar un presupuesto que
+// ya tenia NP, para descontar el deposit_amount ya facturado) viene con basePrice NEGATIVO
+// (ej. -4.496.367,65) y no es un producto real de catalogo - sumarla acá junto con el resto
+// como si fuera una linea mas dejaba "Subtotal base"/"Monto coeficiente" en numeros sin
+// sentido (negativos enormes) apenas el presupuesto tenia una. calcTotals (lo que arma
+// "Resumen del presupuesto" mas abajo) ya la excluye del subtotal y la neta aparte - acá se
+// replica el mismo criterio (caso real: NP4474, Aberturas Barengo, distribuidor).
 function getQuoteBaseSubtotalForApproval(quote) {
   const lines = Array.isArray(quote?.lines) ? quote.lines : [];
   const linesSubtotal = lines.reduce((acc, line) => {
+    if (line?.previously_billed_line) return acc;
     const qty = Number(line?.qty || 0) || 0;
     const basePrice = resolveApprovalProformaBasePrice(line, quote);
     return acc + qty * basePrice;
@@ -760,6 +768,25 @@ function getQuoteCoefficientAmountForApproval(quote) {
   const baseSubtotal = getQuoteBaseSubtotalForApproval(quote);
   const marginPercent = getQuoteMarginPercentForApproval(quote);
   return round2ForApproval(baseSubtotal * marginPercent / 100);
+}
+
+// Monto ya facturado a precios base (sin coeficiente), para descontarlo del total de la
+// proforma - mismo criterio de netear "despues" de IVA que usa calcTotals (ver pricing.js),
+// para que "Total proforma" muestre lo que realmente falta facturar en Odoo, no el monto
+// completo del porton como si nada se hubiese facturado antes.
+function getQuotePreviouslyBilledBaseForApproval(quote, conditionMode) {
+  const lines = Array.isArray(quote?.lines) ? quote.lines : [];
+  return round2ForApproval(
+    lines.reduce((acc, line) => {
+      if (!line?.previously_billed_line) return acc;
+      if (typeof line?.price_unit === "number" && Number.isFinite(line.price_unit)) {
+        return acc + Number(line?.qty || 0) * line.price_unit;
+      }
+      const qty = Number(line?.qty || 0) || 0;
+      const basePrice = Number(line?.basePrice ?? line?.base_price ?? line?.price ?? 0) || 0;
+      return acc + qty * resolvePreviouslyBilledUnitPrice(basePrice, conditionMode);
+    }, 0),
+  );
 }
 
 function formatSignedARSForApproval(value) {
@@ -993,6 +1020,7 @@ function CommercialMeasurementReviewCard({
   isPending,
   isError,
   errorMessage,
+  isDistributorQuote = false,
 }) {
   // Linea de descuento que agrega /return/confirm cuando la diferencia de medición
   // (o parte de ella) cae dentro del rango de tolerancia exento (ver
@@ -1004,7 +1032,9 @@ function CommercialMeasurementReviewCard({
     <div className="card" style={{ background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)" }}>
       <div style={{ fontWeight: 900, marginBottom: 6 }}>Revisión comercial de medición</div>
       <div className="muted" style={{ marginBottom: 10 }}>
-        El vendedor editó este presupuesto después de la medición. Esta es la diferencia respecto al presupuesto original antes de aprobar.
+        {isDistributorQuote
+          ? "El distribuidor editó este presupuesto después de la medición. Los montos de abajo son a precio base De Grandis (proforma, sin el coeficiente del distribuidor) — es la diferencia que realmente se va a impactar en Odoo."
+          : "El vendedor editó este presupuesto después de la medición. Esta es la diferencia respecto al presupuesto original antes de aprobar."}
       </div>
       {!diff ? (
         <div className="muted" style={{ marginBottom: 10 }}>
@@ -1059,7 +1089,8 @@ function ProformaTotalsCard({ quote, conditionMode, financingPercent = 0 }) {
   const financedSubtotal = round2ForApproval(getQuoteBaseSubtotalForApproval(quote) * (1 + (Number(financingPercent || 0) || 0) / 100));
   const { ivaRate } = getQuoteCommercialTotalsForApproval(quote, conditionMode, 0);
   const baseIva = round2ForApproval(financedSubtotal * ivaRate);
-  const baseTotal = round2ForApproval(financedSubtotal + baseIva);
+  const previouslyBilledBase = getQuotePreviouslyBilledBaseForApproval(quote, conditionMode);
+  const baseTotal = round2ForApproval(financedSubtotal + baseIva + previouslyBilledBase);
   return (
     <div className="card" style={{ background: "var(--dg-accent-bg)", border: "1px solid var(--dg-accent-border)", marginTop: 12 }}>
       <div style={{ fontWeight: 900, marginBottom: 4 }}>Proforma (precios base)</div>
@@ -1073,6 +1104,12 @@ function ProformaTotalsCard({ quote, conditionMode, financingPercent = 0 }) {
           <div className="muted" style={{ fontSize: 12 }}>IVA ({formatIvaRateForApproval(ivaRate)})</div>
           <div style={{ fontWeight: 800, marginTop: 4 }}>{formatARS(baseIva)}</div>
         </div>
+        {previouslyBilledBase ? (
+          <div style={{ border: "1px solid var(--dg-warning-border)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-warning-bg)" }}>
+            <div className="muted" style={{ fontSize: 12 }}>Facturado previamente</div>
+            <div style={{ fontWeight: 800, marginTop: 4 }}>{formatSignedARSForApproval(previouslyBilledBase)}</div>
+          </div>
+        ) : null}
         <div style={{ border: "1px solid rgba(1, 163, 159, 0.5)", borderRadius: 10, padding: "8px 10px", background: "var(--dg-accent-bg)" }}>
           <div className="muted" style={{ fontSize: 12 }}>Total proforma</div>
           <div style={{ fontWeight: 900, marginTop: 4 }}>{formatARS(baseTotal)}</div>
@@ -1094,8 +1131,14 @@ function ApprovalTotalsBottomCard({ quote, conditionMode, financingPercent = 0 }
     { label: "Monto coeficiente", value: formatSignedARSForApproval(coefficientAmount) },
     { label: "Neto", value: formatARS(totals.subtotal) },
     { label: `IVA (${formatIvaRateForApproval(totals.ivaRate)})`, value: formatARS(totals.iva) },
-    { label: "Total del presupuesto", value: formatARS(totals.total), strong: true },
   ];
+  // calcTotals ya excluye "Facturado previamente" del Neto/IVA y lo neta directo en el total
+  // (ver pricing.js) - se muestra acá aparte para que quede claro de dónde sale la diferencia
+  // entre "Neto + IVA" y "Total del presupuesto" (lo que realmente falta facturar en Odoo).
+  if (totals.previouslyBilled) {
+    rows.push({ label: "Facturado previamente", value: formatSignedARSForApproval(totals.previouslyBilled) });
+  }
+  rows.push({ label: "Total del presupuesto", value: formatARS(totals.total), strong: true });
 
   return (
     <div className="card" style={{ background: "var(--dg-card)", marginTop: 12 }}>
@@ -1278,6 +1321,15 @@ export default function QuoteDetailPage() {
   const commercialDiffSnapshot = quote?.measurement_commercial_diff_json && typeof quote.measurement_commercial_diff_json === "object" ? quote.measurement_commercial_diff_json : null;
 
   const lines = Array.isArray(quote?.lines) ? quote.lines : [];
+  // Para un presupuesto de distribuidor, el coeficiente es lo que ÉL le cobra a SU cliente -
+  // no nos incumbe, y no es lo que se sincroniza a Odoo (ver calcOdooUnitPrice/
+  // calcDetailedUnitWithIva en el backend: a distribuidor se le manda precio base/proforma,
+  // sin coeficiente). Mostrarle a Enc. Comercial la diferencia calculada CON el coeficiente del
+  // distribuidor no tiene sentido para decidir, porque no es el monto que va a impactar en
+  // Odoo. Acá se fuerza margen 0 (proforma) para distribuidor, para que "Total original"/
+  // "Total editado"/"Diferencia" coincidan con lo que realmente se factura (pedido explícito
+  // del usuario, caso NP4474).
+  const isDistributorQuote = quote?.created_by_role === "distribuidor";
   const commercialLinesDiff = useMemo(() => {
     if (!showCommercialDiffPanel || !Array.isArray(commercialDiffSnapshot?.original_lines)) return null;
     // Si el snapshot es viejo y no guardó original_payload, usamos el payload actual
@@ -1285,14 +1337,14 @@ export default function QuoteDetailPage() {
     const originalPayload = commercialDiffSnapshot?.original_payload || quote?.payload || {};
     const originalConditionMode = String(originalPayload?.condition_mode || "cond1").trim();
     return computeCommercialLinesDiff(commercialDiffSnapshot.original_lines, lines, {
-      originalMarginPercent: getQuoteMarginPercentForApproval({ payload: originalPayload }),
-      currentMarginPercent: getQuoteMarginPercentForApproval(quote),
+      originalMarginPercent: isDistributorQuote ? 0 : getQuoteMarginPercentForApproval({ payload: originalPayload }),
+      currentMarginPercent: isDistributorQuote ? 0 : getQuoteMarginPercentForApproval(quote),
       originalConditionMode,
       currentConditionMode: conditionMode,
       originalFinancingPercent: approvalFinancingPercent,
       currentFinancingPercent: approvalFinancingPercent,
     });
-  }, [showCommercialDiffPanel, commercialDiffSnapshot, lines, quote, conditionMode, approvalFinancingPercent]);
+  }, [showCommercialDiffPanel, commercialDiffSnapshot, lines, quote, conditionMode, approvalFinancingPercent, isDistributorQuote]);
   const approvalLineRows = useMemo(() => buildApprovalLineRows(lines, getQuoteMarginPercentForApproval(quote), approvalFinancingPercent, conditionMode, quote), [lines, quote, approvalFinancingPercent, conditionMode]);
   const rejectionBoxes = useMemo(() => {
     if (!quote) return [];
@@ -1487,6 +1539,7 @@ export default function QuoteDetailPage() {
                   isPending={commercialMeasurementM.isPending}
                   isError={commercialMeasurementM.isError}
                   errorMessage={commercialMeasurementM.error?.message}
+                  isDistributorQuote={isDistributorQuote}
                 />
               </>
             ) : null}
