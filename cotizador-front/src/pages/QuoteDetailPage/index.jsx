@@ -1020,6 +1020,7 @@ function CommercialMeasurementReviewCard({
   isPending,
   isError,
   errorMessage,
+  isDistributorQuote = false,
 }) {
   // Linea de descuento que agrega /return/confirm cuando la diferencia de medición
   // (o parte de ella) cae dentro del rango de tolerancia exento (ver
@@ -1031,7 +1032,9 @@ function CommercialMeasurementReviewCard({
     <div className="card" style={{ background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)" }}>
       <div style={{ fontWeight: 900, marginBottom: 6 }}>Revisión comercial de medición</div>
       <div className="muted" style={{ marginBottom: 10 }}>
-        El vendedor editó este presupuesto después de la medición. Esta es la diferencia respecto al presupuesto original antes de aprobar.
+        {isDistributorQuote
+          ? "El distribuidor editó este presupuesto después de la medición. Los montos de abajo son a precio base De Grandis (proforma, sin el coeficiente del distribuidor) — es la diferencia que realmente se va a impactar en Odoo."
+          : "El vendedor editó este presupuesto después de la medición. Esta es la diferencia respecto al presupuesto original antes de aprobar."}
       </div>
       {!diff ? (
         <div className="muted" style={{ marginBottom: 10 }}>
@@ -1318,6 +1321,15 @@ export default function QuoteDetailPage() {
   const commercialDiffSnapshot = quote?.measurement_commercial_diff_json && typeof quote.measurement_commercial_diff_json === "object" ? quote.measurement_commercial_diff_json : null;
 
   const lines = Array.isArray(quote?.lines) ? quote.lines : [];
+  // Para un presupuesto de distribuidor, el coeficiente es lo que ÉL le cobra a SU cliente -
+  // no nos incumbe, y no es lo que se sincroniza a Odoo (ver calcOdooUnitPrice/
+  // calcDetailedUnitWithIva en el backend: a distribuidor se le manda precio base/proforma,
+  // sin coeficiente). Mostrarle a Enc. Comercial la diferencia calculada CON el coeficiente del
+  // distribuidor no tiene sentido para decidir, porque no es el monto que va a impactar en
+  // Odoo. Acá se fuerza margen 0 (proforma) para distribuidor, para que "Total original"/
+  // "Total editado"/"Diferencia" coincidan con lo que realmente se factura (pedido explícito
+  // del usuario, caso NP4474).
+  const isDistributorQuote = quote?.created_by_role === "distribuidor";
   const commercialLinesDiff = useMemo(() => {
     if (!showCommercialDiffPanel || !Array.isArray(commercialDiffSnapshot?.original_lines)) return null;
     // Si el snapshot es viejo y no guardó original_payload, usamos el payload actual
@@ -1325,14 +1337,14 @@ export default function QuoteDetailPage() {
     const originalPayload = commercialDiffSnapshot?.original_payload || quote?.payload || {};
     const originalConditionMode = String(originalPayload?.condition_mode || "cond1").trim();
     return computeCommercialLinesDiff(commercialDiffSnapshot.original_lines, lines, {
-      originalMarginPercent: getQuoteMarginPercentForApproval({ payload: originalPayload }),
-      currentMarginPercent: getQuoteMarginPercentForApproval(quote),
+      originalMarginPercent: isDistributorQuote ? 0 : getQuoteMarginPercentForApproval({ payload: originalPayload }),
+      currentMarginPercent: isDistributorQuote ? 0 : getQuoteMarginPercentForApproval(quote),
       originalConditionMode,
       currentConditionMode: conditionMode,
       originalFinancingPercent: approvalFinancingPercent,
       currentFinancingPercent: approvalFinancingPercent,
     });
-  }, [showCommercialDiffPanel, commercialDiffSnapshot, lines, quote, conditionMode, approvalFinancingPercent]);
+  }, [showCommercialDiffPanel, commercialDiffSnapshot, lines, quote, conditionMode, approvalFinancingPercent, isDistributorQuote]);
   const approvalLineRows = useMemo(() => buildApprovalLineRows(lines, getQuoteMarginPercentForApproval(quote), approvalFinancingPercent, conditionMode, quote), [lines, quote, approvalFinancingPercent, conditionMode]);
   const rejectionBoxes = useMemo(() => {
     if (!quote) return [];
@@ -1527,6 +1539,7 @@ export default function QuoteDetailPage() {
                   isPending={commercialMeasurementM.isPending}
                   isError={commercialMeasurementM.isError}
                   errorMessage={commercialMeasurementM.error?.message}
+                  isDistributorQuote={isDistributorQuote}
                 />
               </>
             ) : null}

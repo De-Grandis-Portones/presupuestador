@@ -146,9 +146,15 @@ function measurementQuickDiffLabel(row) {
   // al de adentro del presupuesto (caso real: NP4560, Julio Maiolo, Ornella Petetta, 2026-10-02).
   const originalPayload = snapshot.original_payload || row?.payload || {};
   const currentPayload = row?.payload || {};
+  // Presupuesto de distribuidor: el coeficiente es lo que ÉL le cobra a SU cliente, no lo que
+  // se sincroniza a Odoo (ver calcOdooUnitPrice/calcDetailedUnitWithIva en el backend - a
+  // distribuidor se le manda precio base/proforma, sin coeficiente). Con margen forzado a 0
+  // esta diferencia queda en el mismo monto que realmente va a impactar en Odoo, igual que en
+  // QuoteDetailPage (pedido explícito del usuario, caso NP4474).
+  const isDistributorRow = row?.created_by_role === "distribuidor";
   const diff = computeCommercialLinesDiff(snapshot.original_lines, row?.lines || [], {
-    originalMarginPercent: getQuoteMarginPercentForDiff(originalPayload),
-    currentMarginPercent: getQuoteMarginPercentForDiff(currentPayload),
+    originalMarginPercent: isDistributorRow ? 0 : getQuoteMarginPercentForDiff(originalPayload),
+    currentMarginPercent: isDistributorRow ? 0 : getQuoteMarginPercentForDiff(currentPayload),
     originalConditionMode: String(originalPayload?.condition_mode || "cond1").trim(),
     currentConditionMode: String(currentPayload?.condition_mode || "cond1").trim(),
     originalFinancingPercent: getQuoteFinancingPercentForDiff(originalPayload),
