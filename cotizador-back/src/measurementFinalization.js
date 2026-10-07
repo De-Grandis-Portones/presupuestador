@@ -905,12 +905,19 @@ function buildBasePositiveLinesFromQuote(sourceQuote) {
     .filter((line) => {
       const productId = Number(line?.product_id || 0);
       if (!productId) return false;
-      // force_include_in_finalization es un escape hatch puntual por presupuesto (no toca
-      // el comportamiento general): permite que una linea con un product_id de la lista
-      // MEASUREMENT_PRODUCT_IDS (ej. 2865, que en la practica tambien se usa como "Servicio
-      // de Instalacion" pago y no solo como medicion) SI se incluya en el total final. Sin
-      // el flag, el comportamiento es identico al de siempre para el resto de presupuestos.
-      if (MEASUREMENT_PRODUCT_IDS.includes(productId) && !forceIncludeIds.has(productId)) return false;
+      // MEASUREMENT_PRODUCT_IDS (2865/2961/4229) normalmente son el placeholder de "medición
+      // incluida" a $0 que la finalización re-arma aparte (legacySeeds/technicalSeeds), así
+      // que por default se excluyen acá para no duplicarlos. PERO si la línea ya tiene un
+      // precio real cargado (>0), es porque se vendió directamente como servicio pago (ej.
+      // 2865 reusado como "Servicio de Instalación" cobrado) y no como el placeholder - en ese
+      // caso hay que tratarla como un ítem más y mantenerla hasta el final, igual que pidió el
+      // usuario (antes se perdía en silencio: el total final no la incluía pero el
+      // deposit_amount de la NP original sí, y el descuento de anticipo terminaba "comiéndose"
+      // el total entero - caso real: NP4474, Aberturas Barengo, 2026-10-06, $0 en vez de los
+      // $149.410,76 de recargo que correspondía cobrar). El viejo flag force_include_in_finalization
+      // nunca se llegó a setear en ningún lado (ni front ni back), así que esto lo reemplaza.
+      const hasRealPrice = Number(line?.basePrice || 0) > 0 || (typeof line?.price_unit === "number" && line.price_unit > 0);
+      if (MEASUREMENT_PRODUCT_IDS.includes(productId) && !forceIncludeIds.has(productId) && !hasRealPrice) return false;
       if (productId === PLACEHOLDER_PRODUCT_ID) return false;
       return true;
     });
