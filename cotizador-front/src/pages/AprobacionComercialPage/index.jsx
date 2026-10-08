@@ -16,6 +16,13 @@ import { isLegacyImport, legacyImportLabel } from "../../utils/legacyImport.js";
 import LegacyMigratedNote from "../../components/LegacyMigratedNote.jsx";
 
 const PAGE_SIZE = 25;
+// Un presupuesto cancelado (rol Administración, ver cancel-nv en quotes.routes.js) sigue
+// apareciendo en estos listados de "pendiente de acción" porque ninguno filtra cancelled_at -
+// pedido explícito del usuario: que no estorbe más, mostrándolo tachado y en rojo en vez de
+// sacarlo (para no perder trazabilidad, igual que ya hace PortonesEstadoPage).
+function cancelledRowStyle(r) {
+  return r?.cancelled_at ? { textDecoration: "line-through", color: "var(--dg-danger-text)" } : undefined;
+}
 const COMMERCIAL_TAB_LABELS = {
   aprobaciones_todos: "Todos",
   aprobaciones_portones: "Aprobación de Portones",
@@ -115,10 +122,51 @@ function measurementRowLabel(r) {
   if (status === "approved") return "Aprobada";
   return status || "—";
 }
+function getQuoteMarginPercentForDiff(payload) {
+  const candidates = [payload?.margin_percent_ui, payload?.marginPercent];
+  for (const value of candidates) {
+    const n = Number(String(value ?? "").replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+function getQuoteFinancingPercentForDiff(payload) {
+  const candidates = [
+    payload?.quote_adjustment_percent_snapshot,
+    payload?.financing_percent_snapshot,
+    payload?.financing_percent,
+    payload?.payment_adjustment_percent,
+  ];
+  for (const value of candidates) {
+    if (value === null || value === undefined || String(value).trim() === "") continue;
+    const n = Number(String(value).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
 function measurementQuickDiffLabel(row) {
   const snapshot = row?.measurement_commercial_diff_json;
   if (!snapshot || typeof snapshot !== "object" || !Array.isArray(snapshot.original_lines)) return "—";
-  const diff = computeCommercialLinesDiff(snapshot.original_lines, row?.lines || []);
+  // Mismo margen/condición/financiación que usa QuoteDetailPage (commercialLinesDiff) para
+  // que el monto de acá coincida con el que explica el detalle del presupuesto - antes se
+  // llamaba sin estos datos (margen 0%, cond1, financiación 0%), dando un monto distinto
+  // al de adentro del presupuesto (caso real: NP4560, Julio Maiolo, Ornella Petetta, 2026-10-02).
+  const originalPayload = snapshot.original_payload || row?.payload || {};
+  const currentPayload = row?.payload || {};
+  // Presupuesto de distribuidor: el coeficiente es lo que ÉL le cobra a SU cliente, no lo que
+  // se sincroniza a Odoo (ver calcOdooUnitPrice/calcDetailedUnitWithIva en el backend - a
+  // distribuidor se le manda precio base/proforma, sin coeficiente). Con margen forzado a 0
+  // esta diferencia queda en el mismo monto que realmente va a impactar en Odoo, igual que en
+  // QuoteDetailPage (pedido explícito del usuario, caso NP4474).
+  const isDistributorRow = row?.created_by_role === "distribuidor";
+  const diff = computeCommercialLinesDiff(snapshot.original_lines, row?.lines || [], {
+    originalMarginPercent: isDistributorRow ? 0 : getQuoteMarginPercentForDiff(originalPayload),
+    currentMarginPercent: isDistributorRow ? 0 : getQuoteMarginPercentForDiff(currentPayload),
+    originalConditionMode: String(originalPayload?.condition_mode || "cond1").trim(),
+    currentConditionMode: String(currentPayload?.condition_mode || "cond1").trim(),
+    originalFinancingPercent: getQuoteFinancingPercentForDiff(originalPayload),
+    currentFinancingPercent: getQuoteFinancingPercentForDiff(currentPayload),
+  });
   if (!diff.hasChanges) return "Sin cambios";
   // Linea que agrega /return/confirm cuando la diferencia de medicion cae dentro
   // del rango de tolerancia exento (ver applyMeasurementToleranceAbsorption).
@@ -397,7 +445,7 @@ export default function AprobacionComercialPage() {
     queryFn: () => listMeasurements({ status: "commercial_review", viewer: "comercial" }),
     enabled: tab === "mediciones" && !!user?.is_enc_comercial,
   });
-  const aprobadosQ = useQuery({ queryKey: ["quotes", "commercial_approved"], queryFn: () => listQuotes({ scope: "commercial_approved" }), enabled: tab === "aprobados" && !!user?.is_enc_comercial });
+  const aprobadosQ = useQuery({ queryKey: ["quotes", "commercial_approved", searchText], queryFn: () => listQuotes({ scope: "commercial_approved", search: searchText }), enabled: tab === "aprobados" && !!user?.is_enc_comercial });
 
   const acopioM = useMutation({ mutationFn: ({ id, action, notes }) => reviewAcopioCommercial(id, { action, notes }), onSuccess: () => acopioQ.refetch() });
   const doorM = useMutation({ mutationFn: ({ id, action, notes }) => reviewDoorCommercial(id, { action, notes }), onSuccess: () => doorsQ.refetch() });
@@ -564,7 +612,7 @@ export default function AprobacionComercialPage() {
               {items.map((r) => {
                 const pdfKey = `quote-${r.id}`;
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} style={cancelledRowStyle(r)}>
                     <td>{fmtDate(r.created_at)}</td>
                     {showType ? <td>{catalogKindLabel(r)}</td> : null}
                     <td>{createdByLabel(r)}</td>
@@ -604,7 +652,7 @@ export default function AprobacionComercialPage() {
               {items.map((r) => {
                 const pdfKey = `quote-${r.id}`;
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} style={cancelledRowStyle(r)}>
                     <td>{fmtDate(productionSentAt(r))}</td>
                     <td>{createdByLabel(r)}</td>
                     <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -681,7 +729,7 @@ export default function AprobacionComercialPage() {
                   <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th><th>Diferencia</th><th></th></tr></thead>
                   <tbody>
                     {visibleMedicionesRows.map((r) => (
-                      <tr key={r.id}>
+                      <tr key={r.id} style={cancelledRowStyle(r)}>
                         <td>{fmtDate(r.measurement_at || r.created_at)}</td>
                         <td>{createdByLabel(r)}</td>
                         <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -715,13 +763,13 @@ export default function AprobacionComercialPage() {
               return (
                 <>
                   <table>
-                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Solicitud</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Decisiones</th><th></th></tr></thead>
+                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Solicitud</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Cambios</th><th>Decisiones</th><th></th></tr></thead>
                     <tbody>
                       {visibleAcopioRows.map((r) => {
                         const canAct = (r.acopio_to_produccion_commercial_decision || "pending") === "pending";
                         const pdfKey = `quote-${r.id}`;
                         return (
-                          <tr key={r.id}>
+                          <tr key={r.id} style={cancelledRowStyle(r)}>
                             <td>{fmtDate(r.acopio_to_produccion_requested_at || r.created_at)}</td>
                             <td>{createdByLabel(r)}</td>
                             <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -730,6 +778,7 @@ export default function AprobacionComercialPage() {
                             <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                             {hasPlegado && <td><PlegadoInfoCell row={r} /></td>}
                             <td><BudgetObservationCell row={r} /></td>
+                            <td>{measurementQuickDiffLabel(r)}</td>
                             <td>{acopioReqLabel(r)}</td>
                             <td className="right">
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -759,12 +808,12 @@ export default function AprobacionComercialPage() {
               return (
                 <>
                   <table>
-                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Solicitud Prod.</th><th></th></tr></thead>
+                    <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th>{hasPlegado && <th>Datos plegado</th>}<th>Obs. presupuesto</th><th>Cambios</th><th>Solicitud Prod.</th><th></th></tr></thead>
                     <tbody>
                       {visibleAcopioListadoRows.map((r) => {
                         const pdfKey = `quote-${r.id}`;
                         return (
-                          <tr key={r.id}>
+                          <tr key={r.id} style={cancelledRowStyle(r)}>
                             <td>{fmtDate(r.confirmed_at || r.created_at)}</td>
                             <td>{createdByLabel(r)}</td>
                             <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -773,6 +822,7 @@ export default function AprobacionComercialPage() {
                             <td><OdooReferenceCell value={quoteOdooReference(r)} row={r} /></td>
                             {hasPlegado && <td><PlegadoInfoCell row={r} /></td>}
                             <td><BudgetObservationCell row={r} /></td>
+                            <td>{measurementQuickDiffLabel(r)}</td>
                             <td>{r.acopio_to_produccion_status ? acopioReqLabel(r) : "—"}</td>
                             <td className="right">
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -811,7 +861,7 @@ export default function AprobacionComercialPage() {
                       const proformaKey = `proforma-${r.id}`;
                       const isDistribuidor = r.created_by_role === "distribuidor";
                       return (
-                        <tr key={r.id}>
+                        <tr key={r.id} style={cancelledRowStyle(r)}>
                           <td>{fmtDate(r.commercial_at || r.created_at)}</td>
                           <td>{catalogKindLabel(r)}</td>
                           <td>{createdByLabel(r)}</td>

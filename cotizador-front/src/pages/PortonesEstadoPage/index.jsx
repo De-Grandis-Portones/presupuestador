@@ -128,8 +128,16 @@ function computeStatusInfo(q) {
         return { label: "Esperando aprobación técnica final", color: "orange" };
       }
 
-      if (q.measurement_status === "pending")
+      if (q.measurement_status === "pending") {
+        // Ipanel/plegados en produccion siempre son "tecnica_only" (nunca pasan por un
+        // medidor real) - "Medición pendiente" confundía (caso real: INP4249, Grivel
+        // Aberturas, 2026-10-02 - no hay ninguna medición que esperar, solo falta que
+        // Tecnica confirme los datos finales).
+        const kind = String(q.catalog_kind || "porton").toLowerCase();
+        if (["ipanel", "plegados"].includes(kind))
+          return { label: "Esperando confirmación técnica final", color: "yellow" };
         return { label: "Medición pendiente", color: "yellow" };
+      }
       // Color propio (purple): es la PRIMERA revision tecnica de la medicion en si
       // (que la vendedora aplique bien lo medido), distinta de la aprobacion tecnica
       // FINAL de mas abajo (que genera la NV) - antes compartian el mismo naranja y

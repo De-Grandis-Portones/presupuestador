@@ -905,12 +905,19 @@ function buildBasePositiveLinesFromQuote(sourceQuote) {
     .filter((line) => {
       const productId = Number(line?.product_id || 0);
       if (!productId) return false;
-      // force_include_in_finalization es un escape hatch puntual por presupuesto (no toca
-      // el comportamiento general): permite que una linea con un product_id de la lista
-      // MEASUREMENT_PRODUCT_IDS (ej. 2865, que en la practica tambien se usa como "Servicio
-      // de Instalacion" pago y no solo como medicion) SI se incluya en el total final. Sin
-      // el flag, el comportamiento es identico al de siempre para el resto de presupuestos.
-      if (MEASUREMENT_PRODUCT_IDS.includes(productId) && !forceIncludeIds.has(productId)) return false;
+      // MEASUREMENT_PRODUCT_IDS (2865/2961/4229) normalmente son el placeholder de "medición
+      // incluida" a $0 que la finalización re-arma aparte (legacySeeds/technicalSeeds), así
+      // que por default se excluyen acá para no duplicarlos. PERO si la línea ya tiene un
+      // precio real cargado (>0), es porque se vendió directamente como servicio pago (ej.
+      // 2865 reusado como "Servicio de Instalación" cobrado) y no como el placeholder - en ese
+      // caso hay que tratarla como un ítem más y mantenerla hasta el final, igual que pidió el
+      // usuario (antes se perdía en silencio: el total final no la incluía pero el
+      // deposit_amount de la NP original sí, y el descuento de anticipo terminaba "comiéndose"
+      // el total entero - caso real: NP4474, Aberturas Barengo, 2026-10-06, $0 en vez de los
+      // $149.410,76 de recargo que correspondía cobrar). El viejo flag force_include_in_finalization
+      // nunca se llegó a setear en ningún lado (ni front ni back), así que esto lo reemplaza.
+      const hasRealPrice = Number(line?.basePrice || 0) > 0 || (typeof line?.price_unit === "number" && line.price_unit > 0);
+      if (MEASUREMENT_PRODUCT_IDS.includes(productId) && !forceIncludeIds.has(productId) && !hasRealPrice) return false;
       if (productId === PLACEHOLDER_PRODUCT_ID) return false;
       return true;
     });
@@ -1806,31 +1813,16 @@ async function buildMeasurementFinalizationBase({ odoo, originalQuote, measureme
     finalAreaM2,
   });
 
-  // Medidas de paso/hoja recalculadas con la MISMA formula que usa el presupuesto
-  // (PortonDimensions.jsx, portada en portonVanoMeasurements.js), alimentada con el vano
-  // FINAL medido -no el presupuestado- para que "el editado mande" tambien en lo que se fabrica.
-  let dimensionsPatch = null;
-  const vanoWidthM = Number(measurementForm?.ancho_final_mm || 0) / 1000;
-  const vanoHeightM = Number(measurementForm?.alto_final_mm || 0) / 1000;
-  if (vanoWidthM > 0 && vanoHeightM > 0) {
-    try {
-      const officialMeasurements = await computeOfficialPortonMeasurements({
-        vanoWidthM,
-        vanoHeightM,
-        lines: sourceBaseLines,
-        portonType: sourceQuote?.payload?.porton_type || originalQuote?.payload?.porton_type || "",
-        dimensions: sourceQuote?.payload?.dimensions || originalQuote?.payload?.dimensions || {},
-        // El tipo de pierna SIEMPRE se calcula por peso con la formula oficial. Nadie
-        // puede cambiarlo desde el presupuestador (ni medidor ni tecnica) - la unica
-        // via de override es superusuario forzando el resync puntual de un portón.
-        legsKeyOverride: allowLegsOverride ? (String(measurementForm?.piernas || "").trim() || undefined) : undefined,
-      });
-      dimensionsPatch = officialMeasurements.dimensionsPatch;
-    } catch (e) {
-      console.error("[measurementFinalization] computeOfficialPortonMeasurements fallo:", e?.message || e);
-    }
-  }
-
+  // Los campos que Técnica/el medidor pueden cambiar desde el formulario (p.ej.
+  // "Colocación Dentro/Detrás del vano") tienen que aplicarse ANTES de calcular las
+  // medidas oficiales de abajo: si Técnica corrige la colocación acá, ese cambio tiene
+  // que modificar el ancho/alto final (el margen extra de "detrás del vano" se agrega
+  // o se saca según corresponda), no solo la línea de producto que termina yendo a
+  // Odoo. Antes se aplicaba DESPUÉS de computeOfficialPortonMeasurements, así que las
+  // medidas del presupuesto/link al cliente quedaban calculadas con la colocación
+  // VIEJA aunque la línea de producto en la NV ya mostrara la corregida (caso real:
+  // NP4468, Carlos Fanelli, Aberturas Barengo, 2026-10-06 - "va por dentro del vano"
+  // anotado y corregido en el campo, pero el link seguía con las medidas de "detrás").
   for (const field of technicalFields) {
     baseLines = replaceBoundProductsInBaseLines({
       baseLines,
@@ -1843,6 +1835,32 @@ async function buildMeasurementFinalizationBase({ odoo, originalQuote, measureme
     baseLines,
     measurementForm: measurementForm || {},
   });
+
+  // Medidas de paso/hoja recalculadas con la MISMA formula que usa el presupuesto
+  // (PortonDimensions.jsx, portada en portonVanoMeasurements.js), alimentada con el vano
+  // FINAL medido -no el presupuestado- para que "el editado mande" tambien en lo que se fabrica.
+  let dimensionsPatch = null;
+  const vanoWidthM = Number(measurementForm?.ancho_final_mm || 0) / 1000;
+  const vanoHeightM = Number(measurementForm?.alto_final_mm || 0) / 1000;
+  if (vanoWidthM > 0 && vanoHeightM > 0) {
+    try {
+      const officialMeasurements = await computeOfficialPortonMeasurements({
+        vanoWidthM,
+        vanoHeightM,
+        lines: baseLines,
+        portonType: sourceQuote?.payload?.porton_type || originalQuote?.payload?.porton_type || "",
+        dimensions: sourceQuote?.payload?.dimensions || originalQuote?.payload?.dimensions || {},
+        // El tipo de pierna SIEMPRE se calcula por peso con la formula oficial. Nadie
+        // puede cambiarlo desde el presupuestador (ni medidor ni tecnica) - la unica
+        // via de override es superusuario forzando el resync puntual de un portón.
+        legsKeyOverride: allowLegsOverride ? (String(measurementForm?.piernas || "").trim() || undefined) : undefined,
+        tipoEspecial: measurementForm?.instalacion_tipo_especial || null,
+      });
+      dimensionsPatch = officialMeasurements.dimensionsPatch;
+    } catch (e) {
+      console.error("[measurementFinalization] computeOfficialPortonMeasurements fallo:", e?.message || e);
+    }
+  }
 
   const legacySeeds = buildMeasurementLineSeedsFromLegacyMappings(
     measurementForm || {},
@@ -1966,15 +1984,18 @@ async function saveTokenAndNotify(odoo, originalQuote) {
   }
 }
 
-// "Las medidas" (payload.dimensions: ancho/alto/vano que carga la vendedora) son un dato
-// duro - la medicion NUNCA las pisa, ni siquiera cuando Tecnica da la aprobacion final (pedido
-// explicito 2026-08-19: "la medicion es SOLO tomar las medidas del vano, para que la vendedora
-// despues la aplique, nada mas"). El flujo normal de medicion (finalizeMeasurementToRevisionQuote,
-// mas abajo) YA NO llama a mergeDimensionsPatch/persistDimensionsPatch: la medida medida queda
-// solo en measurement_form (persistente, historial, lo que la vendedora consulta para aplicarla
-// ella misma) y no se calcula/escribe nada mas en ningun lado. Las dos funciones de aca abajo
-// sobreviven unicamente para resyncPortonMeasurements, el resync MANUAL de superusuario (accion
-// explicita de una persona para un porton puntual, no algo que corre solo).
+// "Las medidas" (payload.dimensions: ancho/alto/vano que carga la vendedora) eran, por regla
+// general, un dato duro que la medicion nunca pisaba (pedido explicito 2026-08-19: "la medicion
+// es SOLO tomar las medidas del vano, para que la vendedora despues la aplique, nada mas"). Esa
+// regla sigue valiendo para todo lo demas, PERO tiene una excepcion puntual agregada el
+// 2026-10-06 (ver applyOfficialPortonDimensionsFromVanoPlacement mas abajo): una vez que Tecnica
+// aprueba, el link de aceptacion al cliente se genera directo y ya no hay vuelta atras a la
+// vendedora para que lo corrija a mano (caso real: NP4468, Carlos Fanelli, Aberturas Barengo -
+// Tecnica corrigio la colocacion del vano de "Detras" a "Dentro", pero el link siguio mostrando
+// las medidas viejas porque nadie iba a volver a tocar el presupuesto). Las dos funciones de aca
+// abajo (mergeDimensionsPatch/persistDimensionsPatch) sobreviven solo para resyncPortonMeasurements,
+// el resync MANUAL de superusuario (accion explicita de una persona para un porton puntual), que
+// escribe a payload.final_calculated_dimensions - un campo que el frontend no lee en ningun lado.
 function mergeDimensionsPatch(payload, dimensionsPatch) {
   if (!dimensionsPatch || typeof dimensionsPatch !== "object" || !Object.keys(dimensionsPatch).length) return payload;
   const base = payload && typeof payload === "object" ? payload : {};
@@ -2004,9 +2025,89 @@ async function persistDimensionsPatch(quoteId, dimensionsPatch) {
   );
 }
 
+// A diferencia de portón (ver nota de 2026-08-19 más arriba: la medida dura la
+// aplica la vendedora a mano, nunca se pisa sola), ipanel/plegados no tienen ese
+// paso intermedio - Técnica confirma directo y ahí termina el circuito, así que
+// nadie más va a corregir payload.dimensions después. Sin esto, el link de
+// aceptación del cliente (y cualquier otra pantalla que lea payload.dimensions)
+// se queda mostrando la medida vieja del presupuesto aunque Técnica haya medido
+// otra cosa (caso real: INP4525, Grivel Aberturas, 2026-10-02 - alto medido
+// 1800mm, payload.dimensions seguía en 1982mm). Pedido explícito del usuario:
+// para estos dos catalog_kind, lo que mide Técnica pasa a ser la medida dura.
+const IPANEL_AUTO_DIMENSION_KINDS = new Set(["ipanel", "plegados"]);
+async function applyMeasuredDimensionsForDirectKinds(originalQuote, measurementForm) {
+  const kind = String(originalQuote?.catalog_kind || "").toLowerCase().trim();
+  if (!IPANEL_AUTO_DIMENSION_KINDS.has(kind)) return;
+  const anchoMm = toNumberLike(measurementForm?.ancho_final_mm);
+  const altoMm = toNumberLike(measurementForm?.alto_final_mm);
+  if (!anchoMm || !altoMm || anchoMm <= 0 || altoMm <= 0) return;
+  const widthM = round4(anchoMm / 1000);
+  const heightM = round4(altoMm / 1000);
+  const dimensionsPatch = { width: String(widthM), height: String(heightM), area_m2: round2(widthM * heightM) };
+  if (!originalQuote.id) return;
+  await dbQuery(
+    `update public.presupuestador_quotes
+        set payload = jsonb_set(
+          coalesce(payload, '{}'::jsonb),
+          '{dimensions}',
+          coalesce(payload->'dimensions', '{}'::jsonb) || $2::jsonb,
+          true
+        )
+      where id=$1`,
+    [originalQuote.id, JSON.stringify(dimensionsPatch)],
+  );
+  // Refleja el cambio en el objeto en memoria para que el resto de esta misma
+  // llamada (buildMeasurementFinalizationBase, etc.) ya vea la medida corregida.
+  originalQuote.payload = {
+    ...(originalQuote.payload || {}),
+    dimensions: { ...(originalQuote.payload?.dimensions || {}), ...dimensionsPatch },
+  };
+}
+
+// Excepcion puntual (2026-10-06, ver nota mas arriba) a la regla de "la vendedora aplica las
+// medidas a mano": cuando Tecnica corrige la colocacion del vano (Detras/Dentro) desde el
+// formulario de medicion, ancho/alto/area_m2 de payload.dimensions SI se actualizan solos con
+// el resultado oficial (computeOfficialPortonMeasurements, ya calculado sobre las lineas con la
+// colocacion corregida - ver buildMeasurementFinalizationBase). No toca medidas de paso/hoja ni
+// nada mas del patch: ese resto sigue siendo solo informativo en measurement_form.
+async function applyOfficialPortonDimensionsFromVanoPlacement(originalQuote, sourceQuote, dimensionsPatch) {
+  const kind = String(originalQuote?.catalog_kind || "porton").toLowerCase().trim();
+  if (kind !== "porton" || !dimensionsPatch || !originalQuote?.id) return;
+  const patch = {};
+  if (dimensionsPatch.width) patch.width = dimensionsPatch.width;
+  if (dimensionsPatch.height) patch.height = dimensionsPatch.height;
+  if (dimensionsPatch.area_m2 !== undefined) patch.area_m2 = dimensionsPatch.area_m2;
+  if (!Object.keys(patch).length) return;
+  await dbQuery(
+    `update public.presupuestador_quotes
+        set payload = jsonb_set(
+          coalesce(payload, '{}'::jsonb),
+          '{dimensions}',
+          coalesce(payload->'dimensions', '{}'::jsonb) || $2::jsonb,
+          true
+        )
+      where id=$1`,
+    [originalQuote.id, JSON.stringify(patch)],
+  );
+  // Refleja el cambio en memoria para que lo que sigue en esta misma llamada (la copia final
+  // que hereda payload de sourceQuote/originalQuote) ya vea las medidas corregidas.
+  originalQuote.payload = {
+    ...(originalQuote.payload || {}),
+    dimensions: { ...(originalQuote.payload?.dimensions || {}), ...patch },
+  };
+  if (sourceQuote && sourceQuote !== originalQuote) {
+    sourceQuote.payload = {
+      ...(sourceQuote.payload || {}),
+      dimensions: { ...(sourceQuote.payload?.dimensions || {}), ...patch },
+    };
+  }
+}
+
 export async function finalizeMeasurementToRevisionQuote({ odoo, originalQuote, measurementForm }) {
   assertNotLegacyImport(originalQuote, "finalizar una medición (no pasa por medición)");
+  await applyMeasuredDimensionsForDirectKinds(originalQuote, measurementForm);
   const base = await buildMeasurementFinalizationBase({ odoo, originalQuote, measurementForm });
+  await applyOfficialPortonDimensionsFromVanoPlacement(originalQuote, base.source_quote, base.dimensions_patch);
   const finalLines = base.generated_lines || [];
   // WhatsApp y generación de token se hacen DESPUÉS de crear la NV para garantizar que
   // el cliente no pueda aceptar el link antes de que exista la NV en Odoo.
@@ -2047,10 +2148,10 @@ export async function finalizeMeasurementToRevisionQuote({ odoo, originalQuote, 
     };
   }
 
-  // La medición es solo tomar las medidas del vano para que la vendedora las aplique (pedido
-  // explícito 2026-08-19) - acá no se calcula ni se persiste nada automático a partir de la
-  // medición. payload.dimensions del presupuesto (source_quote) es lo único que se usa, tal
-  // cual haya quedado despues de que la vendedora lo revisó y editó.
+  // Salvo la excepción puntual de ancho/alto por colocación de vano aplicada arriba
+  // (applyOfficialPortonDimensionsFromVanoPlacement), el resto de payload.dimensions del
+  // presupuesto (source_quote) sigue siendo el que cargó/editó la vendedora - no se calcula
+  // ni se persiste nada más automático a partir de la medición (pedido explícito 2026-08-19).
   const revisionQuote = await getOrCreateRevisionQuote({
     originalQuote,
     sourceQuote: base.source_quote,

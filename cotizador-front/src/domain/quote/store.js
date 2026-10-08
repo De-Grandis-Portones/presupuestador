@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useAuthStore } from "../auth/store.js";
 
 const EMPTY_CUSTOMER = {
   name: "",
@@ -51,6 +52,33 @@ function isShippingProductId(productId) {
 }
 function isDistributorOwnSupplyProductId(productId) {
   return DISTRIBUTOR_OWN_SUPPLY_PRODUCT_IDS.has(Number(productId));
+}
+// Formas de pago de cheque que se renombraron (ver HeaderBar.jsx) con un tramo
+// distinto segun a quien se le vende. Un presupuesto en borrador guardado antes
+// del cambio todavia trae el nombre viejo - sin esto, el nombre viejo no
+// coincide con ninguna fila de presupuestador_financing_settings y el recargo
+// se resuelve en 0% en vez del que corresponda. Se migra automaticamente al
+// cargar el presupuesto, asi que el proximo guardado (incluida la confirmacion)
+// ya persiste el nombre y el recargo nuevos.
+const LEGACY_CHEQUE_PAYMENT_METHOD_KEYS = {
+  "CHEQUES 0 30 60 90 120": "long",
+  "CHEQUE 0 30 60 90 120": "long",
+  "CHEQUES 0 30 60 90 120 150 180 210": "longExtended",
+  "CHEQUE 0 30 60 90 120 150 180 210": "longExtended",
+};
+const CHEQUE_DISTRIBUIDOR_CORTO = "Cheques 0 - 30 - 60 - 90";
+const CHEQUE_DISTRIBUIDOR_LARGO = "Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180";
+const CHEQUE_CONSUMIDOR_FINAL = "Cheques 0 - 30 - 60";
+function normalizeLegacyPaymentMethod(paymentMethod) {
+  const raw = String(paymentMethod || "").trim();
+  if (!raw) return raw;
+  const key = raw.toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  const legacyBracket = LEGACY_CHEQUE_PAYMENT_METHOD_KEYS[key];
+  if (!legacyBracket) return raw;
+  const user = useAuthStore.getState()?.user;
+  const isDistribuidor = !!(user?.is_distribuidor && !user?.is_vendedor);
+  if (legacyBracket === "longExtended") return isDistribuidor ? CHEQUE_DISTRIBUIDOR_LARGO : CHEQUE_CONSUMIDOR_FINAL;
+  return isDistribuidor ? CHEQUE_DISTRIBUIDOR_CORTO : CHEQUE_CONSUMIDOR_FINAL;
 }
 
 function dflexQuoteDebugEnabled() {
@@ -264,7 +292,7 @@ export const useQuoteStore = create((set, get) => ({
     const m = Number(payload?.margin_percent_ui ?? 0) || 0;
     const cond = String(payload?.condition_mode || "cond1");
     const condText = String(payload?.condition_text || "");
-    const pay = String(payload?.payment_method || "");
+    const pay = normalizeLegacyPaymentMethod(payload?.payment_method);
     const portonType = String(payload?.porton_type || "");
     const mappedLines = lines
       .map((l, idx) => {

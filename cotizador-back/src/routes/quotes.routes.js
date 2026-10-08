@@ -4,8 +4,8 @@ import { dbQuery } from "../db.js";
 import { ensureQuotesMeasurementColumns, QUOTE_LIST_COLUMNS_SQL } from "../quotesSchema.js";
 import { getCommercialFinalTolerancePercent } from "../settingsDb.js";
 import { commitQuoteProductionWeek, captureQuotedProductionEstimate } from "../productionPlanning.js";
-import { triggerPreproductionForClientAcceptance } from "../measurementFinalization.js";
-import { isLegacyImport, assertNotLegacyImport, finalizeLegacyAcopioToProduccion, completeLegacyAcopioToProduccion } from "../legacyImport.js";
+import { triggerPreproductionForClientAcceptance, finalizeMeasurementToRevisionQuote } from "../measurementFinalization.js";
+import { isLegacyImport, assertNotLegacyImport, finalizeLegacyAcopioToProduccion, completeLegacyAcopioToProduccion, buildLegacyNvLines } from "../legacyImport.js";
 import { getPriceFromPricelist } from "./odoo.routes.js";
 
 // Un presupuesto que requiere medición reserva su semana de producción recién cuando el
@@ -2216,25 +2216,61 @@ export function buildQuotesRouter(odoo) {
                order by q.created_at desc nulls last, q.id desc limit 200`;
       } else if (scope === "commercial_approved") {
         if (!u.is_enc_comercial) return res.status(403).json({ ok: false, error: "No autorizado" });
-        sql = `select q.*, u.username as created_by_username, u.full_name as created_by_full_name
-               from public.presupuestador_quotes q
-               left join public.presupuestador_users u on u.id = q.created_by_user_id
-               where ${onlyOriginal}
-                 and q.commercial_decision = 'approved'
-                 and (q.status not in ('pending_approvals', 'draft') or q.measurement_status = 'returned_to_seller')
-               order by q.commercial_at desc nulls last, q.id desc limit 200`;
+        // "Aprobados" ordena por fecha de aprobación y corta en 200 filas (performance) - un
+        // presupuesto viejo (aprobado hace meses, p.ej. porque recién ahora salió de acopio)
+        // queda fuera de esas 200 aunque esté perfectamente resuelto. Con texto de búsqueda,
+        // en cambio, se busca por nombre/dirección/referencia SIN el límite de recencia, para
+        // que lo encuentre igual (caso real: INP4249, Grivel Aberturas, 2026-10-05).
+        {
+          const search = toText(req.query.search || "");
+          const searchWhere = search ? `and (
+                   q.odoo_sale_order_name ilike $1
+                   or q.final_sale_order_name ilike $1
+                   or q.quote_number::text ilike $1
+                   or coalesce(q.end_customer->>'name','') ilike $1
+                   or coalesce(q.end_customer->>'city','') ilike $1
+                   or coalesce(q.end_customer->>'address','') ilike $1
+                   or coalesce(u.username,'') ilike $1
+                   or coalesce(u.full_name,'') ilike $1
+                 )` : "";
+          if (search) params = [`%${search}%`];
+          sql = `select q.*, u.username as created_by_username, u.full_name as created_by_full_name
+                 from public.presupuestador_quotes q
+                 left join public.presupuestador_users u on u.id = q.created_by_user_id
+                 where ${onlyOriginal}
+                   and q.commercial_decision = 'approved'
+                   and (q.status not in ('pending_approvals', 'draft') or q.measurement_status = 'returned_to_seller')
+                   ${searchWhere}
+                 order by q.commercial_at desc nulls last, q.id desc limit 200`;
+        }
       } else if (scope === "technical_approved") {
         if (!u.is_rev_tecnica) return res.status(403).json({ ok: false, error: "No autorizado" });
         // Sin payload/lines: son listados (no el detalle de un presupuesto puntual),
         // y payload en particular puede pesar ~200KB/fila TOASTeada — con 200 filas
         // esto pasó de ~15s a milisegundos (ver QUOTE_LIST_COLUMNS_SQL).
-        sql = `select ${QUOTE_LIST_COLUMNS_SQL}, u.username as created_by_username, u.full_name as created_by_full_name
-               from public.presupuestador_quotes q
-               left join public.presupuestador_users u on u.id = q.created_by_user_id
-               where ${onlyOriginal}
-                 and q.technical_decision = 'approved'
-                 and q.status not in ('pending_approvals', 'draft')
-               order by q.technical_at desc nulls last, q.id desc limit 200`;
+        // Mismo criterio de búsqueda que commercial_approved (ver comentario ahí).
+        {
+          const search = toText(req.query.search || "");
+          const searchWhere = search ? `and (
+                   q.odoo_sale_order_name ilike $1
+                   or q.final_sale_order_name ilike $1
+                   or q.quote_number::text ilike $1
+                   or coalesce(q.end_customer->>'name','') ilike $1
+                   or coalesce(q.end_customer->>'city','') ilike $1
+                   or coalesce(q.end_customer->>'address','') ilike $1
+                   or coalesce(u.username,'') ilike $1
+                   or coalesce(u.full_name,'') ilike $1
+                 )` : "";
+          if (search) params = [`%${search}%`];
+          sql = `select ${QUOTE_LIST_COLUMNS_SQL}, u.username as created_by_username, u.full_name as created_by_full_name
+                 from public.presupuestador_quotes q
+                 left join public.presupuestador_users u on u.id = q.created_by_user_id
+                 where ${onlyOriginal}
+                   and q.technical_decision = 'approved'
+                   and q.status not in ('pending_approvals', 'draft')
+                   ${searchWhere}
+                 order by q.technical_at desc nulls last, q.id desc limit 200`;
+        }
       } else if (scope === "commercial_acopio") {
         if (!u.is_enc_comercial) return res.status(403).json({ ok: false, error: "No autorizado" });
         sql = `select q.*, u.username as created_by_username, u.full_name as created_by_full_name
@@ -2420,7 +2456,43 @@ export function buildQuotesRouter(odoo) {
         distributorRows = distQ.rows || [];
       }
 
-      res.json({ ok: true, own: ownQ.rows || [], distributors: distributorRows });
+      // Devuelto por medición/técnica/comercial: el vendedor tiene que entrar, revisar la
+      // diferencia de superficie y confirmar de nuevo para que siga a Enc. Comercial - sin
+      // esto se queda trabado en 'draft' indefinidamente si nadie se da cuenta. Pedido
+      // explícito: sumar este aviso al mismo popup de "firma pendiente" (no uno nuevo),
+      // para que el vendedor vea todo lo que tiene que atender en un solo lugar.
+      const returnedSelect = `
+        select q.id, q.quote_number, q.odoo_sale_order_name,
+               q.end_customer, q.catalog_kind,
+               q.measurement_review_at, q.measurement_review_notes,
+               q.created_by_user_id, q.created_by_role,
+               u.username as created_by_username, u.full_name as created_by_full_name
+          from public.presupuestador_quotes q
+          join public.presupuestador_users u on u.id = q.created_by_user_id
+         where q.quote_kind = 'original'
+           and q.measurement_status = 'returned_to_seller'
+           and q.cancelled_at is null
+      `;
+      const returnedOwnQ = await dbQuery(
+        `${returnedSelect} and q.created_by_user_id = $1 order by q.measurement_review_at asc`,
+        [userId],
+      );
+      let returnedDistributorRows = [];
+      if (u.is_vendedor) {
+        const returnedDistQ = await dbQuery(
+          `${returnedSelect} and u.assigned_seller_user_id = $1 and coalesce(u.is_distribuidor, false) = true order by q.measurement_review_at asc`,
+          [userId],
+        );
+        returnedDistributorRows = returnedDistQ.rows || [];
+      }
+
+      res.json({
+        ok: true,
+        own: ownQ.rows || [],
+        distributors: distributorRows,
+        returned_own: returnedOwnQ.rows || [],
+        returned_distributors: returnedDistributorRows,
+      });
     } catch (e) { next(e); }
   });
 
@@ -2604,6 +2676,23 @@ export function buildQuotesRouter(odoo) {
         ? await computeEnvioOdooPriceSnapshot({ odoo, createdByRole: quote.created_by_role, pricelistId: nextPricelistId, lines: nextLines })
         : (quote.envio_odoo_price_snapshot ?? await computeEnvioOdooPriceSnapshot({ odoo, createdByRole: quote.created_by_role, pricelistId: nextPricelistId, lines: nextLines }));
 
+      // Si el presupuesto ya estaba confirmado y en Acopio y todavía no se guardó ningún
+      // "antes" para comparar, se captura ahora (una sola vez) - mismo campo/formato que ya
+      // usa el circuito de medición (buildCommercialDiffSnapshot en measurements.routes.js)
+      // para que Comercial, Técnica y el link de aceptación del cliente puedan mostrar qué
+      // cambió. Antes esto solo pasaba para presupuestos que requieren medición (porton/
+      // puerta en Acopio); Ipanel/Plegados/Otros en Acopio no la requieren, así que un
+      // cambio ahí quedaba invisible para quien lo tiene que aprobar después.
+      // Caso real: INP4249/INP4525.
+      const hasCommercialDiffSnapshot =
+        quote.measurement_commercial_diff_json
+        && typeof quote.measurement_commercial_diff_json === "object"
+        && Array.isArray(quote.measurement_commercial_diff_json.original_lines);
+      const nextCommercialDiffSnapshot =
+        quote.status === "synced_odoo" && quote.fulfillment_mode === "acopio" && !hasCommercialDiffSnapshot
+          ? { original_lines: quote.lines || [], original_payload: quote.payload || {}, captured_at: new Date().toISOString() }
+          : quote.measurement_commercial_diff_json;
+
       const upd = await dbQuery(
         `update public.presupuestador_quotes
             set fulfillment_mode=$2,
@@ -2621,6 +2710,7 @@ export function buildQuotesRouter(odoo) {
                 acopio_to_produccion_status=$14,
                 created_at=case when $15::boolean then now() else created_at end,
                 envio_odoo_price_snapshot=$16,
+                measurement_commercial_diff_json=$17::jsonb,
                 -- Fecha en que entro a produccion (ver comentario en quotesSchema.js): solo se
                 -- estampa la primera vez que pasa de no-produccion a produccion, y se limpia si
                 -- vuelve a acopio. Si ya estaba en produccion no se toca (no pisa una fecha vieja).
@@ -2652,7 +2742,54 @@ export function buildQuotesRouter(odoo) {
           nextAcopioStatus,
           isRefreshEmissionDate,
           envioOdooPriceSnapshot,
+          JSON.stringify(nextCommercialDiffSnapshot || null),
         ]
+      );
+      res.json({ ok: true, quote: upd.rows[0] });
+    } catch (e) { next(e); }
+  });
+
+  // Portón migrado del sistema anterior (ver legacyImport.js): permite corregir la
+  // ficha técnica y los datos del cliente ANTES de solicitar el paso de acopio a
+  // producción. Una vez solicitado (acopio_to_produccion_status != 'none') se
+  // bloquea, mismo criterio conservador que el resto del flujo legacy. No toca
+  // Odoo en ningún punto - solo actualiza la fila local.
+  router.put("/:id/legacy-ficha", requireSellerOrDistributor, async (req, res, next) => {
+    try {
+      const u = req.user;
+      const id = req.params.id;
+      const body = req.body || {};
+      const r = await dbQuery(`select * from public.presupuestador_quotes where id=$1`, [id]);
+      const quote = r.rows?.[0];
+      if (!quote) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
+      if (String(quote.created_by_user_id) !== String(u.user_id)) return res.status(403).json({ ok: false, error: "No sos dueño" });
+      if (!isLegacyImport(quote)) return res.status(400).json({ ok: false, error: "Este presupuesto no es un portón migrado del sistema anterior" });
+      if (String(quote.acopio_to_produccion_status || "none") !== "none") {
+        return res.status(409).json({ ok: false, error: "Ya se solicitó el paso a producción: no se puede editar la ficha." });
+      }
+
+      const nextEndCustomer = body.end_customer !== undefined ? body.end_customer : quote.end_customer;
+      const custErr = validateEndCustomerDraft(nextEndCustomer);
+      if (custErr) return res.status(400).json({ ok: false, error: custErr });
+
+      const prevFicha = (quote.payload && typeof quote.payload === "object" && quote.payload.legacy_ficha) || {};
+      const bodyFicha = (body.legacy_ficha && typeof body.legacy_ficha === "object") ? body.legacy_ficha : {};
+      const prevOpciones = Array.isArray(prevFicha.opciones) ? prevFicha.opciones : [];
+      const nextOpciones = Array.isArray(bodyFicha.opciones)
+        ? bodyFicha.opciones.map((o, i) => ({ ...(prevOpciones[i] || null), ...o }))
+        : prevFicha.opciones;
+      const nextFicha = { ...prevFicha, ...bodyFicha, opciones: nextOpciones };
+      const nextPayload = { ...(quote.payload || {}), legacy_ficha: nextFicha };
+      const nextLines = buildLegacyNvLines({ ...quote, payload: nextPayload });
+
+      const upd = await dbQuery(
+        `update public.presupuestador_quotes
+            set end_customer=$2::jsonb,
+                payload=$3::jsonb,
+                lines=$4::jsonb
+          where id=$1
+          returning *`,
+        [id, JSON.stringify(nextEndCustomer), JSON.stringify(nextPayload), JSON.stringify(nextLines)],
       );
       res.json({ ok: true, quote: upd.rows[0] });
     } catch (e) { next(e); }
@@ -2689,6 +2826,16 @@ export function buildQuotesRouter(odoo) {
         fulfillment_mode: fm,
         lines: quote.lines,
       });
+      // No pisar measurement_status si ya está en un estado activo del circuito de medición
+      // (p.ej. devuelto al vendedor por el medidor/técnica) - mismo criterio que el PUT de
+      // edición de arriba. Sin esto, re-confirmar un presupuesto devuelto (status vuelve a
+      // 'draft' a propósito para poder editarlo) reseteaba measurement_status a 'pending' y
+      // borraba en los hechos que la medición ya se había tomado - caso real: PNP9421/Ludmila,
+      // la medición quedó "perdida" para Técnica aunque measurement_form siguiera completo.
+      const currentMeasurementStatus = String(quote.measurement_status || "none").toLowerCase().trim();
+      const nextMeasurementStatus = ACTIVE_MEASUREMENT_WORKFLOW_STATUSES.includes(currentMeasurementStatus)
+        ? quote.measurement_status
+        : measurementFlow.measurement_status;
 
       const upd = await dbQuery(
         `update public.presupuestador_quotes
@@ -2723,7 +2870,7 @@ export function buildQuotesRouter(odoo) {
           "pending",
           "pending",
           measurementFlow.requires_measurement,
-          measurementFlow.measurement_status,
+          nextMeasurementStatus,
           measurementFlow.measurement_mode,
           measurementFlow.measurement_subtype,
         ]
@@ -2989,7 +3136,7 @@ export function buildQuotesRouter(odoo) {
     } catch (e) { next(e); }
   });
 
-  async function finalizeAcopioToProduccionIfReady(id) {
+  async function finalizeAcopioToProduccionIfReady(id, approverUser) {
     const cur = await dbQuery(`select * from public.presupuestador_quotes where id=$1 limit 1`, [id]);
     const quote = cur.rows?.[0];
     if (!quote) return null;
@@ -3031,7 +3178,42 @@ export function buildQuotesRouter(odoo) {
         measurementFlow.measurement_status,
       ]
     );
-    return upd.rows?.[0] || null;
+    let qFinal = upd.rows?.[0] || null;
+
+    // Cualquier catalog_kind que caiga en "tecnica_only"/sin_medicion (ipanel/plegados
+    // SIEMPRE, o un portón/puerta puntual que no tenga línea de "Servicio de Medición" en
+    // el presupuesto - ver getMeasurementFlowForQuote) nunca pasa por un medidor real: la
+    // aprobación técnica que acaba de pasar acá (Acopio -> Producción) YA ES la única
+    // aprobación técnica que necesitan. Antes quedaban con measurement_status='pending'
+    // esperando una SEGUNDA confirmación separada en el circuito de mediciones - invisible
+    // para Técnica en la práctica (casos reales: INP4249 Grivel Aberturas 2026-10-05, y
+    // NV4295 Gimena Alvarez 2026-10-07 - este último era un PORTÓN, no ipanel/plegados,
+    // así que el primer fix con la lista de catalog_kind no lo cubría). Ahora se finaliza
+    // directo acá para cualquier kind que de hecho sea tecnica_only: genera la copia,
+    // sincroniza a Odoo y dispara el link de aceptación al cliente - mismo efecto que
+    // POST /measurements/:id/review al aprobar.
+    if (qFinal && measurementFlow.measurement_mode === "tecnica_only") {
+      const updApproved = await dbQuery(
+        `update public.presupuestador_quotes
+            set measurement_status='approved',
+                measurement_review_by_user_id=$2,
+                measurement_review_at=now(),
+                measurement_review_notes=null,
+                measurement_commercial_review_required=false
+          where id=$1
+          returning *`,
+        [qFinal.id, Number(approverUser?.user_id || approverUser?.id || 0) || null]
+      );
+      qFinal = updApproved.rows?.[0] || qFinal;
+      try {
+        await finalizeMeasurementToRevisionQuote({ odoo, originalQuote: qFinal, measurementForm: qFinal?.measurement_form || {} });
+      } catch (e) {
+        console.error("[acopio->produccion] finalizeMeasurementToRevisionQuote (ipanel/plegados) fallo:", e?.message || e);
+      }
+      qFinal = (await dbQuery(`select * from public.presupuestador_quotes where id=$1`, [qFinal.id])).rows?.[0] || qFinal;
+    }
+
+    return qFinal;
   }
 
   router.post("/:id/acopio/review/commercial", requireRole("is_enc_comercial"), async (req, res, next) => {
@@ -3055,7 +3237,7 @@ export function buildQuotesRouter(odoo) {
 
       const upd1 = await dbQuery(`update public.presupuestador_quotes set acopio_to_produccion_commercial_decision='approved', acopio_to_produccion_commercial_by_user_id=$2, acopio_to_produccion_commercial_at=now(), acopio_to_produccion_commercial_notes=$3 where id=$1 and fulfillment_mode='acopio' and acopio_to_produccion_status='pending' and acopio_to_produccion_commercial_decision='pending' returning *`, [id, Number(u.user_id), notes ? String(notes) : null]);
       const q1 = upd1.rows?.[0] || quote;
-      let qFinal = await finalizeAcopioToProduccionIfReady(id);
+      let qFinal = await finalizeAcopioToProduccionIfReady(id, u);
       if (qFinal && isLegacyImport(qFinal)) {
         // Sin copia final ni NV en Odoo: reserva de semana + fila de preproducción para Planta.
         return res.json({ ok: true, quote: (await completeLegacyAcopioToProduccion(id)) || qFinal });
@@ -3100,7 +3282,7 @@ export function buildQuotesRouter(odoo) {
 
       const upd1 = await dbQuery(`update public.presupuestador_quotes set acopio_to_produccion_technical_decision='approved', acopio_to_produccion_technical_by_user_id=$2, acopio_to_produccion_technical_at=now(), acopio_to_produccion_technical_notes=$3 where id=$1 and fulfillment_mode='acopio' and acopio_to_produccion_status='pending' and acopio_to_produccion_technical_decision='pending' returning *`, [id, Number(u.user_id), notes ? String(notes) : null]);
       const q1 = upd1.rows?.[0] || quote;
-      let qFinal = await finalizeAcopioToProduccionIfReady(id);
+      let qFinal = await finalizeAcopioToProduccionIfReady(id, u);
       if (qFinal && isLegacyImport(qFinal)) {
         // Sin copia final ni NV en Odoo: reserva de semana + fila de preproducción para Planta.
         return res.json({ ok: true, quote: (await completeLegacyAcopioToProduccion(id)) || qFinal });

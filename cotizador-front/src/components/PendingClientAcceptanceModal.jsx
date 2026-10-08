@@ -82,7 +82,7 @@ function daysBadgeColor(days) {
   return { color: "var(--dg-success-text)", background: "var(--dg-success-bg)", border: "var(--dg-success-border)" };
 }
 
-function DaysPendingBadge({ dateStr }) {
+function DaysPendingBadge({ dateStr, unit = "sin firmar" }) {
   const days = daysSince(dateStr);
   const tone = daysBadgeColor(days);
   return (
@@ -91,10 +91,18 @@ function DaysPendingBadge({ dateStr }) {
         {days === null ? "—" : days}
       </div>
       <div style={{ fontSize: 11, fontWeight: 700, color: tone.color, whiteSpace: "nowrap" }}>
-        {days === 1 ? "día sin firmar" : "días sin firmar"}
+        {days === 1 ? `día ${unit}` : `días ${unit}`}
       </div>
     </div>
   );
+}
+
+function quoteEditorPath(q) {
+  const kind = String(q?.catalog_kind || "porton").toLowerCase();
+  if (kind === "ipanel") return `/cotizador/ipanel/${q.id}`;
+  if (kind === "plegados") return `/cotizador/plegados/${q.id}`;
+  if (kind === "otros") return `/cotizador/otros/${q.id}`;
+  return `/cotizador/${q.id}`;
 }
 
 function PendingItemRow({ quote, showOwner }) {
@@ -141,6 +149,44 @@ function PendingSection({ title, items, showOwner }) {
   );
 }
 
+// Devuelto por medición/técnica/comercial (measurement_status='returned_to_seller'): el
+// vendedor tiene que entrar, revisar la diferencia de superficie medida y confirmar de
+// nuevo para que el presupuesto siga a Enc. Comercial - sin este aviso puede quedar
+// trabado en borrador indefinidamente sin que nadie se dé cuenta.
+function ReturnedItemRow({ quote, showOwner, onGo }) {
+  const tone = daysBadgeColor(daysSince(quote?.measurement_review_at));
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, border: `1px solid ${tone.border}`, background: tone.background, borderRadius: 10, padding: "8px 12px" }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontWeight: 800 }}>{nvReference(quote)} · {quote?.end_customer?.name || "Cliente sin nombre"}</div>
+        <div className="muted" style={{ fontSize: 12 }}>
+          {quote?.end_customer?.city || ""}
+          {showOwner ? `${quote?.end_customer?.city ? " · " : ""}Distribuidor: ${quote?.created_by_full_name || quote?.created_by_username || "—"}` : ""}
+        </div>
+        {quote?.measurement_review_notes ? (
+          <div className="muted" style={{ fontSize: 12, marginTop: 2, fontStyle: "italic" }}>"{quote.measurement_review_notes}"</div>
+        ) : null}
+      </div>
+      <DaysPendingBadge dateStr={quote?.measurement_review_at} unit="sin revisar" />
+      <Button variant="ghost" onClick={() => onGo(quote)}>Revisar y confirmar</Button>
+    </div>
+  );
+}
+
+function ReturnedSection({ title, items, showOwner, onGo }) {
+  if (!items.length) return null;
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ fontWeight: 800, marginBottom: 8 }}>{title} ({items.length})</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 260, overflowY: "auto" }}>
+        {items.map((quote) => (
+          <ReturnedItemRow key={quote.id} quote={quote} showOwner={showOwner} onGo={onGo} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PendingClientAcceptanceModal() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
@@ -169,11 +215,18 @@ export default function PendingClientAcceptanceModal() {
 
   const own = pendingQ.data?.own || [];
   const distributors = pendingQ.data?.distributors || [];
-  const total = own.length + distributors.length;
+  const returnedOwn = pendingQ.data?.returned_own || [];
+  const returnedDistributors = pendingQ.data?.returned_distributors || [];
+  const total = own.length + distributors.length + returnedOwn.length + returnedDistributors.length;
 
   function dismiss() {
     if (storageKey && activeSlotKey) writeStoredSlot(storageKey, activeSlotKey);
     setDismissedSlotKey(activeSlotKey);
+  }
+
+  function goToReturned(quote) {
+    dismiss();
+    navigate(quoteEditorPath(quote));
   }
 
   // Si no hay nada pendiente, el slot igual se marca como consultado para no
@@ -201,26 +254,53 @@ export default function PendingClientAcceptanceModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ fontWeight: 900, fontSize: 23, color: "var(--dg-text)" }}>
-          Clientes con firma pendiente ({total})
-        </div>
-        <div style={{ fontSize: 15, marginTop: 6 }}>
-          Estas notas de venta ya tienen el link de aceptación enviado, pero el cliente todavía no firmó.
-        </div>
-        <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
-          Este aviso sale a las 9, 12 y 17 hs. Mientras tanto, el link está siempre disponible en <b>Mis presupuestos</b>, en la fila de cada cliente (🔗).
-        </div>
-        <div style={{ marginTop: 10, border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", borderRadius: 10, padding: "10px 12px", fontWeight: 800, fontSize: 14 }}>
-          ⚠️ El producto no ingresa a producción hasta que el cliente complete la aceptación.
+          Pendientes de atender ({total})
         </div>
 
-        {isVendedor ? (
+        {(own.length || distributors.length) ? (
           <>
-            <PendingSection title="Portones propios" items={own} showOwner={false} />
-            <PendingSection title="Portones de distribuidores" items={distributors} showOwner />
+            <div style={{ fontSize: 15, marginTop: 10, fontWeight: 800 }}>Firma del cliente pendiente</div>
+            <div style={{ fontSize: 14, marginTop: 2 }}>
+              Estas notas de venta ya tienen el link de aceptación enviado, pero el cliente todavía no firmó.
+            </div>
+            <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+              Este aviso sale a las 9, 12 y 17 hs. Mientras tanto, el link está siempre disponible en <b>Mis presupuestos</b>, en la fila de cada cliente (🔗).
+            </div>
+            <div style={{ marginTop: 8, border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", borderRadius: 10, padding: "10px 12px", fontWeight: 800, fontSize: 14 }}>
+              ⚠️ El producto no ingresa a producción hasta que el cliente complete la aceptación.
+            </div>
+
+            {isVendedor ? (
+              <>
+                <PendingSection title="Portones propios" items={own} showOwner={false} />
+                <PendingSection title="Portones de distribuidores" items={distributors} showOwner />
+              </>
+            ) : (
+              <PendingSection title="Pendientes de firma" items={own} showOwner={false} />
+            )}
           </>
-        ) : (
-          <PendingSection title="Pendientes de firma" items={own} showOwner={false} />
-        )}
+        ) : null}
+
+        {(returnedOwn.length || returnedDistributors.length) ? (
+          <>
+            <div style={{ fontSize: 15, marginTop: 18, fontWeight: 800 }}>Postmedición pendiente de revisar</div>
+            <div style={{ fontSize: 14, marginTop: 2 }}>
+              Técnica devolvió estos presupuestos: la medida final quedó distinta a lo presupuestado. Hay que revisarlos y confirmarlos de nuevo para que sigan a Enc. Comercial.
+            </div>
+            <div style={{ marginTop: 8, border: "1px solid var(--dg-warning-border)", background: "var(--dg-warning-bg)", color: "var(--dg-warning-text)", borderRadius: 10, padding: "10px 12px", fontWeight: 800, fontSize: 14 }}>
+              ⚠️ No avanzan a Comercial hasta que los confirmes de nuevo.
+            </div>
+
+            {isVendedor ? (
+              <>
+                <ReturnedSection title="Portones propios" items={returnedOwn} showOwner={false} onGo={goToReturned} />
+                <ReturnedSection title="Portones de distribuidores" items={returnedDistributors} showOwner onGo={goToReturned} />
+              </>
+            ) : (
+              <ReturnedSection title="Pendientes de revisar" items={returnedOwn} showOwner={false} onGo={goToReturned} />
+            )}
+          </>
+        ) : null}
 
         <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Button variant="ghost" onClick={() => { dismiss(); navigate("/presupuestos", { state: { filter: "produccion" } }); }}>Ver mis presupuestos</Button>

@@ -11,16 +11,24 @@ import { searchExistingCustomers } from "../../../api/quotes.js";
 
 const MULTIPLE_PAYMENT_METHOD = "Pago Multiple";
 const CARD_CATEGORY = "Tarjetas";
-const MAIN_PAYMENT_METHODS = [
-  MULTIPLE_PAYMENT_METHOD,
-  "Efectivo",
-  "Transferencia",
-  "Cta Cte",
-  "Cheques 30",
-  "Cheques 0 - 30 - 60 - 90 - 120",
-  "Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180 - 210",
-  CARD_CATEGORY,
-];
+const CHEQUE_30 = "Cheques 30";
+// Los cheques de plazo extendido difieren según a quién se le vende: el distribuidor
+// tiene un tramo corto sin recargo y uno largo con recargo; el consumidor final
+// (vendedor) solo tiene el tramo corto, más acotado que el del distribuidor.
+const CHEQUE_DISTRIBUIDOR_CORTO = "Cheques 0 - 30 - 60 - 90";
+const CHEQUE_DISTRIBUIDOR_LARGO = "Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180";
+const CHEQUE_CONSUMIDOR_FINAL = "Cheques 0 - 30 - 60";
+function buildMainPaymentMethods(isDistribuidor) {
+  return [
+    MULTIPLE_PAYMENT_METHOD,
+    "Efectivo",
+    "Transferencia",
+    "Cta Cte",
+    CHEQUE_30,
+    ...(isDistribuidor ? [CHEQUE_DISTRIBUIDOR_CORTO, CHEQUE_DISTRIBUIDOR_LARGO] : [CHEQUE_CONSUMIDOR_FINAL]),
+    CARD_CATEGORY,
+  ];
+}
 
 function normalizeKey(value) {
   return String(value || "")
@@ -56,6 +64,7 @@ function sortCardMethods(methods) {
     if (key.startsWith("CORDOBESA")) return 1;
     if (key.startsWith("NARANJA")) return 2;
     if (key.startsWith("OTRAS")) return 3;
+    if (key.startsWith("MERCADO PAGO")) return 4;
     return 9;
   };
   const installments = (value) => {
@@ -138,14 +147,17 @@ function paymentCategoryFromMethod(paymentMethod, categoryOverride = "") {
   if (key === normalizeKey("Efectivo")) return "Efectivo";
   if (key === normalizeKey("Transferencia")) return "Transferencia";
   if (key === normalizeKey("Cta Cte") || key === normalizeKey("Cuenta Corriente")) return "Cta Cte";
-  if (key === normalizeKey("Cheques 30") || key === normalizeKey("Cheque 30")) {
-    return "Cheques 30";
+  if (key === normalizeKey(CHEQUE_30)) {
+    return CHEQUE_30;
   }
-  if (key === normalizeKey("Cheques 0 - 30 - 60 - 90 - 120") || key === normalizeKey("Cheque 0 - 30 - 60 - 90 -120")) {
-    return "Cheques 0 - 30 - 60 - 90 - 120";
+  if (key === normalizeKey(CHEQUE_DISTRIBUIDOR_CORTO)) {
+    return CHEQUE_DISTRIBUIDOR_CORTO;
   }
-  if (key === normalizeKey("Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180 - 210") || key === normalizeKey("Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180")) {
-    return "Cheques 0 - 30 - 60 - 90 - 120 - 150 - 180 - 210";
+  if (key === normalizeKey(CHEQUE_DISTRIBUIDOR_LARGO)) {
+    return CHEQUE_DISTRIBUIDOR_LARGO;
+  }
+  if (key === normalizeKey(CHEQUE_CONSUMIDOR_FINAL)) {
+    return CHEQUE_CONSUMIDOR_FINAL;
   }
   return raw;
 }
@@ -405,12 +417,12 @@ export default function HeaderBar({ showMargin }) {
   const isMultiplePayment = isMultiplePaymentMethod(paymentMethod);
   const currentPaymentCategory = paymentCategoryFromMethod(paymentMethod, paymentCategoryOverride);
   const paymentCategoryOptions = useMemo(() => {
-    const options = [...MAIN_PAYMENT_METHODS];
+    const options = buildMainPaymentMethods(isDistribuidor);
     if (currentPaymentCategory && !options.some((x) => normalizeKey(x) === normalizeKey(currentPaymentCategory))) {
       options.push(currentPaymentCategory);
     }
     return options;
-  }, [currentPaymentCategory]);
+  }, [currentPaymentCategory, isDistribuidor]);
   const showCardSelector = currentPaymentCategory === CARD_CATEGORY;
   const allowsCondition2 = paymentAllowsCondition2(paymentMethod);
   const conditionValue = allowsCondition2 && conditionMode === "cond2" ? "cond2" : "cond1";

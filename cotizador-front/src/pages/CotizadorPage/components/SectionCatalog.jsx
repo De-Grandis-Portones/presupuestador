@@ -1144,7 +1144,33 @@ export default function SectionCatalog({ kind = "porton", onDownloadPresupuesto 
     }
   }, [visibleSections, openSectionId, catalogKind, setOpenSectionId, selectedProductIdsBySection]);
 
+  // "Otros" es un catálogo tipo "market" (productos sueltos por sección, sin flujo de
+  // dependencias secuenciales entre secciones - ver hasSectionFlowConfig) - el usuario pidió
+  // explícitamente poder elegir varios productos por sección, no solo uno (pedido 2026-10-07).
+  // Acá el click simplemente agrega/quita la línea, sin tocar otras selecciones de la sección
+  // ni de secciones siguientes (esa lógica de "sección única"/downstream es específica de
+  // portón/puerta/ipanel/plegados, que sí tienen un flujo configurador con dependencias).
+  function toggleProductForOtrosSection(sectionId, product) {
+    const currentSelected = selectedProductIdsBySection.get(Number(sectionId)) || new Set();
+    const targetProductId = Number(product?.id);
+    if (currentSelected.has(targetProductId)) {
+      forceRemoveLine(targetProductId);
+      return;
+    }
+    addLine({
+      ...product,
+      name: getProductLabel(product),
+      raw_name: getClientFacingProductName(product),
+    });
+    if (product?.no_permanent_stock) {
+      window.alert(
+        "El producto seleccionado no se encuentra en stock permanente. Los tiempos de producción pueden extenderse considerablemente."
+      );
+    }
+  }
+
   function selectProductForSection(sectionId, product) {
+    if (catalogKind === "otros") return toggleProductForOtrosSection(sectionId, product);
     const currentSelected = selectedProductIdsBySection.get(Number(sectionId)) || new Set();
     const targetProductId = Number(product?.id);
     dflexCatalogDebug("selectProductForSection:start", {
@@ -1458,7 +1484,9 @@ export default function SectionCatalog({ kind = "porton", onDownloadPresupuesto 
                               disabled={disabledForUser}
                               onClick={() => selectProductForSection(sectionId, product)}
                             >
-                              {isSelected ? "Elegido" : "Elegir"}
+                              {catalogKind === "otros"
+                                ? (isSelected ? "Quitar" : "Agregar")
+                                : (isSelected ? "Elegido" : "Elegir")}
                             </Button>
                           </div>
                         );
