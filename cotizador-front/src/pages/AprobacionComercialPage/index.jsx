@@ -16,6 +16,13 @@ import { isLegacyImport, legacyImportLabel } from "../../utils/legacyImport.js";
 import LegacyMigratedNote from "../../components/LegacyMigratedNote.jsx";
 
 const PAGE_SIZE = 25;
+// Un presupuesto cancelado (rol Administración, ver cancel-nv en quotes.routes.js) sigue
+// apareciendo en estos listados de "pendiente de acción" porque ninguno filtra cancelled_at -
+// pedido explícito del usuario: que no estorbe más, mostrándolo tachado y en rojo en vez de
+// sacarlo (para no perder trazabilidad, igual que ya hace PortonesEstadoPage).
+function cancelledRowStyle(r) {
+  return r?.cancelled_at ? { textDecoration: "line-through", color: "var(--dg-danger-text)" } : undefined;
+}
 const COMMERCIAL_TAB_LABELS = {
   aprobaciones_todos: "Todos",
   aprobaciones_portones: "Aprobación de Portones",
@@ -605,7 +612,7 @@ export default function AprobacionComercialPage() {
               {items.map((r) => {
                 const pdfKey = `quote-${r.id}`;
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} style={cancelledRowStyle(r)}>
                     <td>{fmtDate(r.created_at)}</td>
                     {showType ? <td>{catalogKindLabel(r)}</td> : null}
                     <td>{createdByLabel(r)}</td>
@@ -645,7 +652,7 @@ export default function AprobacionComercialPage() {
               {items.map((r) => {
                 const pdfKey = `quote-${r.id}`;
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} style={cancelledRowStyle(r)}>
                     <td>{fmtDate(productionSentAt(r))}</td>
                     <td>{createdByLabel(r)}</td>
                     <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -722,7 +729,7 @@ export default function AprobacionComercialPage() {
                   <thead><tr><th>Fecha</th><th>Vendedor/Distribuidor</th><th>Cliente</th><th>Dirección</th><th>Estado</th><th>NP/NV Odoo</th><th>Diferencia</th><th></th></tr></thead>
                   <tbody>
                     {visibleMedicionesRows.map((r) => (
-                      <tr key={r.id}>
+                      <tr key={r.id} style={cancelledRowStyle(r)}>
                         <td>{fmtDate(r.measurement_at || r.created_at)}</td>
                         <td>{createdByLabel(r)}</td>
                         <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -762,7 +769,7 @@ export default function AprobacionComercialPage() {
                         const canAct = (r.acopio_to_produccion_commercial_decision || "pending") === "pending";
                         const pdfKey = `quote-${r.id}`;
                         return (
-                          <tr key={r.id}>
+                          <tr key={r.id} style={cancelledRowStyle(r)}>
                             <td>{fmtDate(r.acopio_to_produccion_requested_at || r.created_at)}</td>
                             <td>{createdByLabel(r)}</td>
                             <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -806,7 +813,7 @@ export default function AprobacionComercialPage() {
                       {visibleAcopioListadoRows.map((r) => {
                         const pdfKey = `quote-${r.id}`;
                         return (
-                          <tr key={r.id}>
+                          <tr key={r.id} style={cancelledRowStyle(r)}>
                             <td>{fmtDate(r.confirmed_at || r.created_at)}</td>
                             <td>{createdByLabel(r)}</td>
                             <td>{r.end_customer?.name || <span className="muted">(sin nombre)</span>}<LegacyMigratedNote row={r} /></td>
@@ -854,7 +861,7 @@ export default function AprobacionComercialPage() {
                       const proformaKey = `proforma-${r.id}`;
                       const isDistribuidor = r.created_by_role === "distribuidor";
                       return (
-                        <tr key={r.id}>
+                        <tr key={r.id} style={cancelledRowStyle(r)}>
                           <td>{fmtDate(r.commercial_at || r.created_at)}</td>
                           <td>{catalogKindLabel(r)}</td>
                           <td>{createdByLabel(r)}</td>
