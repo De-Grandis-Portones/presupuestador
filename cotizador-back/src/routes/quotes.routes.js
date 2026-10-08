@@ -3180,15 +3180,19 @@ export function buildQuotesRouter(odoo) {
     );
     let qFinal = upd.rows?.[0] || null;
 
-    // Ipanel/Plegados nunca pasan por un medidor real (siempre "tecnica_only"/sin_medicion):
-    // la aprobación técnica que acaba de pasar acá (Acopio -> Producción) YA ES la única
+    // Cualquier catalog_kind que caiga en "tecnica_only"/sin_medicion (ipanel/plegados
+    // SIEMPRE, o un portón/puerta puntual que no tenga línea de "Servicio de Medición" en
+    // el presupuesto - ver getMeasurementFlowForQuote) nunca pasa por un medidor real: la
+    // aprobación técnica que acaba de pasar acá (Acopio -> Producción) YA ES la única
     // aprobación técnica que necesitan. Antes quedaban con measurement_status='pending'
     // esperando una SEGUNDA confirmación separada en el circuito de mediciones - invisible
-    // para Técnica en la práctica (caso real: INP4249, Grivel Aberturas, 2026-10-05). Ahora
-    // se finaliza directo acá: genera la copia, sincroniza a Odoo y dispara el link de
-    // aceptación al cliente - mismo efecto que POST /measurements/:id/review al aprobar.
-    const kind = String(qFinal?.catalog_kind || "").toLowerCase().trim();
-    if (qFinal && ["ipanel", "plegados"].includes(kind)) {
+    // para Técnica en la práctica (casos reales: INP4249 Grivel Aberturas 2026-10-05, y
+    // NV4295 Gimena Alvarez 2026-10-07 - este último era un PORTÓN, no ipanel/plegados,
+    // así que el primer fix con la lista de catalog_kind no lo cubría). Ahora se finaliza
+    // directo acá para cualquier kind que de hecho sea tecnica_only: genera la copia,
+    // sincroniza a Odoo y dispara el link de aceptación al cliente - mismo efecto que
+    // POST /measurements/:id/review al aprobar.
+    if (qFinal && measurementFlow.measurement_mode === "tecnica_only") {
       const updApproved = await dbQuery(
         `update public.presupuestador_quotes
             set measurement_status='approved',
