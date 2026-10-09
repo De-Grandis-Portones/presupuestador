@@ -6,7 +6,6 @@ import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
 import PaginationControls from "../../ui/PaginationControls.jsx";
 import { listQuotes, reviewAcopioTechnical } from "../../api/quotes.js";
-import { listDoors, reviewDoorTechnical } from "../../api/doors.js";
 import { listMeasurements, scheduleMeasurement } from "../../api/measurements.js";
 import { useAuthStore } from "../../domain/auth/store.js";
 import { downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
@@ -351,14 +350,6 @@ function quoteOdooReference(row) {
     row?.odoo_sale_order_name,
   ]).join(" / ");
 }
-function doorOdooReference(d) {
-  return uniqueNonEmpty([
-    d?.odoo_sale_order_name,
-    d?.odoo_purchase_order_name,
-    d?.record?.odoo_sale_order_name,
-    d?.record?.odoo_purchase_order_name,
-  ]).join(" / ");
-}
 function OdooReferenceCell({ value, row = null }) {
   if (row && isLegacyImport(row)) return <span title="Vendido en el sistema anterior: no tiene NP/NV en Odoo" style={{ fontWeight: 900, color: "var(--dg-warning-text)", background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{legacyImportLabel(row)}</span>;
   const text = String(value || "").trim();
@@ -478,12 +469,10 @@ export default function AprobacionTecnicaPage() {
   const acopioQ = useQuery({ queryKey: ["quotes", "technical_acopio"], queryFn: () => listQuotes({ scope: "technical_acopio" }), enabled: tab === "acopio" && !!user?.is_rev_tecnica });
   const acopioListadoQ = useQuery({ queryKey: ["quotes", "technical_acopio_all"], queryFn: () => listQuotes({ scope: "technical_acopio_all" }), enabled: tab === "acopio_listado" && !!user?.is_rev_tecnica });
   const produccionQ = useQuery({ queryKey: ["quotes", "production_sent", "technical", tab], queryFn: () => listQuotes({ scope: "production_sent" }), enabled: ["produccion", "produccion_ipanels", "produccion_puertas"].includes(tab) && !!user?.is_rev_tecnica });
-  const doorsQ = useQuery({ queryKey: ["doors", "technical_inbox"], queryFn: () => listDoors({ scope: "technical_inbox" }), enabled: tab === "aprobaciones_puertas" && !!user?.is_rev_tecnica });
   const measQ = useQuery({ queryKey: ["measurements", "tecnica", tab, measurementStatus], queryFn: () => listMeasurements({ status: "all", viewer: "tecnica" }), enabled: ["aprobaciones_mediciones", "aprobaciones_ipanels", "aprobaciones_plegados"].includes(tab) && !!user?.is_rev_tecnica });
   const aprobadosQ = useQuery({ queryKey: ["quotes", "technical_approved", searchText], queryFn: () => listQuotes({ scope: "technical_approved", search: searchText }), enabled: tab === "aprobados" && !!user?.is_rev_tecnica });
 
   const acopioM = useMutation({ mutationFn: ({ id, action, notes }) => reviewAcopioTechnical(id, { action, notes }), onSuccess: () => acopioQ.refetch() });
-  const doorM = useMutation({ mutationFn: ({ id, action, notes }) => reviewDoorTechnical(id, { action, notes }), onSuccess: () => doorsQ.refetch() });
   const scheduleM = useMutation({ mutationFn: ({ id, scheduledFor }) => scheduleMeasurement(id, { scheduledFor }), onSuccess: () => measQ.refetch() });
 
   const visibleTabKeys = TECHNICAL_TABS_BY_SECTION[approvalSection] || TECHNICAL_TABS_BY_SECTION.all;
@@ -541,6 +530,13 @@ export default function AprobacionTecnicaPage() {
   const ipanelRows = useMemo(() => approvalBaseRows.filter(isIpanelRow), [approvalBaseRows]);
   const plegadoRows = useMemo(() => approvalBaseRows.filter(isPlegadosRow), [approvalBaseRows]);
   const otrosRows = useMemo(() => approvalBaseRows.filter(isOtrosRow), [approvalBaseRows]);
+  // Antes esta pestaña leía de la tabla legacy "presupuestador_doors" (listDoors), que quedó
+  // completamente abandonada (0 filas) desde que "puerta" pasó a ser un catalog_kind más
+  // dentro de presupuestador_quotes - cualquier puerta nueva (ej. presupuesto 10832,
+  // comercial1, 2026-10-09) quedaba invisible acá para siempre. Se unifica con el mismo
+  // mecanismo que portón/ipanel/otros (approvalBaseRows ya trae catalog_kind='puerta', el
+  // backend de technical_inbox no lo filtra).
+  const puertaRows = useMemo(() => approvalBaseRows.filter(isPuertaQuoteRow), [approvalBaseRows]);
 
   const measurementRows = useMemo(() => {
     // Ipanel/plegados en producción no pasan por medidor (siempre "tecnica_only"): la
@@ -615,10 +611,6 @@ export default function AprobacionTecnicaPage() {
   const produccionIpanelRows = useMemo(() => productionBaseRows.filter(isIpanelRow), [productionBaseRows]);
   const produccionPuertasRows = useMemo(() => productionBaseRows.filter(isPuertaQuoteRow), [productionBaseRows]);
 
-  const doorRows = useMemo(() => {
-    return (doorsQ.data || []).slice().sort((a, b) => toTimeDesc(b?.created_at) - toTimeDesc(a?.created_at)).filter((d) => matchesSearch([d?.door_code, d?.record?.end_customer?.name, d?.record?.obra_cliente, d?.linked_quote_odoo_name, doorOdooReference(d), d?.record?.asociado_porton, d?.status], searchText));
-  }, [doorsQ.data, searchText]);
-
   function paged(arr, page) {
     const start = (page - 1) * PAGE_SIZE;
     return arr.slice(start, start + PAGE_SIZE);
@@ -636,7 +628,7 @@ export default function AprobacionTecnicaPage() {
   useEffect(() => { const total = Math.max(1, Math.ceil(acopioListadoRows.length / PAGE_SIZE)); if (pageAcopioListado > total) setPageAcopioListado(total); }, [acopioListadoRows.length, pageAcopioListado]);
   useEffect(() => { const total = Math.max(1, Math.ceil((tab === "produccion_puertas" ? produccionPuertasRows.length : produccionRows.length) / PAGE_SIZE)); if (pageProduccion > total) setPageProduccion(total); }, [produccionRows.length, produccionPuertasRows.length, pageProduccion, tab]);
   useEffect(() => { const total = Math.max(1, Math.ceil(produccionIpanelRows.length / PAGE_SIZE)); if (pageProduccionIpanels > total) setPageProduccionIpanels(total); }, [produccionIpanelRows.length, pageProduccionIpanels]);
-  useEffect(() => { const total = Math.max(1, Math.ceil(doorRows.length / PAGE_SIZE)); if (pagePuertas > total) setPagePuertas(total); }, [doorRows.length, pagePuertas]);
+  useEffect(() => { const total = Math.max(1, Math.ceil(puertaRows.length / PAGE_SIZE)); if (pagePuertas > total) setPagePuertas(total); }, [puertaRows.length, pagePuertas]);
 
   if (!user?.is_rev_tecnica) return <div className="container"><div className="card">No autorizado (falta rol Rev. Técnica).</div></div>;
 
@@ -653,7 +645,7 @@ export default function AprobacionTecnicaPage() {
   const visibleProduccion = paged(produccionRows, pageProduccion);
   const visibleProduccionIpanels = paged(produccionIpanelRows, pageProduccionIpanels);
   const visibleProduccionPuertas = paged(produccionPuertasRows, pageProduccion);
-  const visibleDoors = paged(doorRows, pagePuertas);
+  const visiblePuertas = paged(puertaRows, pagePuertas);
 
   const aprobadosRows = useMemo(() => {
     return (aprobadosQ.data || [])
@@ -926,21 +918,7 @@ export default function AprobacionTecnicaPage() {
           </>
         )}
 
-        {tab === "aprobaciones_puertas" && (
-          <>
-            {doorsQ.isLoading && <div className="muted">Cargando...</div>}
-            {doorsQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{doorsQ.error.message}</div>}
-            {!doorsQ.isLoading && !doorRows.length && <div className="muted">Sin puertas pendientes</div>}
-            {!!doorRows.length && (
-              <>
-                <table><thead><tr><th>Código</th><th>Cliente</th><th>Portón vinculado</th><th>Odoo</th><th>Venta</th><th>Compra</th><th></th></tr></thead><tbody>
-                  {visibleDoors.map((d) => <tr key={d.id}><td>{d.door_code}</td><td>{d.record?.end_customer?.name || d.record?.obra_cliente || "—"}</td><td>{d.linked_quote_odoo_name || d.record?.asociado_porton || "—"}</td><td><OdooReferenceCell value={doorOdooReference(d)} /></td><td>{d.sale_amount ? `$ ${Number(d.sale_amount).toLocaleString("es-AR")}` : "—"}</td><td>{d.purchase_amount ? `$ ${Number(d.purchase_amount).toLocaleString("es-AR")}` : "—"}</td><td className="right"><div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}><Button variant="ghost" onClick={() => navigate(`/puertas/${d.id}`)}>Abrir</Button><Button disabled={doorM.isPending} onClick={() => doorM.mutate({ id: d.id, action: "approve", notes: null })}>OK</Button><Button variant="ghost" disabled={doorM.isPending} onClick={() => { const msg = window.prompt("Motivo del rechazo:", ""); if (msg !== null) doorM.mutate({ id: d.id, action: "reject", notes: msg }); }}>Rechazar</Button></div></td></tr>)}
-                </tbody></table>
-                <PaginationControls page={pagePuertas} totalItems={doorRows.length} pageSize={PAGE_SIZE} onPageChange={setPagePuertas} />
-              </>
-            )}
-          </>
-        )}
+        {tab === "aprobaciones_puertas" && renderApprovalRows(visiblePuertas, puertaRows.length, pagePuertas, setPagePuertas, "Sin puertas pendientes", false)}
       </div>
     </div>
   );

@@ -6,10 +6,9 @@ import Button from "../../ui/Button.jsx";
 import Input from "../../ui/Input.jsx";
 import PaginationControls from "../../ui/PaginationControls.jsx";
 import { listQuotes, reviewAcopioCommercial } from "../../api/quotes.js";
-import { listDoors, reviewDoorCommercial } from "../../api/doors.js";
 import { listMeasurements } from "../../api/measurements.js";
 import { useAuthStore } from "../../domain/auth/store.js";
-import { downloadListingDoorPdf, downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
+import { downloadListingQuotePdf, downloadListingQuoteProformaPdf } from "../../utils/listingPdf.js";
 import { downloadPlegadoAttachment, formatPlegadoAttachmentMeta, getPlegadoAttachment, openPlegadoAttachment } from "../../utils/plegadoAttachment.js";
 import { computeCommercialLinesDiff } from "../../domain/quote/commercialDiff.js";
 import { isLegacyImport, legacyImportLabel } from "../../utils/legacyImport.js";
@@ -359,14 +358,6 @@ function quoteOdooReference(row) {
     row?.odoo_sale_order_name,
   ]).join(" / ");
 }
-function doorOdooReference(d) {
-  return uniqueNonEmpty([
-    d?.odoo_sale_order_name,
-    d?.odoo_purchase_order_name,
-    d?.record?.odoo_sale_order_name,
-    d?.record?.odoo_purchase_order_name,
-  ]).join(" / ");
-}
 function OdooReferenceCell({ value, row = null }) {
   if (row && isLegacyImport(row)) return <span title="Vendido en el sistema anterior: no tiene NP/NV en Odoo" style={{ fontWeight: 900, color: "var(--dg-warning-text)", background: "var(--dg-warning-bg)", border: "1px solid var(--dg-warning-border)", borderRadius: 999, padding: "3px 8px", whiteSpace: "nowrap" }}>{legacyImportLabel(row)}</span>;
   const text = String(value || "").trim();
@@ -439,7 +430,6 @@ export default function AprobacionComercialPage() {
   const acopioQ = useQuery({ queryKey: ["quotes", "commercial_acopio"], queryFn: () => listQuotes({ scope: "commercial_acopio" }), enabled: tab === "acopio" && !!user?.is_enc_comercial });
   const acopioListadoQ = useQuery({ queryKey: ["quotes", "commercial_acopio_all"], queryFn: () => listQuotes({ scope: "commercial_acopio_all" }), enabled: tab === "acopio_listado" && !!user?.is_enc_comercial });
   const produccionQ = useQuery({ queryKey: ["quotes", "production_sent", "commercial", tab], queryFn: () => listQuotes({ scope: "production_sent" }), enabled: ["produccion", "produccion_ipanels", "produccion_puertas"].includes(tab) && !!user?.is_enc_comercial });
-  const doorsQ = useQuery({ queryKey: ["doors", "commercial_inbox"], queryFn: () => listDoors({ scope: "commercial_inbox" }), enabled: tab === "puertas" && !!user?.is_enc_comercial });
   const medicionesQ = useQuery({
     queryKey: ["measurements", "commercial_review"],
     queryFn: () => listMeasurements({ status: "commercial_review", viewer: "comercial" }),
@@ -448,7 +438,6 @@ export default function AprobacionComercialPage() {
   const aprobadosQ = useQuery({ queryKey: ["quotes", "commercial_approved", searchText], queryFn: () => listQuotes({ scope: "commercial_approved", search: searchText }), enabled: tab === "aprobados" && !!user?.is_enc_comercial });
 
   const acopioM = useMutation({ mutationFn: ({ id, action, notes }) => reviewAcopioCommercial(id, { action, notes }), onSuccess: () => acopioQ.refetch() });
-  const doorM = useMutation({ mutationFn: ({ id, action, notes }) => reviewDoorCommercial(id, { action, notes }), onSuccess: () => doorsQ.refetch() });
   const visibleTabKeys = COMMERCIAL_TABS_BY_SECTION[approvalSection] || COMMERCIAL_TABS_BY_SECTION.all;
 
   function goToTab(nextTab) {
@@ -477,18 +466,6 @@ export default function AprobacionComercialPage() {
     }
   }
 
-  async function handleDownloadDoorPdf(id) {
-    const key = `door-${id}`;
-    setDownloadingPdfKey(key);
-    try {
-      await downloadListingDoorPdf(id);
-    } catch (e) {
-      toast.error(e?.message || "No se pudo descargar el PDF de puerta");
-    } finally {
-      setDownloadingPdfKey("");
-    }
-  }
-
   async function handleDownloadProformaPdf(id) {
     const key = `proforma-${id}`;
     setDownloadingPdfKey(key);
@@ -510,6 +487,13 @@ export default function AprobacionComercialPage() {
   const ipanelRows = useMemo(() => approvalBaseRows.filter(isIpanelRow), [approvalBaseRows]);
   const plegadoRows = useMemo(() => approvalBaseRows.filter(isPlegadosRow), [approvalBaseRows]);
   const otrosRows = useMemo(() => approvalBaseRows.filter(isOtrosRow), [approvalBaseRows]);
+  // Antes esta pestaña leía de la tabla legacy "presupuestador_doors" (listDoors), que quedó
+  // completamente abandonada (0 filas) desde que "puerta" pasó a ser un catalog_kind más
+  // dentro de presupuestador_quotes - cualquier puerta nueva (ej. presupuesto 10832,
+  // comercial1, 2026-10-09) quedaba invisible acá para siempre. Se unifica con el mismo
+  // mecanismo que portón/ipanel/otros (approvalBaseRows ya trae catalog_kind='puerta', el
+  // backend de commercial_inbox no lo filtra).
+  const puertaRows = useMemo(() => approvalBaseRows.filter(isPuertaQuoteRow), [approvalBaseRows]);
 
   const acopioRows = useMemo(() => {
     return (acopioQ.data || [])
@@ -537,13 +521,6 @@ export default function AprobacionComercialPage() {
   const produccionRows = useMemo(() => productionBaseRows.filter(isPortonLikeRow), [productionBaseRows]);
   const produccionIpanelRows = useMemo(() => productionBaseRows.filter(isIpanelRow), [productionBaseRows]);
   const produccionPuertasRows = useMemo(() => productionBaseRows.filter(isPuertaQuoteRow), [productionBaseRows]);
-
-  const doorRows = useMemo(() => {
-    return (doorsQ.data || [])
-      .slice()
-      .sort((a, b) => toTimeDesc(b?.created_at) - toTimeDesc(a?.created_at))
-      .filter((d) => matchesSearch([d?.door_code, d?.record?.end_customer?.name, d?.record?.obra_cliente, d?.linked_quote_odoo_name, doorOdooReference(d), d?.record?.asociado_porton, d?.status], searchText));
-  }, [doorsQ.data, searchText]);
 
   const medicionesRows = useMemo(() => {
     return (medicionesQ.data || [])
@@ -583,7 +560,7 @@ export default function AprobacionComercialPage() {
   const visibleProduccionRows = useMemo(() => produccionRows.slice((pageProduccion - 1) * PAGE_SIZE, pageProduccion * PAGE_SIZE), [produccionRows, pageProduccion]);
   const visibleProduccionIpanelRows = useMemo(() => produccionIpanelRows.slice((pageProduccionIpanels - 1) * PAGE_SIZE, pageProduccionIpanels * PAGE_SIZE), [produccionIpanelRows, pageProduccionIpanels]);
   const visibleProduccionPuertasRows = useMemo(() => produccionPuertasRows.slice((pageProduccion - 1) * PAGE_SIZE, pageProduccion * PAGE_SIZE), [produccionPuertasRows, pageProduccion]);
-  const visibleDoorRows = useMemo(() => doorRows.slice((pagePuertas - 1) * PAGE_SIZE, pagePuertas * PAGE_SIZE), [doorRows, pagePuertas]);
+  const visiblePuertas = useMemo(() => puertaRows.slice((pagePuertas - 1) * PAGE_SIZE, pagePuertas * PAGE_SIZE), [puertaRows, pagePuertas]);
   const visibleMedicionesRows = useMemo(() => medicionesRows.slice((pageMediciones - 1) * PAGE_SIZE, pageMediciones * PAGE_SIZE), [medicionesRows, pageMediciones]);
 
   const aprobadosRows = useMemo(() => {
@@ -892,44 +869,7 @@ export default function AprobacionComercialPage() {
           </>
         )}
 
-        {tab === "puertas" && (
-          <>
-            {doorsQ.isLoading && <div className="muted">Cargando...</div>}
-            {doorsQ.isError && <div style={{ color: "var(--dg-danger-text)", fontSize: 13 }}>{doorsQ.error.message}</div>}
-            {!doorsQ.isLoading && !doorRows.length && <div className="muted">Sin puertas pendientes</div>}
-            {!!doorRows.length && (
-              <>
-                <table>
-                  <thead><tr><th>Código</th><th>Cliente</th><th>Portón vinculado</th><th>Odoo</th><th>Venta</th><th>Compra</th><th></th></tr></thead>
-                  <tbody>
-                    {visibleDoorRows.map((d) => {
-                      const pdfKey = `door-${d.id}`;
-                      return (
-                        <tr key={d.id}>
-                          <td>{d.door_code}</td>
-                          <td>{d.record?.end_customer?.name || d.record?.obra_cliente || "—"}</td>
-                          <td>{d.linked_quote_odoo_name || d.record?.asociado_porton || "—"}</td>
-                          <td><OdooReferenceCell value={doorOdooReference(d)} /></td>
-                          <td>{d.sale_amount ? `$ ${Number(d.sale_amount).toLocaleString("es-AR")}` : "—"}</td>
-                          <td>{d.purchase_amount ? `$ ${Number(d.purchase_amount).toLocaleString("es-AR")}` : "—"}</td>
-                          <td className="right">
-                            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                              <PdfIconButton disabled={downloadingPdfKey === pdfKey} onClick={() => handleDownloadDoorPdf(d.id)} />
-                              <Button variant="ghost" onClick={() => navigate(`/puertas/${d.id}`)}>Abrir</Button>
-                              <Button disabled={doorM.isPending} onClick={() => doorM.mutate({ id: d.id, action: "approve", notes: null })}>OK</Button>
-                              <Button variant="ghost" disabled={doorM.isPending} onClick={() => { const msg = window.prompt("Motivo del rechazo:", ""); if (msg !== null) doorM.mutate({ id: d.id, action: "reject", notes: msg }); }}>Rechazar</Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <PaginationControls page={pagePuertas} totalItems={doorRows.length} pageSize={PAGE_SIZE} onPageChange={setPagePuertas} />
-              </>
-            )}
-          </>
-        )}
+        {tab === "puertas" && renderApprovalRows(visiblePuertas, puertaRows.length, pagePuertas, setPagePuertas, "Sin puertas pendientes", false)}
       </div>
     </div>
   );
