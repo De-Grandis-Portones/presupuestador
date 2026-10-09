@@ -263,6 +263,9 @@ export default function PendingClientAcceptanceModal() {
             <div style={{ fontSize: 14, marginTop: 2 }}>
               Estas notas de venta ya tienen el link de aceptación enviado, pero el cliente todavía no firmó.
             </div>
+            <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+              Este aviso sale a las 9, 12 y 17 hs. Mientras tanto, el link está siempre disponible en <b>Mis presupuestos</b>, en la fila de cada cliente (🔗).
+            </div>
             <div style={{ marginTop: 8, border: "1px solid var(--dg-danger-border)", background: "var(--dg-danger-bg)", color: "var(--dg-danger-text)", borderRadius: 10, padding: "10px 12px", fontWeight: 800, fontSize: 14 }}>
               ⚠️ El producto no ingresa a producción hasta que el cliente complete la aceptación.
             </div>
@@ -300,7 +303,7 @@ export default function PendingClientAcceptanceModal() {
         ) : null}
 
         <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button variant="ghost" onClick={() => { dismiss(); navigate("/presupuestos"); }}>Ver mis presupuestos</Button>
+          <Button variant="ghost" onClick={() => { dismiss(); navigate("/presupuestos", { state: { filter: "produccion" } }); }}>Ver mis presupuestos</Button>
           <Button onClick={dismiss}>Cerrar</Button>
         </div>
       </div>
