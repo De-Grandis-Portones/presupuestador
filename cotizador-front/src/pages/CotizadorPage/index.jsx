@@ -1203,8 +1203,22 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
     if (Number.isNaN(createdAt.getTime())) return true;
     return createdAt.getTime() >= SECTION_37_EXTRA_4208_CUTOFF_MS;
   }
+  // mode "per_m2": el precio que devuelve Odoo para esa linea YA es "por metro cuadrado
+  // de sistema" (2865 dice esto literalmente en su nombre) - se suma directo al precio
+  // por m2 de Coplanar/Clasico, así que escala con la superficie igual que el resto.
+  // mode "fixed": el monto es fijo, NO escala con la superficie del portón (pedido
+  // explícito del usuario para 4208, pese a que su nombre en Odoo copia el mismo texto
+  // "precio por metro cuadrado" de 2865 - ES un monto fijo igual) - para sumarlo sin que
+  // la multiplicación por m2 de más abajo lo infle, se prorratea dividiéndolo por la
+  // superficie ANTES de sumarlo al precio por m2 (así metros × precio_por_m2 da el monto
+  // fijo exacto, sin importar cuántos m2 tenga el portón).
+  function section37Extras() {
+    const extras = [{ product_id: 2865, mode: "per_m2" }];
+    if (shouldApplySection37VendorExtra() && quoteUses4208Extra()) extras.push({ product_id: 4208, mode: "fixed" });
+    return extras;
+  }
   function section37ExtraProductIds() {
-    return shouldApplySection37VendorExtra() && quoteUses4208Extra() ? [2865, 4208] : [2865];
+    return section37Extras().map((e) => e.product_id);
   }
   // sourceLines: lineas reales del presupuesto que se estan pidiendo en esta tanda
   // (siempre tienen product_id, sin importar el formato del pedido de precio de cada
@@ -1212,9 +1226,10 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
   // El precio base de Coplanar/Clasico SIEMPRE lleva sumado 2865 (y, desde el corte de
   // 4208, tambien 4208) para vendedores - si el vendedor TAMBIEN agrega Instalacion como
   // linea propia, esa linea se cobra aparte igual, sin tocarla ni pisarla (es
-  // intencional, no un bug). Ambos extras son precio fijo con min_quantity 0 en las 3
-  // listas (verificado por shell de Odoo para 2865; 4208 es $0 en Odoo) - no dependen de
-  // la cantidad pedida, asi que se piden siempre con qty:1.
+  // intencional, no un bug). Los dos tienen min_quantity 0 en las 3 listas (verificado
+  // por shell de Odoo para 2865; 4208 es $0 en Odoo) - no dependen de la cantidad
+  // pedida, asi que se piden siempre con qty:1 (el prorrateo de 4208 por superficie pasa
+  // despues, en mergeSection37VendorExtra, no en este pedido de precio).
   function withSection37ExtraLine(sourceLines, payloadLines) {
     const wireLines = Array.isArray(payloadLines) ? payloadLines : [];
     if (!shouldApplySection37VendorExtra()) return wireLines;
@@ -1223,16 +1238,30 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
     if (!hasSection37Line) return wireLines;
     return [...wireLines, ...section37ExtraProductIds().map((id) => ({ product_id: id, qty: 1 }))];
   }
-  function mergeSection37VendorExtra(pricesData) {
+  function mergeSection37VendorExtra(pricesData, sourceLines) {
     if (!shouldApplySection37VendorExtra()) return pricesData;
     const prices = Array.isArray(pricesData?.prices) ? pricesData.prices : [];
-    const extraTotal = section37ExtraProductIds().reduce((sum, id) => {
-      const entry = prices.find((p) => Number(p.product_id) === id);
-      return sum + Number(entry?.price || 0);
-    }, 0);
-    if (extraTotal <= 0) return pricesData;
+    const srcLines = Array.isArray(sourceLines) ? sourceLines : [];
+    const targetSourceLine = srcLines.find((l) => SECTION_37_PRODUCT_IDS.includes(Number(l.product_id)));
+    const areaM2 = Number(targetSourceLine?.qty || 0);
+    let extraPerM2Total = 0;
+    for (const extra of section37Extras()) {
+      const entry = prices.find((p) => Number(p.product_id) === extra.product_id);
+      const amount = Number(entry?.price || 0);
+      if (!amount) continue;
+      if (extra.mode === "fixed") {
+        // Sin el area del portón no se puede prorratear el monto fijo sin inflarlo (o
+        // directamente perderlo) - se omite en vez de arriesgar el calculo, el merge de
+        // 2865 sigue andando igual.
+        if (!(areaM2 > 0)) continue;
+        extraPerM2Total += amount / areaM2;
+      } else {
+        extraPerM2Total += amount;
+      }
+    }
+    if (extraPerM2Total <= 0) return pricesData;
     const target = prices.find((p) => SECTION_37_PRODUCT_IDS.includes(Number(p.product_id)));
-    if (target) target.price = Number(target.price || 0) + extraTotal;
+    if (target) target.price = Number(target.price || 0) + extraPerM2Total;
     return pricesData;
   }
   function normalizeNoteWithSeller(note) {
@@ -1597,7 +1626,7 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
         // local de precios (dura 24hs) que usa el resto del cotizador.
         force: true,
       };
-      const prices = mergeSection37VendorExtra(await getPrices(pricesPayload));
+      const prices = mergeSection37VendorExtra(await getPrices(pricesPayload), currentLines);
       const refreshedLines = mergeUpdatedBasePrices(currentLines, prices);
 
       setPricelist(refreshPricelist);
