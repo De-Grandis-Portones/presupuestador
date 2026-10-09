@@ -17,19 +17,22 @@ import { getPriceFromPricelist } from "./odoo.routes.js";
 // nunca vuelve a pasar por acá; no hay nada que distinguir a mano.
 
 function parseMeasurementProductIds(raw) {
-  return String(raw || "2865,2961,4229")
+  return String(raw || "2865,2961,4229,4208")
     .split(",")
     .map((item) => Number(String(item || "").trim()))
     .filter((item) => Number.isFinite(item) && item > 0);
 }
 // 2865/2961/4229 son variantes del mismo "Servicio de Medicion y Relevamiento"
-// (2961 = Portones, 4229 = duplicado dedicado de Puertas). Deben coincidir con la
-// misma lista usada en measurements.routes.js y quotesSchema.js: si un producto de
-// medicion queda afuera de esta lista, hasMeasurementLine no lo reconoce y el
-// presupuesto se manda como "tecnica_only" (sin pasar por el medidor) en vez de
+// (2961 = Portones, 4229 = duplicado dedicado de Puertas). 4208 ("Bonificación del
+// Servicio de Instalación", pedido explícito 2026-10-09) es el mismo servicio que 2865
+// pero a $0 - incluye relevamiento de medidas en obra igual que 2865, asi que un
+// porton con 4208 tambien tiene que entrar al circuito real de medición. Deben
+// coincidir con la misma lista usada en measurements.routes.js y quotesSchema.js: si un
+// producto de medicion queda afuera de esta lista, hasMeasurementLine no lo reconoce y
+// el presupuesto se manda como "tecnica_only" (sin pasar por el medidor) en vez de
 // "medidor", aunque el presupuesto SI tenga el servicio de medicion.
 const MEASUREMENT_PRODUCT_IDS = parseMeasurementProductIds(
-  process.env.ODOO_MEASUREMENT_PRODUCT_IDS || process.env.ODOO_MEASUREMENT_PRODUCT_ID || "2865,2961,4229",
+  process.env.ODOO_MEASUREMENT_PRODUCT_IDS || process.env.ODOO_MEASUREMENT_PRODUCT_ID || "2865,2961,4229,4208",
 );
 const PLACEHOLDER_PRODUCT_ID = Number(process.env.ODOO_PLACEHOLDER_PRODUCT_ID || 3575);
 const IPANEL_ACOPIO_PRODUCT_ID = Number(process.env.ODOO_IPANEL_ACOPIO_PRODUCT_ID || 3607);

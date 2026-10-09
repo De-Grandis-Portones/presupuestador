@@ -1163,15 +1163,20 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
   // Solo para Vendedores (nunca Distribuidores) y solo para presupuestos
   // creados desde el corte en adelante: al producto elegido en la seccion
   // "Tipo de portón" (Coplanar 3008 / Clásico 3009) se le suma, sin aparecer
-  // como linea aparte, el precio de Odoo del producto 2865 - queda mezclado
+  // como linea aparte, el precio de Odoo de 2865 - y, desde el 2026-10-09
+  // (pedido explícito, SOLO de ahora en adelante, ver
+  // SECTION_37_EXTRA_4208_CUTOFF_MS más abajo - no retroactivo a presupuestos
+  // ya creados), tambien el de 4208 ("Bonificación del Servicio de
+  // Instalación", mismo servicio que 2865 pero a $0 en Odoo) - queda mezclado
   // en el mismo precio por m2 que ya trae ese producto, asi que escala con
-  // la superficie del portón igual que el resto del precio.
+  // la superficie del portón igual que el resto del precio. Los dos extras se
+  // suman juntos (no uno reemplaza al otro) exactamente igual que ya pasaba
+  // con 2865 solo.
   // Todo se resuelve dentro del MISMO pedido de precios que ya se hacia
-  // (una linea sintetica de mas en el request), sin ningun round-trip ni
+  // (lineas sinteticas de mas en el request), sin ningun round-trip ni
   // await extra, para no correr el timing del resto del flujo (secciones
   // dependientes, etc.) ni un pelo respecto de como era antes.
   const SECTION_37_PRODUCT_IDS = [3008, 3009];
-  const SECTION_37_EXTRA_PRODUCT_ID = 2865;
   // Corte pedido explicitamente: los presupuestos creados hasta el 14/7/2026
   // (inclusive) tienen que seguir calculando exactamente como en main hoy -
   // esta funcionalidad solo aplica a presupuestos creados desde el 15/7/2026.
@@ -1187,29 +1192,47 @@ export default function CotizadorPage({ catalogKind = "porton" }) {
   function shouldApplySection37VendorExtra() {
     return resolveEffectiveRoleForPricing() === "vendedor" && quoteUsesNewPricingRules();
   }
+  // Corte propio para el agregado de 4208, distinto del de arriba: pedido explícito del
+  // usuario de que esto aplique "de ahora en adelante" solamente, sin tocar presupuestos
+  // ya creados (aunque sean posteriores al corte de 2865 del 15/7). Un presupuesto nuevo
+  // (sin created_at todavia) usa la fecha actual, igual que quoteUsesNewPricingRules.
+  const SECTION_37_EXTRA_4208_CUTOFF_MS = new Date("2026-10-09T00:00:00-03:00").getTime();
+  function quoteUses4208Extra() {
+    const createdAtRaw = quoteQ.data?.created_at || new Date().toISOString();
+    const createdAt = new Date(createdAtRaw);
+    if (Number.isNaN(createdAt.getTime())) return true;
+    return createdAt.getTime() >= SECTION_37_EXTRA_4208_CUTOFF_MS;
+  }
+  function section37ExtraProductIds() {
+    return shouldApplySection37VendorExtra() && quoteUses4208Extra() ? [2865, 4208] : [2865];
+  }
   // sourceLines: lineas reales del presupuesto que se estan pidiendo en esta tanda
   // (siempre tienen product_id, sin importar el formato del pedido de precio de cada
   // llamador) - se usan solo para decidir si corresponde agregar el extra.
-  // El precio base de Coplanar/Clasico SIEMPRE lleva sumada la instalacion (vendedores,
-  // desde el corte) - si el vendedor TAMBIEN agrega Instalacion como linea propia, esa
-  // linea se cobra aparte igual, sin tocarla ni pisarla (es intencional, no un bug).
-  // Instalacion (2865) es precio fijo con min_quantity 0 en las 3 listas (verificado por
-  // shell de Odoo) - no depende de la cantidad pedida, asi que se pide siempre con qty:1.
+  // El precio base de Coplanar/Clasico SIEMPRE lleva sumado 2865 (y, desde el corte de
+  // 4208, tambien 4208) para vendedores - si el vendedor TAMBIEN agrega Instalacion como
+  // linea propia, esa linea se cobra aparte igual, sin tocarla ni pisarla (es
+  // intencional, no un bug). Ambos extras son precio fijo con min_quantity 0 en las 3
+  // listas (verificado por shell de Odoo para 2865; 4208 es $0 en Odoo) - no dependen de
+  // la cantidad pedida, asi que se piden siempre con qty:1.
   function withSection37ExtraLine(sourceLines, payloadLines) {
     const wireLines = Array.isArray(payloadLines) ? payloadLines : [];
     if (!shouldApplySection37VendorExtra()) return wireLines;
     const srcLines = Array.isArray(sourceLines) ? sourceLines : [];
     const hasSection37Line = srcLines.some((l) => SECTION_37_PRODUCT_IDS.includes(Number(l.product_id)));
     if (!hasSection37Line) return wireLines;
-    return [...wireLines, { product_id: SECTION_37_EXTRA_PRODUCT_ID, qty: 1 }];
+    return [...wireLines, ...section37ExtraProductIds().map((id) => ({ product_id: id, qty: 1 }))];
   }
   function mergeSection37VendorExtra(pricesData) {
     if (!shouldApplySection37VendorExtra()) return pricesData;
     const prices = Array.isArray(pricesData?.prices) ? pricesData.prices : [];
-    const extraEntry = prices.find((p) => Number(p.product_id) === SECTION_37_EXTRA_PRODUCT_ID);
-    if (!extraEntry) return pricesData;
+    const extraTotal = section37ExtraProductIds().reduce((sum, id) => {
+      const entry = prices.find((p) => Number(p.product_id) === id);
+      return sum + Number(entry?.price || 0);
+    }, 0);
+    if (extraTotal <= 0) return pricesData;
     const target = prices.find((p) => SECTION_37_PRODUCT_IDS.includes(Number(p.product_id)));
-    if (target) target.price = Number(target.price || 0) + Number(extraEntry.price || 0);
+    if (target) target.price = Number(target.price || 0) + extraTotal;
     return pricesData;
   }
   function normalizeNoteWithSeller(note) {

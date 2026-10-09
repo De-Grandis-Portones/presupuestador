@@ -30,18 +30,20 @@ const PLACEHOLDER_PRODUCT_ID = Number(
   process.env.ODOO_PLACEHOLDER_PRODUCT_ID || 3575,
 );
 function parseMeasurementProductIds(raw) {
-  return String(raw || "2865,2961,4229")
+  return String(raw || "2865,2961,4229,4208")
     .split(",")
     .map((item) => Number(String(item || "").trim()))
     .filter((item) => Number.isFinite(item) && item > 0);
 }
 
 // 4229 = "Servicio de Medicion y Relevamiento" de Puertas (duplicado dedicado, antes
-// compartia el 2961 con Portones).
+// compartia el 2961 con Portones). 4208 = "Bonificación del Servicio de Instalación"
+// (mismo servicio que 2865, incluye relevamiento de medidas en obra, pero a $0 - pedido
+// explícito 2026-10-09): tiene que contar igual que 2865 para hasMeasurementLine.
 const MEASUREMENT_PRODUCT_IDS = parseMeasurementProductIds(
   process.env.ODOO_MEASUREMENT_PRODUCT_IDS ||
     process.env.ODOO_MEASUREMENT_PRODUCT_ID ||
-    "2865,2961,4229",
+    "2865,2961,4229,4208",
 );
 const IVA_RATE = 0.21;
 // 4230 = "Servicio de Traslado a destino" de Puertas (duplicado dedicado, antes
